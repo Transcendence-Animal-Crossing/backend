@@ -1,41 +1,57 @@
 import {
-  Entity,
-  PrimaryGeneratedColumn,
   Column,
-  ManyToOne,
-  JoinTable,
+  CreateDateColumn,
+  Entity,
   OneToMany,
-  ManyToMany,
+  PrimaryColumn,
+  UpdateDateColumn,
 } from 'typeorm';
-
-import { Room } from 'src/room/entities/room.entity';
-import { Message } from 'src/room/entities/message.entity';
+import { Game } from '../../game/game.entity';
 
 @Entity()
 export class User {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
-
-  @Column({ length: 20 })
-  username: string;
-
-  @Column({ length: 60 })
-  password: string;
+  @PrimaryColumn()
+  id: number;
 
   @Column()
-  avatar: string;
+  login: string;
 
   @Column()
-  is_admin: boolean;
+  email: string;
 
-  @JoinTable()
-  @ManyToOne(() => Room, (room: Room) => room.users)
-  room: Room;
+  @Column()
+  title: string;
 
-  @JoinTable()
-  @ManyToMany(() => Room, (room: Room) => room.bannedUsers, { eager: true })
-  bannedRooms: Array<Room>;
+  @Column()
+  win: number;
 
-  @OneToMany(() => Message, (message: Message) => message.user)
-  messages: Array<Message>;
+  @Column()
+  lose: number;
+
+  @Column()
+  two_factor_auth: boolean;
+
+  @OneToMany(() => Game, (game) => game.host)
+  hostGames: Game[];
+
+  @OneToMany(() => Game, (game) => game.guest)
+  guestGames: Game[];
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  static create(data: any, title: string): User {
+    const user = new User();
+    user.id = data.id;
+    user.login = data.login;
+    user.email = data.email;
+    user.title = title;
+    user.win = 0;
+    user.lose = 0;
+    user.two_factor_auth = false;
+    return user;
+  }
 }
