@@ -1,111 +1,44 @@
-import {
-  Injectable,
-  UnauthorizedException,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
+import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
-
-import { UserService } from 'src/user/user.service';
-
-import { User } from 'src/user/entities/user.entity';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { LoginUserDto } from 'src/user/dto/login-user.dto';
+import axios from 'axios';
 
 @Injectable()
 export class AuthService {
   constructor(
-    private readonly userService: UserService,
-    private readonly jwtService: JwtService,
+    private userService: UserService,
+    private jwtService: JwtService,
   ) {}
 
-  async singUp(userDto: CreateUserDto) {
-    const candidate = await this.userService.findOneByUsername(
-      userDto.username,
-    );
+  async getAccessToken(code: string): Promise<any> {
+    const getTokenUrl: string = 'https://api.intra.42.fr/oauth/token';
+    const request = {
+      code: code,
+      grant_type: 'authorization_code',
+      client_id: 'u-s4t2ud-e80da690cddde3d' + 'a8e17af2a1458d99e28169a63558faf52a154b2d85d627ea1',
+      client_secret: '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',
+      redirect_uri: 'http://localhost:3000/auth/callback',
+    };
+    const response = await axios.post(getTokenUrl, request);
 
-    if (candidate) return null;
+    return response.data.access_token;
+  }
 
-    const hashedPassword = await bcrypt.hash(userDto.password, 7);
-    const user = await this.userService.create({
-      ...userDto,
-      password: hashedPassword,
+  async getProfile(accessToken: string): Promise<any> {
+    const response = await axios.get('https://api.intra.42.fr/v2/me', {
+      headers: {
+        Authorization: 'Bearer ' + accessToken,
+      },
     });
-
-    const tokens = await this.generateTokens(user.id);
-
-    return tokens;
+    return response.data;
   }
 
-  async signIn(userDto: LoginUserDto) {
-    const user = await this.userService.findOneByUsername(userDto.username);
-
-    const tokens = await this.generateTokens(user.id);
-
-    return tokens;
+  verifyJwt(token: string) {
+    return this.jwtService.verify(token);
   }
 
-  async validateUser(userDto: LoginUserDto): Promise<User> {
-    const user = await this.userService.findOneByUsername(userDto.username);
-
-    if (!user) {
-      throw new NotFoundException(`There is no user under this username`);
-    }
-
-    const passwordEquals = await bcrypt.compare(
-      userDto.password,
-      user.password,
-    );
-
-    if (passwordEquals) return user;
-
-    throw new UnauthorizedException({ message: 'Incorrect password' });
-  }
-
-  verifyAccessToken(accessToken: string) {
-    try {
-      const payload = this.jwtService.verify(accessToken, {
-        secret: process.env.JWT_ACCESS_SECRET,
-      });
-
-      return payload;
-    } catch (err) {
-      return null;
-    }
-  }
-
-  verifyRefreshToken(refreshToken: string) {
-    const payload = this.jwtService.verify(refreshToken, {
-      secret: process.env.JWT_REFRESH_SECRET,
-    });
-
-    return payload;
-  }
-
-  async updateAccessToken(refreshToken: string) {
-    try {
-      const userId = this.verifyRefreshToken(refreshToken);
-
-      const tokens = await this.generateTokens(userId);
-
-      return tokens.accessToken;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  private async generateTokens(id: string) {
-    const payload = { id };
-
-    const accessToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_ACCESS_SECRET,
-      expiresIn: process.env.JWT_ACCESS_EXPIRE,
-    });
-    const refreshToken = this.jwtService.sign(payload, {
-      secret: process.env.JWT_REFRESH_SECRET,
-      expiresIn: process.env.JWT_REFRESH_EXPIRE,
-    });
-    const tokens = { accessToken, refreshToken };
-
-    return tokens;
+  async signJwt(userId: number): Promise<string> {
+    const payload = { id: userId };
+    return this.jwtService.sign(payload);
   }
 }

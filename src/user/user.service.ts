@@ -1,16 +1,7 @@
-import {
-  ForbiddenException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
-
+import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { Room } from 'src/room/entities/room.entity';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 
 @Injectable()
 export class UserService {
@@ -18,75 +9,43 @@ export class UserService {
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
-  async findAll() {
-    const users = await this.userRepository.find();
-
-    return users;
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find();
   }
 
-  async findOne(id: string) {
-    const user = await this.userRepository.findOne(id, {
-      relations: ['room'],
-    });
-
-    if (!user) {
-      throw new NotFoundException(`There is no user under id ${id}`);
-    }
-
+  async findById(id: number): Promise<User> {
+    const user = this.userRepository.findOneBy({ id: id });
+    if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
     return user;
   }
 
-  async findOneByUsername(username: string) {
-    const user = await this.userRepository.findOne({ username });
-
-    return user;
+  async findByName(name: string): Promise<User> {
+    return this.userRepository.findOneBy({ login: name });
   }
 
-  async create(createUserDto: CreateUserDto) {
-    const user = await this.userRepository.create({
-      ...createUserDto,
-    });
-
-    return this.userRepository.save(user);
-  }
-
-  async update(id: string, updateUserDto: UpdateUserDto) {
-    const user = await this.userRepository.preload({
-      id,
-      ...updateUserDto,
-    });
-
-    if (!user) {
-      throw new NotFoundException(`There is no user under id ${id}`);
+  async createOrUpdateUser(userPublicData: any): Promise<User> {
+    let title_id: number;
+    let title: string;
+    for (let i = 0; i < userPublicData.titles_users.length; i++) {
+      if (userPublicData.titles_users[i].selected === true) {
+        title_id = userPublicData.titles_users[i].title_id;
+        break;
+      }
     }
-
-    return this.userRepository.save(user);
-  }
-
-  async updateUserRoom(id: string, room: Room) {
-    const user = await this.userRepository.preload({
-      id,
-      room,
-    });
-
-    if (!user) {
-      throw new NotFoundException(`There is no user under id ${id}`);
+    for (let i = 0; i < userPublicData.titles.length; i++) {
+      if (userPublicData.titles[i].id === title_id) {
+        title = userPublicData.titles[i].name;
+        break;
+      }
     }
-
-    const isBanned = user.bannedRooms?.find(
-      (bannedRoom) => bannedRoom.id === room?.id,
-    );
-
-    if (isBanned) {
-      throw new ForbiddenException(`You have been banned from this room`);
-    }
-
-    return this.userRepository.save(user);
+    return this.userRepository.save(User.create(userPublicData, title));
   }
 
-  async remove(id: string) {
-    const user = await this.findOne(id);
-
-    return this.userRepository.remove(user);
-  }
+  // async login(loginDto: UserLoginDto): Promise<UserInfoDto> {
+  //   const findUser: User = await this.userRepository.findOneBy({ login: loginDto.name });
+  //   if (!findUser) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
+  //   if (findUser.password !== loginDto.password)
+  //     throw new NotFoundException('비밀번호가 일치하지 않습니다.');
+  //   return new UserInfoDto(findUser);
+  // }
 }
