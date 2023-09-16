@@ -2,6 +2,8 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
+import { Participant } from "../room/entities/participant.entity";
+import { Room } from "../room/entities/room.entity";
 
 @Injectable()
 export class UserService {
@@ -39,6 +41,28 @@ export class UserService {
       }
     }
     return this.userRepository.save(User.create(userPublicData, title));
+  }
+
+  async findRoomIdsByUserId(id: number) {
+    const participants: Array<Participant> = await this.findById(id).then(
+      (user) => user.participants,
+    );
+    // without map
+    const roomIds: Array<string> = [];
+    console.log('participants: ' + participants);
+    // for (let i = 0; i < participants.length; i++) {
+    //   roomIds.push(participants[i].roomId);
+    // }
+    // for (const participant of participants) {
+    //   roomIds.push(participant.roomId);
+    // }
+    return roomIds;
+  }
+
+  async updateUserRoom(user: User, room: Room) {
+
+
+    return this.userRepository.save(user);
   }
 
   // async login(loginDto: UserLoginDto): Promise<UserInfoDto> {

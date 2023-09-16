@@ -9,6 +9,9 @@ import { GameModule } from './game/game.module';
 import { ChatModule } from "./chat/chat.module";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
+import { JwtAuthGuard } from "./auth/guards/jwt-auth.guard";
+import { APP_GUARD } from "@nestjs/core";
+import { RoomModule } from "./room/room.module";
 // import { RoomModule } from './room/room.module';
 
 @Module({
@@ -31,9 +34,9 @@ import { AppService } from "./app.service";
     UserModule,
     AuthModule,
     GameModule,
-    // RoomModule,
+    RoomModule,
   ],
-  providers: [AppService],
+  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }, AppService],
   controllers: [AppController],
 })
 export class AppModule {}

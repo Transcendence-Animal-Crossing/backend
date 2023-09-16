@@ -1,4 +1,4 @@
-import { Controller, Get, Redirect, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Redirect, Query, Req, Res, HttpException } from "@nestjs/common";
 import { AuthService } from './auth.service';
 import { Public } from './guards/public';
 import { UserService } from '../user/user.service';
@@ -19,13 +19,20 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const accessToken: string = await this.authService.getAccessToken(code);
+    let accessToken: string;
+    try {
+      accessToken = await this.authService.getAccessToken(code);
+    } catch (AxiosError) {
+      throw new HttpException('Invalid or Already Used code', 400);
+    }
+
     const userPublicData: any = await this.authService.getProfile(accessToken);
     const user: User =
       await this.userService.createOrUpdateUser(userPublicData);
     const jwt: string = await this.authService.signJwt(user.id);
     res.cookie('jwt', jwt);
     console.log(jwt);
+    return jwt;
   }
 
   @Public()

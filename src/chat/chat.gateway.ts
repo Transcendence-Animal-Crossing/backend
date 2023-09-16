@@ -21,6 +21,7 @@ import { LeaveRoomDto } from './dto/leave-room.dto';
 import { KickUserDto } from './dto/kick-user.dto';
 import { BanUserDto } from './dto/ban-user.dto';
 import { User } from "../user/entities/user.entity";
+import { RoomService } from "../room/room.service";
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -33,12 +34,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
-    // private readonly roomService: RoomService,
+    private readonly roomService: RoomService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
     const cookies = parse(client.handshake.headers.cookie || '');
-    const payload = this.authService.verifyJwt(cookies.jwt);
+    let payload;
+    try {
+      payload = this.authService.verifyJwt(cookies.jwt);
+    } catch (TokenExpiredError) {
+      client.send('Token expired');
+      client.disconnect(true);
+      return;
+    }
 
     const user: User = payload && (await this.userService.findById(payload.id));
     if (!user) {
@@ -48,6 +56,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.connectedUsers.set(client.id, user.id);
     console.log('user: ' + user);
 
+    const roomIds = await this.userService.findRoomIdsByUserId(user.id);
+    if (roomIds) {
+      for (const roomId of roomIds) {
+        // client.join(roomId.toString());
+        await this.onRoomJoin(client, { roomId: Number(roomId) });
+      }
+    }
+
     // if (room) {
     //   return this.onRoomJoin(client, { roomId: room.id });
     // }
@@ -56,47 +72,48 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDisconnect(client: Socket) {
     this.connectedUsers.delete(client.id);
   }
+  // @SubscribeMessage('message')
+  // // handleMessage(client, data): void {} // client 직접적으로 사용하고 싶거나 decorator 사용 안 원하면 이렇게도 가능
+  // handleMessage(@MessageBody() message: string): void {
+  //   this.server.emit('message', message);
+  // }
+
   @SubscribeMessage('message')
-  // handleMessage(client, data): void {} // client 직접적으로 사용하고 싶거나 decorator 사용 안 원하면 이렇게도 가능
-  handleMessage(@MessageBody() message: string): void {
-    this.server.emit('message', message);
+  async onMessage(client: Socket, addMessageDto: AddMessageDto) {
+    const userId = this.connectedUsers.get(client.id);
+    // const user: User = await this.userService.findById(userId);
+    // if (this.userService.isParticipant(user, addMessageDto.roomId))
+    //   throw new ForbiddenException(`You are not a member of this room!`);
+    const { text, roomId } = addMessageDto;
+    console.log('roomId: ' + roomId);
+    console.log('text: ' + text);
+
+    await this.roomService.addMessage(userId, roomId, text);
+    client
+      .to(addMessageDto.roomId.toString())
+      .emit('message', addMessageDto.text);
+  }
+
+  @SubscribeMessage('join')
+  async onRoomJoin(client: Socket, joinRoomDto: JoinRoomDto) {
+    const { roomId } = joinRoomDto;
+    const limit = 10;
+
+    const room = await this.roomService.findById(roomId);
+
+    if (!room) return;
+
+    const userId = this.connectedUsers.get(client.id);
+    const messages = room.messages.slice(limit * -1);
+
+    const user = await this.userService.findById(userId);
+    await this.userService.updateUserRoom(user, room);
+
+    client.join(roomId.toString());
+
+    client.emit('message', messages);
   }
 }
-//   @SubscribeMessage('message')
-//   async onMessage(client: Socket, addMessageDto: AddMessageDto) {
-//     const userId = this.connectedUsers.get(client.id);
-//     const user = await this.userService.findOne(userId);
-//
-//     if (!user.room) {
-//       return;
-//     }
-//
-//     addMessageDto.userId = userId;
-//     addMessageDto.roomId = user.room.id;
-//
-//     await this.roomService.addMessage(addMessageDto);
-//
-//     client.to(user.room.id).emit('message', addMessageDto.text);
-//   }
-//
-//   @SubscribeMessage('join')
-//   async onRoomJoin(client: Socket, joinRoomDto: JoinRoomDto) {
-//     const { roomId } = joinRoomDto;
-//     const limit = 10;
-//
-//     const room = await this.roomService.findOneWithRelations(roomId);
-//
-//     if (!room) return;
-//
-//     const userId = this.connectedUsers.get(client.id);
-//     const messages = room.messages.slice(limit * -1);
-//
-//     await this.userService.updateUserRoom(userId, room);
-//
-//     client.join(roomId);
-//
-//     client.emit('message', messages);
-//   }
 //
 //   @SubscribeMessage('leave')
 //   async onRoomLeave(client: Socket, leaveRoomDto: LeaveRoomDto) {
