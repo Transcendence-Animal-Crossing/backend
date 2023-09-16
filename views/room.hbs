@@ -17,13 +17,17 @@
     <script>
         const socket = io('http://localhost:3000', { transports: ['websocket'] });
 
+        const url = new URL(window.location.href);
+        const segments = url.pathname.split('/');
+        const roomId = segments[segments.length - 1];
+
         const message = document.getElementById('message');
         const messages = document.getElementById('messages');
 
         const handleSubmitNewMessage = () => {
           // socket.emit('message', { data: message.value }); // 클라이언트에서 서버로 이벤트를 발생시킨다
           // emit json form
-          socket.emit('message', { text: message.value, roomId: 1});
+          socket.emit('message', { text: message.value, roomId: roomId});
         };
 
         // socket.on은 클라이언트단에서 발생한 이벤트를 선택적으로 캐치하여 이벤트 핸들러를 등록함

@@ -7,6 +7,8 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { Game } from '../../game/game.entity';
+import { Participant } from '../../room/entities/participant.entity';
+import { Message } from "../../room/entities/message.entity";
 
 @Entity()
 export class User {
@@ -42,6 +44,12 @@ export class User {
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  @OneToMany(() => Participant, (participant) => participant.user)
+  participants: Array<Participant>;
+
+  @OneToMany(() => Message, (message) => message.user)
+  messages: Array<Message>;
 
   static create(data: any, title: string): User {
     const user = new User();

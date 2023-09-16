@@ -1,37 +1,29 @@
-// import {
-//   Entity,
-//   PrimaryGeneratedColumn,
-//   Column,
-//   OneToMany,
-//   ManyToMany,
-// } from 'typeorm';
-//
-// import { User } from 'src/user/entities/user.entity';
-// import { Message } from './message.entity';
-//
-// @Entity()
-// export class Room {
-//   @PrimaryGeneratedColumn('uuid')
-//   id: string;
-//
-//   @Column({ length: 20 })
-//   name: string;
-//
-//   @Column({ length: 60 })
-//   description: string;
-//
-//   @Column()
-//   avatar: string;
-//
-//   @Column('uuid')
-//   ownerId: string;
-//
-//   @OneToMany(() => User, (user: User) => user.room)
-//   users: Array<User>;
-//
-//   @ManyToMany(() => User, (user: User) => user.bannedRooms)
-//   bannedUsers: Array<User>;
-//
-//   @OneToMany(() => Message, (message: Message) => message.room)
-//   messages: Array<Message>;
-// }
+import { Entity, Column, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Message } from './message.entity';
+import { Participant } from './participant.entity';
+
+@Entity()
+export class Room {
+  constructor(name: string, ownerId: number) {
+    this.name = name;
+    this.ownerId = ownerId;
+  }
+
+  @PrimaryGeneratedColumn()
+  id: number;
+
+  @Column()
+  name: string;
+
+  @Column()
+  ownerId: number;
+
+  // @Column('int', { array: true })
+  // bannedIds: number[];
+
+  @OneToMany(() => Message, (message: Message) => message.room)
+  messages: Array<Message>;
+
+  @OneToMany(() => Participant, (participant) => participant.room)
+  participants: Array<Participant>;
+}

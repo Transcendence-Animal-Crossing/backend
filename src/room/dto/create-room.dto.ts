@@ -1,16 +1,9 @@
-import { IsOptional, IsString } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateRoomDto {
-  @IsString()
-  readonly name: string;
+  @ApiProperty({ description: '방 이름'})
+  name: string;
 
-  @IsString()
-  readonly description: string;
-
-  @IsString()
-  readonly avatar: string;
-
-  @IsOptional()
-  @IsString()
-  ownerId?: string;
+  @ApiProperty({ description: '방장 id'})
+  ownerId: number;
 }
