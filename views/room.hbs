@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>WebSocket Client</title>
+    <title>Room: {{ roomId }}</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js" integrity="sha512-zoJXRvW2gC8Z0Xo3lBbao5+AS3g6YWr5ztKqaicua11xHo+AvE1b0lT9ODgrHTmNUxeCw0Ry4BGRYZfXu70weg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
@@ -20,6 +20,8 @@
         const url = new URL(window.location.href);
         const segments = url.pathname.split('/');
         const roomId = segments[segments.length - 1];
+
+        socket.emit('join', { roomId: roomId });
 
         const message = document.getElementById('message');
         const messages = document.getElementById('messages');

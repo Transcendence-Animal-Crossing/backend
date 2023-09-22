@@ -3,14 +3,17 @@ import {
   PrimaryGeneratedColumn,
   ManyToOne,
   JoinColumn,
-  Column,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 import { Room } from './room.entity';
 
 @Entity()
 export class Participant {
-  @PrimaryGeneratedColumn('uuid')
+  constructor(user: User, room: Room) {
+    this.user = user;
+    this.room = room;
+  }
+  @PrimaryGeneratedColumn()
   id: number;
 
   @ManyToOne(() => User, (user) => user.participants)
@@ -20,10 +23,4 @@ export class Participant {
   @ManyToOne(() => Room, (room) => room.participants)
   @JoinColumn({ name: 'roomId' })
   room: Room;
-
-  @Column()
-  userId: number;
-
-  @Column('uuid')
-  roomId: string;
 }

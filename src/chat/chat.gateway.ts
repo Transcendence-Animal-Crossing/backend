@@ -5,8 +5,8 @@ import {
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer
-} from "@nestjs/websockets";
+  WebSocketServer,
+} from '@nestjs/websockets';
 
 import { Socket } from 'socket.io';
 import { parse } from 'cookie';
@@ -20,8 +20,10 @@ import { JoinRoomDto } from './dto/join-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { KickUserDto } from './dto/kick-user.dto';
 import { BanUserDto } from './dto/ban-user.dto';
-import { User } from "../user/entities/user.entity";
-import { RoomService } from "../room/room.service";
+import { User } from '../user/entities/user.entity';
+import { RoomService } from '../room/room.service';
+import { Room } from '../room/entities/room.entity';
+import { Participant } from '../room/entities/participant.entity';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -48,7 +50,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
 
-    const user: User = payload && (await this.userService.findById(payload.id));
+    const user: User = payload && (await this.userService.findOne(payload.id));
     if (!user) {
       client.disconnect(true);
       return;
@@ -59,11 +61,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const roomIds = await this.userService.findRoomIdsByUserId(user.id);
     if (roomIds) {
       for (const roomId of roomIds) {
-        // client.join(roomId.toString());
-        await this.onRoomJoin(client, { roomId: Number(roomId) });
+        client.join(roomId.toString());
+        // await this.onRoomJoin(client, { roomId: Number(roomId) });
       }
     }
-
     // if (room) {
     //   return this.onRoomJoin(client, { roomId: room.id });
     // }
@@ -96,21 +97,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('join')
   async onRoomJoin(client: Socket, joinRoomDto: JoinRoomDto) {
+    console.log('join() joinRoomDto: ' + joinRoomDto);
     const { roomId } = joinRoomDto;
     const limit = 10;
 
-    const room = await this.roomService.findById(roomId);
+    const room = await this.roomService.findById(Number(roomId));
+    const user = await this.userService.findOneWithParticipants(
+      this.connectedUsers.get(client.id),
+    );
+    if (!user || !room) return;
+    console.log('join() user: ' + user);
+    console.log('join() room: ' + room);
 
-    if (!room) return;
-
-    const userId = this.connectedUsers.get(client.id);
+    await this.roomService.joinRoom(user, room);
     const messages = room.messages.slice(limit * -1);
 
-    const user = await this.userService.findById(userId);
-    await this.userService.updateUserRoom(user, room);
-
     client.join(roomId.toString());
-
     client.emit('message', messages);
   }
 }

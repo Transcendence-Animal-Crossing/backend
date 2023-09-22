@@ -36,9 +36,10 @@ export class RoomController {
   @Post()
   async create(
     @Req() req: RequestWithUser,
-    @Body('name') name: string, @Body('ownerId') ownerId: number,
+    @Body('name') name: string,
   ) {
-    return this.roomService.create(name, ownerId);
+    // return this.roomService.create(name, req.user.id);
+    this.roomService.create(name, req.user.id);
   }
 
   // @UseGuards(OwnershipGuard)
