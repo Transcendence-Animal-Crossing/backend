@@ -15,8 +15,17 @@ export class UserService {
     return this.userRepository.find();
   }
 
-  async findById(id: number): Promise<User> {
+  async findOne(id: number): Promise<User> {
     const user = this.userRepository.findOneBy({ id: id });
+    if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
+    return user;
+  }
+
+  async findOneWithParticipants(id: number): Promise<User> {
+    const user = this.userRepository.findOne({
+      where: { id: id },
+      relations: ['participants'],
+    });
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
     return user;
   }
@@ -44,7 +53,7 @@ export class UserService {
   }
 
   async findRoomIdsByUserId(id: number) {
-    const participants: Array<Participant> = await this.findById(id).then(
+    const participants: Array<Participant> = await this.findOne(id).then(
       (user) => user.participants,
     );
     // without map
@@ -59,11 +68,17 @@ export class UserService {
     return roomIds;
   }
 
-  async updateUserRoom(user: User, room: Room) {
-
-
-    return this.userRepository.save(user);
-  }
+  // async updateUserRoom(user: User, room: Room) {
+  //   const isBanned = user.bannedRooms?.find(
+  //     (bannedRoom) => bannedRoom.id === room?.id,
+  //   );
+  //
+  //   if (isBanned) {
+  //     throw new ForbiddenException(`You have been banned from this room`);
+  //   }
+  //
+  //   return this.userRepository.save(user);
+  // }
 
   // async login(loginDto: UserLoginDto): Promise<UserInfoDto> {
   //   const findUser: User = await this.userRepository.findOneBy({ login: loginDto.name });

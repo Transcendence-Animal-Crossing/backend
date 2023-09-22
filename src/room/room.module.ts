@@ -9,9 +9,13 @@ import { RoomController } from './room.controller';
 import { RoomService } from './room.service';
 import { Participant } from './entities/participant.entity';
 import { UserModule } from '../user/user.module';
+import { User } from "../user/entities/user.entity";
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Room, Message, Participant]), UserModule],
+  imports: [
+    TypeOrmModule.forFeature([Room, Participant, User, Message]),
+    UserModule,
+  ],
   controllers: [RoomController],
   providers: [RoomService],
   exports: [RoomService],

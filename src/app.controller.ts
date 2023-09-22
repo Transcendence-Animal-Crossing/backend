@@ -1,14 +1,20 @@
-import { Controller, Get, Render } from '@nestjs/common';
+import { Controller, Get, Param, Render } from "@nestjs/common";
 import { AppService } from './app.service';
 import { RoomService } from './room/room.service';
+import { UserService } from "./user/user.service";
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService, private readonly roomService: RoomService) {}
+  constructor(private readonly appService: AppService, private readonly roomService: RoomService, private readonly userService: UserService) {}
 
   @Get('/')
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('/user')
+  getUsers() {
+    return this.userService.findAll();
   }
 
   @Get('/index')
@@ -31,7 +37,7 @@ export class AppController {
 
   @Get('/chat/:id')
   @Render('room')
-  room() {
-    return { rooms: this.roomService.findAll() };
+  room(@Param('id') id: number) {
+    return { roomId: id };
   }
 }

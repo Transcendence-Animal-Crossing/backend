@@ -23,12 +23,13 @@
       });
   });
 
+
   function populateRooms(rooms) {
     const roomList = document.getElementById('roomList');
 
     rooms.forEach(room => {
       const roomElement = document.createElement('li');
-      roomElement.innerHTML = `<strong>${room.name}</strong> (Owned by: ${room.ownerId})`;
+      roomElement.innerHTML = `<strong>${room.name}</strong> (Owned by: ${room.ownerId}) - ${room.participants.length}`;
 
       const viewButton = document.createElement('button');
       viewButton.innerText = "View Room";
