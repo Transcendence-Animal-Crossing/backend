@@ -1,30 +1,12 @@
-import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Req,
-  UseGuards,
-} from '@nestjs/common';
-
-import { RequestWithUser } from './interfaces/request-with-user.interface';
-import { CreateRoomDto } from './dto/create-room.dto';
-import { UpdateRoomDto } from './dto/update-room.dto';
-
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { RoomService } from './room.service';
-
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-// import { OwnershipGuard } from './guards/ownership.guard';
 
 @Controller('room')
 export class RoomController {
   constructor(private readonly roomService: RoomService) {}
 
   @Get(':id')
-  async findOne(@Param('id') id: number) {
+  async findOne(@Param('id') id: string) {
     return this.roomService.findById(id);
   }
 
@@ -34,27 +16,7 @@ export class RoomController {
   }
 
   @Post()
-  async create(
-    @Req() req: RequestWithUser,
-    @Body('name') name: string,
-  ) {
-    // return this.roomService.create(name, req.user.id);
-    this.roomService.create(name, req.user.id);
+  async create(@Req() req, @Body('name') name: string) {
+    await this.roomService.create(name, req.user.id);
   }
-
-  // @UseGuards(OwnershipGuard)
-  // @Patch(':id')
-  // async update(
-  //   @Param('id') id: string,
-  //   @Req() req: RequestWithUser,
-  //   @Body() updateRoomDto: UpdateRoomDto,
-  // ) {
-  //   return this.roomService.update(id, updateRoomDto);
-  // }
-
-  // @UseGuards(JwtAuthGuard, OwnershipGuard)
-  // @Delete(':id')
-  // async remove(@Param('id') id: string) {
-  //   return this.roomService.remove(id);
-  // }
 }
