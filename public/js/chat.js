@@ -22,8 +22,8 @@ socket.on('room-participants', (participantIds) => {
   current_participantIds = participantIds;
   handleParticipantsList(participantIds);
 });
-socket.on('room-message', ({ text, roomId, userId }) => {
-  handleReceiveRoomMessage(text, userId);
+socket.on('room-message', ({ text, roomId, senderId }) => {
+  handleReceiveRoomMessage(text, senderId);
 });
 socket.on('room-kick', ({ roomId, targetId }) => {
   handleRoomKick(roomId, targetId);
@@ -126,9 +126,9 @@ function handleRoomKick(roomId, targetId) {
 }
 
 // room-message 이벤트를 받으면
-function handleReceiveRoomMessage(text, userId) {
+function handleReceiveRoomMessage(text, senderId) {
   const roomMessages = document.getElementById('roomMessages');
-  roomMessages.appendChild(buildNewMessage(text, userId));
+  roomMessages.appendChild(buildNewMessage(text, senderId));
 }
 
 // direct-message 이벤트를 받으면
@@ -138,9 +138,9 @@ function handleReceiveDirectMessage(text, receiverId, senderId) {
 }
 
 // 메시지를 생성하는 함수
-function buildNewMessage(text, userId) {
+function buildNewMessage(text, senderId) {
   const li = document.createElement('li');
-  li.appendChild(document.createTextNode(userId + ': ' + text));
+  li.appendChild(document.createTextNode(senderId + ': ' + text));
   return li;
 }
 
