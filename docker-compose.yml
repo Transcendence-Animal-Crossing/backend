@@ -1,0 +1,30 @@
+version: '3'
+
+services:
+  backend:
+    image: seunghso/tcen
+    container_name: backend
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    restart: always
+    networks:
+      - tcen
+
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    restart: always
+    networks:
+      - tcen
+    environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: 1234
+        POSTGRES_DB: nest
+
+networks:
+  tcen:
+    driver: bridge
