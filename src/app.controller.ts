@@ -1,11 +1,16 @@
-import { Controller, Get, Param, Render } from "@nestjs/common";
+import { Controller, Get, Param, Query, Render, Req } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RoomService } from './room/room.service';
-import { UserService } from "./user/user.service";
+import { UserService } from './user/user.service';
+import { Public } from './auth/guards/public';
 
 @Controller()
 export class AppController {
-  constructor(private readonly appService: AppService, private readonly roomService: RoomService, private readonly userService: UserService) {}
+  constructor(
+    private readonly appService: AppService,
+    private readonly roomService: RoomService,
+    private readonly userService: UserService,
+  ) {}
 
   @Get('/')
   getHello(): string {
@@ -17,16 +22,21 @@ export class AppController {
     return this.userService.findAll();
   }
 
+  @Public()
+  @Get('/login')
+  @Render('login')
+  login() {}
+
   @Get('/index')
   @Render('index')
   root() {
     return { message: 'Hello world!' };
   }
 
-  @Get('/chat')
-  @Render('chat')
-  chat() {
-    return { message: 'Hello world!' };
+  @Get('/dm')
+  @Render('dm')
+  dm(@Req() req) {
+    return { userId: req.user.id };
   }
 
   @Get('/chat/rooms')
@@ -37,7 +47,13 @@ export class AppController {
 
   @Get('/chat/:id')
   @Render('room')
-  room(@Param('id') id: number) {
+  room(@Param('id') id: string) {
     return { roomId: id };
+  }
+
+  @Get('/chat')
+  @Render('chat')
+  chat(@Req() req, @Query('token') token: string) {
+    return { userId: req.user.id, token: token };
   }
 }

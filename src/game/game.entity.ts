@@ -10,14 +10,20 @@ export class Game {
   date: Date;
 
   @Column()
-  hostScore: number;
+  winnerScore: number;
 
   @Column()
-  guestScore: number;
+  loserScore: number;
 
-  @ManyToOne(() => User, (user) => user.hostGames)
-  host: User;
+  @ManyToOne(() => User)
+  winner: User;
 
-  @ManyToOne(() => User, (user) => user.guestGames)
-  guest: User;
+  @ManyToOne(() => User)
+  loser: User;
+
+  @Column()
+  playTime: number;
+
+  @Column()
+  isRank: boolean;
 }
