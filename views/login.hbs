@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Login Page</title>
+  <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+<div id="login-container">
+  <h1 id="login-title">Login</h1>
+  <form action="/auth/signIn" method="post" id="login-form">
+    <div class="input-group">
+      <label for="id">ID</label>
+      <input type="text" id="id" name="id" required>
+    </div>
+    <div class="input-group">
+      <label for="password">Password</label>
+      <input type="password" id="password" name="password" required>
+    </div>
+    <button type="submit" id="login-button">Login</button>
+  </form>
+</div>
+</body>
+</html>

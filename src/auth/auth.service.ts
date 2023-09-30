@@ -1,7 +1,9 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
+import { User } from "../user/entities/user.entity";
+import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class AuthService {
@@ -15,9 +17,9 @@ export class AuthService {
     const request = {
       code: code,
       grant_type: 'authorization_code',
-      client_id: 'u-s4t2ud-e80da690cddde3d' + 'a8e17af2a1458d99e28169a63558faf52a154b2d85d627ea1',
-      client_secret: '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',
-      redirect_uri: 'http://localhost:3000/auth/callback',
+      client_id: process.env.OAUTH2_42_CLIENT_ID,
+      client_secret: process.env.OAUTH2_42_CLIENT_SECRET,
+      redirect_uri: process.env.OAUTH2_42_REDIRECT_URI,
     };
     const response = await axios.post(getTokenUrl, request);
 
@@ -40,5 +42,30 @@ export class AuthService {
   async signJwt(userId: number): Promise<string> {
     const payload = { id: userId };
     return this.jwtService.sign(payload);
+  }
+
+  async validateUser(id: number, password: string): Promise<User> {
+    const user = await this.userService.findOne(id);
+    if (!user) {
+      throw new NotFoundException(`There is no user under this username`);
+    }
+
+    // const passwordEquals = await bcrypt.compare(password, user.password);
+    // if (passwordEquals) return user;
+    if (password === user.password) return user;
+
+    throw new UnauthorizedException({ message: 'Incorrect password' });
+  }
+
+  verifyAccessToken(accessToken: string) {
+    try {
+      const payload = this.jwtService.verify(accessToken, {
+        secret: process.env.JWT_ACCESS_SECRET,
+      });
+
+      return payload;
+    } catch (err) {
+      return null;
+    }
   }
 }

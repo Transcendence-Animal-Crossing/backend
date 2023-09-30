@@ -1,46 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>WebSocket Client</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js" integrity="sha512-zoJXRvW2gC8Z0Xo3lBbao5+AS3g6YWr5ztKqaicua11xHo+AvE1b0lT9ODgrHTmNUxeCw0Ry4BGRYZfXu70weg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"
+          integrity="sha512-zoJXRvW2gC8Z0Xo3lBbao5+AS3g6YWr5ztKqaicua11xHo+AvE1b0lT9ODgrHTmNUxeCw0Ry4BGRYZfXu70weg=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <link href='css/chat.css' rel='stylesheet' />
+  <script src="js/chat.js"></script>
+  <title>Chat</title>
 </head>
 <body>
-    <div>
-          <ul id="messages"></ul>
-        </div>
+<div id="main-container">
+  <section id="lobby">
+    <h1>Lobby (UserId: {{ userId }})</h1>
+    <ul id="roomList"></ul>
+    <div class="input-group">
+      <input id="input_title" type="text" placeholder="Room Name" />
+      <button onclick="createRoom()">방만들기</button>
+    </div>
+  </section>
 
-        <div>
-          <input id="message" type="text" />
-          <button onclick="handleSubmitNewMessage()">Submit</button>
-        </div>
-    <script>
-        const socket = io('http://localhost:3000', { transports: ['websocket'] });
+  <section id="room">
+    <h1>In Room</h1>
+    <h2>RoomId: <span id="roomId"></span></h2>
+    <ul id="participants"></ul>
+    <ul id="roomMessages"></ul>
+    <div class="input-group">
+      <input id="room-message" type="text" placeholder="Type your message" />
+      <button onclick="sendRoomMessage()">전송</button>
+    </div>
+  </section>
 
-        const message = document.getElementById('message');
-        const messages = document.getElementById('messages');
-
-        const handleSubmitNewMessage = () => {
-          // socket.emit('message', { data: message.value }); // 클라이언트에서 서버로 이벤트를 발생시킨다
-          // emit json form
-          socket.emit('message', { text: message.value, roomId: 1});
-        };
-
-        // socket.on은 클라이언트단에서 발생한 이벤트를 선택적으로 캐치하여 이벤트 핸들러를 등록함
-        socket.on('message', ({ data }) => {
-          handleNewMessage(data);
-        });
-
-        handleNewMessage = (message) => {
-          messages.appendChild(buildNewMessage(message));
-        };
-
-        const buildNewMessage = (message) => {
-          const li = document.createElement('li');
-          li.appendChild(document.createTextNode(message));
-          return li;
-        };
-
-    </script>
+  <section id="dm">
+    <h1>DM</h1>
+    <ul id="directMessages"></ul>
+    <div class="input-group">
+      <input id="receiver" type="text" placeholder="Receiver ID" />
+      <input id="direct-message" type="text" placeholder="Type your message" />
+      <button onclick="sendDirectMessage()">전송</button>
+    </div>
+  </section>
+</div>
 </body>
 </html>

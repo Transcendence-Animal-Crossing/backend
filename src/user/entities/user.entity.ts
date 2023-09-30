@@ -2,13 +2,9 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  OneToMany,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { Game } from '../../game/game.entity';
-import { Participant } from '../../room/entities/participant.entity';
-import { Message } from "../../room/entities/message.entity";
 
 @Entity()
 export class User {
@@ -16,13 +12,13 @@ export class User {
   id: number;
 
   @Column()
+  password: string;
+
+  @Column()
   login: string;
 
   @Column()
   email: string;
-
-  @Column()
-  title: string;
 
   @Column()
   win: number;
@@ -33,30 +29,18 @@ export class User {
   @Column()
   two_factor_auth: boolean;
 
-  @OneToMany(() => Game, (game) => game.host)
-  hostGames: Game[];
-
-  @OneToMany(() => Game, (game) => game.guest)
-  guestGames: Game[];
-
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
 
-  @OneToMany(() => Participant, (participant) => participant.user)
-  participants: Array<Participant>;
-
-  @OneToMany(() => Message, (message) => message.user)
-  messages: Array<Message>;
-
-  static create(data: any, title: string): User {
+  static create(data: any): User {
     const user = new User();
     user.id = data.id;
+    user.password = '';
     user.login = data.login;
     user.email = data.email;
-    user.title = title;
     user.win = 0;
     user.lose = 0;
     user.two_factor_auth = false;
