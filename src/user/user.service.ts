@@ -29,7 +29,7 @@ export class UserService {
   }
 
   async findByName(name: string): Promise<User> {
-    return this.userRepository.findOneBy({ login: name });
+    return this.userRepository.findOneBy({ intraName: name });
   }
 
   async createOrUpdateUser(userPublicData: any): Promise<User> {

@@ -1,11 +1,12 @@
-version: '3'
+version: '3.8'
 
 services:
   backend:
     image: seunghso/tcen
     container_name: backend
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
     restart: always
@@ -20,10 +21,26 @@ services:
     restart: always
     networks:
       - tcen
+    volumes:
+      - db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
     environment:
         POSTGRES_USER: postgres
         POSTGRES_PASSWORD: 1234
         POSTGRES_DB: nest
+
+volumes:
+  db-volume:
+    driver: local
+    driver_opts:
+      device: ~/data/db-data
+      type: none
+      o: bind
 
 networks:
   tcen:

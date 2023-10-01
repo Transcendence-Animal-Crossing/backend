@@ -7,7 +7,6 @@ import {
   Res,
   HttpException,
   Post,
-  UseGuards,
   Body,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -43,7 +42,7 @@ export class AuthController {
     }
 
     const userPublicData: any = await this.authService.getProfile(accessToken);
-    console.log(userPublicData);
+    // console.log(userPublicData);
     const user: User =
       await this.userService.createOrUpdateUser(userPublicData);
     const jwt: string = await this.authService.signJwt(user.id);
@@ -81,10 +80,8 @@ export class AuthController {
     const user = await this.userRepository.create({
       id: id,
       password: password,
-      login: 'test',
-      email: 'tester@naver.com',
-      win: 0,
-      lose: 0,
+      nickName: 'test' + id,
+      intraName: 'test' + id,
       two_factor_auth: false,
     });
     await this.userRepository.save(user);
