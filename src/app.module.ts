@@ -17,6 +17,7 @@ import { RoomModule } from './room/room.module';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
+      envFilePath: process.env.NODE_ENV === 'development' ? '.env.dev' : '.env',
     }),
     TypeOrmModule.forRoot({
       type: 'postgres',
