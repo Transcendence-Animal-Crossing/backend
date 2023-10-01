@@ -30,6 +30,15 @@ export class RoomService {
     return room;
   }
 
+  async getParticipantData(room: Room) {
+    const data = [];
+    for (let i = 0; i < room.participantIds.length; i++) {
+      const user = await this.userService.findOne(room.participantIds[i]);
+      data.push(user);
+    }
+    return data;
+  }
+
   joinRoom(userId: number, roomId: string) {
     return this.roomRepository.joinRoom(userId, roomId);
   }
