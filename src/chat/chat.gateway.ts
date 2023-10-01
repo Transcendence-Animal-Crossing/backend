@@ -1,25 +1,29 @@
-import { BadRequestException, ForbiddenException, UnauthorizedException, UseFilters } from "@nestjs/common";
+import {
+  BadRequestException,
+  ForbiddenException,
+  UseFilters,
+} from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   SubscribeMessage,
   WebSocketGateway,
-  WebSocketServer
-} from "@nestjs/websockets";
+  WebSocketServer,
+} from '@nestjs/websockets';
 
-import { Socket } from "socket.io";
+import { Socket } from 'socket.io';
 
-import { UserService } from "src/user/user.service";
-import { AuthService } from "src/auth/auth.service";
-import { RoomMessageDto } from "./dto/room-message.dto";
-import { JoinRoomDto } from "./dto/join-room.dto";
-import { User } from "../user/entities/user.entity";
-import { DirectMessageDto } from "./dto/direct-message.dto";
-import { RoomService } from "../room/room.service";
-import { ActionRoomDto } from "./dto/action-room.dto";
-import { CreateRoomDto } from "../room/dto/create-room.dto";
-import { LeaveRoomDto } from "./dto/leave-room.dto";
-import { WsExceptionFilter } from "./WsExceptionFilter";
+import { UserService } from 'src/user/user.service';
+import { AuthService } from 'src/auth/auth.service';
+import { RoomMessageDto } from './dto/room-message.dto';
+import { JoinRoomDto } from './dto/join-room.dto';
+import { User } from '../user/entities/user.entity';
+import { DirectMessageDto } from './dto/direct-message.dto';
+import { RoomService } from '../room/room.service';
+import { ActionRoomDto } from './dto/action-room.dto';
+import { CreateRoomDto } from '../room/dto/create-room.dto';
+import { LeaveRoomDto } from './dto/leave-room.dto';
+import { WsExceptionFilter } from './WsExceptionFilter';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -45,7 +49,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const token = client.handshake.auth.token;
       payload = this.authService.verifyJwt(token);
     } catch (error) {
-      client.emit('exception', { status: 401, message: 'Invalid or Expired Token.' });
+      client.emit('exception', {
+        status: 401,
+        message: 'Invalid or Expired Token.',
+      });
       client.disconnect(true);
       return;
     }
