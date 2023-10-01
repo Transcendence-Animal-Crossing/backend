@@ -15,19 +15,22 @@ export class User {
   password: string;
 
   @Column()
-  login: string;
+  nickName: string;
 
   @Column()
-  email: string;
+  intraName: string;
 
   @Column()
-  win: number;
+  avatar: string;
 
   @Column()
-  lose: number;
+  rankScore: number;
 
   @Column()
   two_factor_auth: boolean;
+
+  @Column('text', { array: true, nullable: true })
+  achievements: string[];
 
   @CreateDateColumn()
   createdAt: Date;
@@ -38,11 +41,11 @@ export class User {
   static create(data: any): User {
     const user = new User();
     user.id = data.id;
-    user.password = '';
-    user.login = data.login;
-    user.email = data.email;
-    user.win = 0;
-    user.lose = 0;
+    user.password = 'password';
+    user.nickName = data.login;
+    user.intraName = data.login;
+    user.avatar = '';
+    user.rankScore = 1000;
     user.two_factor_auth = false;
     return user;
   }

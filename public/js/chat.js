@@ -28,6 +28,17 @@ socket.on('room-message', ({ text, roomId, senderId }) => {
 socket.on('room-kick', ({ roomId, targetId }) => {
   handleRoomKick(roomId, targetId);
 });
+socket.on('exception', ({ status, message }) => {
+  // 권한이 없다 등의 메시지
+  // jwt 토큰이 유효하지 않거나, 만료되었을 때도 이벤트가 발생
+  // 401: Unauthorized, JWT 만료같은 로그인이 필요한 경우 서버에서 소켓 연결을 끊도록 해둠
+  if (status === 401) {
+    alert('로그인이 필요합니다.');
+    window.location.href = '/login';
+    return;
+  }
+  alert(message);
+});
 
 socket.on('direct-message', ({ text, receiverId, senderId }) => {
   console.log(text, receiverId, senderId);
