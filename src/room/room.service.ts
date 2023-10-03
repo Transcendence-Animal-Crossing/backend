@@ -5,9 +5,11 @@ import { Repository } from 'typeorm';
 
 import { UserService } from 'src/user/user.service';
 
-import { Room } from './entities/room.entity';
+import { Room } from './data/room.data';
 import { User } from '../user/entities/user.entity';
-import { RoomRepository } from './RoomRepository';
+import { RoomRepository } from './room.repository';
+import { UserDto } from '../user/dto/user.dto';
+import { UserData } from './data/user.data';
 
 @Injectable()
 export class RoomService {
@@ -34,7 +36,7 @@ export class RoomService {
     const data = [];
     for (let i = 0; i < room.participantIds.length; i++) {
       const user = await this.userService.findOne(room.participantIds[i]);
-      data.push(user);
+      data.push(new UserData(user));
     }
     return data;
   }

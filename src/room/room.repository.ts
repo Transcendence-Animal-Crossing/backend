@@ -1,4 +1,4 @@
-import { Room } from "./entities/room.entity";
+import { Room } from "./data/room.data";
 import { Injectable } from "@nestjs/common";
 
 @Injectable()

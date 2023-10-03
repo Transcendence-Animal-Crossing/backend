@@ -14,10 +14,8 @@ import { Public } from './guards/public';
 import { UserService } from '../user/user.service';
 import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
-import { LocalAuthGuard } from './guards/local-auth.guard';
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { UpdateUserDto } from "../user/dto/update-user.dto";
 
 @Controller('auth')
 export class AuthController {
@@ -51,6 +49,9 @@ export class AuthController {
     return jwt;
   }
 
+  // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
+  // 42 oauth2 로그인 페이지에서 로그인을 하면 42 oauth2 콜백 페이지로 리다이렉트
+  // 고로 아래 /login 은 클라이언트에서 해줄 것이므로 나중에는 지워질 운명
   @Public()
   @Redirect(
     // 'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-e80da690cddde3da8e17af2a1458d99e28169a63558faf52a154b2d85d627ea1&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&response_type=code',
