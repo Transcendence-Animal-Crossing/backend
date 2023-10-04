@@ -1,5 +1,5 @@
 import {
-  BadRequestException,
+  BadRequestException, ConflictException,
   ForbiddenException,
   UseFilters,
 } from '@nestjs/common';
@@ -24,6 +24,9 @@ import { ActionRoomDto } from './dto/action-room.dto';
 import { CreateRoomDto } from '../room/dto/create-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { WsExceptionFilter } from './WsExceptionFilter';
+import { UserDto } from '../user/dto/user.dto';
+import { UserData } from '../room/data/user.data';
+import { DetailRoomDto } from '../room/dto/detail.room.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -82,7 +85,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-create')
   async createRoom(client: Socket, dto: CreateRoomDto) {
     const userId = this.clientUserMap.get(client.id);
-    await this.roomService.create(dto.title, userId);
+    await this.roomService.create(dto, userId);
     this.server.emit('room-list', await this.roomService.findAll());
   }
 
@@ -100,21 +103,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('add-admin')
   async addAdmin(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
-    const room = this.roomService.findById(dto.roomId);
-    if (!room.adminIds.includes(userId)) {
-      throw new ForbiddenException('You have no permission to add admin!');
-    }
-    if (room.adminIds.includes(dto.targetId)) {
-      throw new BadRequestException('Already admin!');
-    }
-    // participantIds 만 알려주는게 아니라, 해당 유저의 정보들도 줘야 함
 
-    this.server
-      .to(dto.roomId)
-      .emit(
-        'room-participants',
-        this.roomService.findById(dto.roomId).participantIds,
-      );
+    await this.roomService.addAdmin(userId, dto);
   }
 
   @SubscribeMessage('room-join')
@@ -123,14 +113,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const userId = this.clientUserMap.get(client.id);
     // user 가 ban 되었는지 확인
-    this.roomService.joinRoom(userId, dto.roomId);
+    const room = this.roomService.findById(dto.roomId);
+    this.roomService.joinRoom(userId, room);
 
-    this.server
-      .to(dto.roomId)
-      .emit(
-        'room-participants',
-        this.roomService.findById(dto.roomId).participantIds,
-      );
+    this.server.to(dto.roomId).emit('room-detail', new DetailRoomDto(room));
   }
 
   @SubscribeMessage('room-message')
@@ -144,13 +130,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-kick')
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
-    const room = this.roomService.findById(dto.roomId);
-    if (!room.adminIds.includes(userId)) {
-      throw new ForbiddenException('You have no permission to kick user!');
-    }
 
-    this.roomService.kick(dto.targetId, dto.roomId);
-
+    this.roomService.kick(userId, dto);
     this.server.to(dto.roomId).emit('room-kick', dto);
 
     const kickedClient = this.getClientByUserId(dto.targetId);
@@ -160,15 +141,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-leave')
   async onRoomLeave(client: Socket, dto: LeaveRoomDto) {
     const userId = this.clientUserMap.get(client.id);
-    this.roomService.leave(userId, dto.roomId);
+    const room = this.roomService.findById(dto.roomId);
+
+    this.roomService.leave(userId, room);
     client.leave(dto.roomId);
 
-    this.server
-      .to(dto.roomId)
-      .emit(
-        'room-participants',
-        this.roomService.findById(dto.roomId).participantIds,
-      );
+    this.server.to(dto.roomId).emit('room-detail', new DetailRoomDto(room));
   }
 
   private getClientByUserId(userId: number): Socket | null {

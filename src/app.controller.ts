@@ -12,16 +12,20 @@ export class AppController {
     private readonly userService: UserService,
   ) {}
 
+  @Get('/')
+  getHello(): string {
+    return this.appService.getHello();
+  }
+
+  @Get('/user')
+  getUsers() {
+    return this.userService.findAll();
+  }
+
   @Public()
   @Get('/login')
   @Render('login')
   login() {}
-
-  @Get('/')
-  @Render('index')
-  root() {
-    return { message: 'Hello world!' };
-  }
 
   @Get('/chat')
   @Render('chat')
