@@ -1,5 +1,8 @@
 import { Room } from "./data/room.data";
 import { Injectable } from "@nestjs/common";
+import { User } from '../user/entities/user.entity';
+import { UserData } from './data/user.data';
+import { ParticipantData } from './data/participant.data';
 
 @Injectable()
 export class RoomRepository {
@@ -23,26 +26,7 @@ export class RoomRepository {
   delete(id) {
     this.rooms = this.rooms.filter((room) => room.id !== id);
   }
-  joinRoom(userId: number, roomId: string) {
-    const room = this.rooms.find((room) => room.id === roomId);
-    if (!room) throw new Error(`There is no room under id ${roomId}`);
-
-    if (room.participantIds.includes(userId)) return;
-    room.participantIds.push(userId);
-  }
-  kickUser(targetId: number, roomId: string) {
-    const room = this.rooms.find((room) => room.id === roomId);
-    if (!room) throw new Error(`There is no room under id ${roomId}`);
-
-    if (!room.participantIds.includes(targetId)) return;
-    room.participantIds = room.participantIds.filter((id) => id !== targetId);
-  }
-
-  leaveUser(userId: number, roomId: string) {
-    const room = this.rooms.find((room) => room.id === roomId);
-    if (!room) throw new Error(`There is no room under id ${roomId}`);
-
-    if (!room.participantIds.includes(userId)) return;
-    room.participantIds = room.participantIds.filter((id) => id !== userId);
+  joinRoom(user: User, room: Room) {
+    room.participants.push(new ParticipantData(user, 0));
   }
 }
