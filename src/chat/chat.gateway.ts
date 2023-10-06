@@ -21,6 +21,8 @@ import { CreateRoomDto } from '../room/dto/create-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { WsExceptionFilter } from './WsExceptionFilter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
+import { ParticipantData } from '../room/data/participant.data';
+import { UserData } from '../room/data/user.data';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -76,11 +78,49 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('room-list', await this.roomService.findAll());
   }
 
+  @SubscribeMessage('room-detail')
+  async getRoomDetail(client: Socket, roomId: string) {
+    const room = await this.roomService.findById(roomId);
+    client.emit('room-detail', new DetailRoomDto(room));
+  }
+
   @SubscribeMessage('room-create')
   async createRoom(client: Socket, dto: CreateRoomDto) {
     const userId = this.clientUserMap.get(client.id);
-    await this.roomService.create(dto, userId);
+    const room = await this.roomService.create(dto, userId);
+
+    client.join(room.id);
+    client.emit('room-detail', new DetailRoomDto(room));
     this.server.emit('room-list', await this.roomService.findAll());
+    // 나중에 아래처럼 변경
+    // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
+  }
+
+  @SubscribeMessage('room-join')
+  async onRoomJoin(client: Socket, dto: JoinRoomDto) {
+    const userId = this.clientUserMap.get(client.id);
+    const user = await this.userService.findOne(userId);
+    const room = this.roomService.findById(dto.roomId);
+
+    // user 가 ban 되었는지 확인
+    await this.roomService.joinRoom(userId, room);
+
+    client.join(dto.roomId);
+    client.emit('room-detail', new DetailRoomDto(room));
+    this.server.to(dto.roomId).emit('room-join', new ParticipantData(user, 0));
+  }
+
+  @SubscribeMessage('room-leave')
+  async onRoomLeave(client: Socket, dto: LeaveRoomDto) {
+    const userId = this.clientUserMap.get(client.id);
+    const user = await this.userService.findOne(userId);
+    const room = this.roomService.findById(dto.roomId);
+
+    // 방장이 나갔을 경우, 다른 사람 방장으로 변경
+    this.roomService.leave(userId, room);
+    client.leave(dto.roomId);
+
+    this.server.to(dto.roomId).emit('room-leave', new UserData(user));
   }
 
   @SubscribeMessage('direct-message')
@@ -100,18 +140,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = this.clientUserMap.get(client.id);
 
     await this.roomService.addAdmin(userId, dto);
+    client.to(dto.roomId).emit('add-admin', dto);
   }
 
-  @SubscribeMessage('room-join')
-  async onRoomJoin(client: Socket, dto: JoinRoomDto) {
-    client.join(dto.roomId);
-
+  @SubscribeMessage('remove-admin')
+  async removeAdmin(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
-    // user 가 ban 되었는지 확인
-    const room = this.roomService.findById(dto.roomId);
-    this.roomService.joinRoom(userId, room);
 
-    this.server.to(dto.roomId).emit('room-detail', new DetailRoomDto(room));
+    await this.roomService.removeAdmin(userId, dto);
+    client.to(dto.roomId).emit('remove-admin', dto);
   }
 
   @SubscribeMessage('room-message')
@@ -132,17 +169,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const kickedClient = this.getClientByUserId(dto.targetId);
     kickedClient.leave(dto.roomId);
-  }
-
-  @SubscribeMessage('room-leave')
-  async onRoomLeave(client: Socket, dto: LeaveRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
-    const room = this.roomService.findById(dto.roomId);
-
-    this.roomService.leave(userId, room);
-    client.leave(dto.roomId);
-
-    this.server.to(dto.roomId).emit('room-detail', new DetailRoomDto(room));
   }
 
   private getClientByUserId(userId: number): Socket | null {
