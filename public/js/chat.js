@@ -1,7 +1,8 @@
 let current_roomId = null;
-let current_participantIds = null;
+let current_participants = null;
 const urlParams = new URLSearchParams(window.location.search);
 const token = urlParams.get('token');
+let userId = null;
 
 console.log('token: ' + token);
 
@@ -23,11 +24,23 @@ socket.on('room-detail', (roomDetail) => {
   console.log('room-detail.participants: ', roomDetail.participants);
   handleRoomDetail(roomDetail);
 });
-socket.on('room-message', ({ text, roomId, senderId }) => {
-  handleReceiveRoomMessage(text, senderId);
+socket.on('room-join', (participantData) => {
+  handleRoomJoin(participantData);
+});
+socket.on('room-leave', (userData) => {
+  handleRoomLeave(userData);
 });
 socket.on('room-kick', ({ roomId, targetId }) => {
   handleRoomKick(roomId, targetId);
+});
+socket.on('add-admin', ({ roomId, targetId }) => {
+  handleAddAdmin(roomId, targetId);
+});
+socket.on('remove-admin', ({ roomId, targetId }) => {
+  handleRemoveAdmin(roomId, targetId);
+});
+socket.on('room-message', ({ text, roomId, senderId }) => {
+  handleReceiveRoomMessage(text, senderId);
 });
 socket.on('exception', ({ status, message }) => {
   // 권한이 없다 등의 메시지
@@ -125,39 +138,90 @@ function handleRoomList(rooms) {
   });
 }
 
+// room-join 이벤트를 받으면
+function handleRoomJoin(participantData) {
+  userId = Number(document.getElementById('userId').innerText);
+  if (userId === participantData.id) return;
+
+  const participants = document.getElementById('participants');
+  participants.appendChild(buildParticipant(participantData));
+  current_participants.push(participantData);
+}
+
+// room-leave 이벤트를 받으면
+function handleRoomLeave(userData) {
+  current_participants = current_participants.filter(
+    (participant) => participant.id !== userData.id,
+  );
+
+  const participants = document.getElementById('participants');
+  participants.innerHTML = '';
+  for (const participant of current_participants) {
+    console.log('participant: ', participant);
+    participants.appendChild(buildParticipant(participant));
+  }
+}
+
 // room-detail 이벤트를 받으면
 function handleRoomDetail(roomDetail) {
   const roomTitle = document.getElementById('roomTitle');
   const participants = document.getElementById('participants');
+  const span_roomId = document.getElementById('roomId');
 
+  current_participants = roomDetail.participants;
   roomTitle.innerText = roomDetail.title;
+  current_roomId = roomDetail.id;
+
+  span_roomId.innerText = current_roomId;
   participants.innerHTML = '';
-  // for (let i = 0; i < roomDetail.participants.length; i++) {
-  //   console.log('participant: ', participants[i]);
-  //   participants.appendChild(buildParticipant(participants[i]));
-  // }
+
   for (const participant of roomDetail.participants) {
     console.log('participant: ', participant);
     participants.appendChild(buildParticipant(participant));
   }
 }
 function handleRoomKick(roomId, targetId) {
+  const participants = document.getElementById('participants');
   participants.innerHTML = '';
-  console.log('targetId: ', targetId);
-  console.log('userId: ', '{{userId}}');
-  if ('{{userId}}' === targetId.toString()) {
+  if (userId === targetId) {
     participants.innerHTML = '';
     const span_roomId = document.getElementById('roomId');
     span_roomId.innerText = 'Kicked';
     alert('강퇴당했습니다.');
     return;
   }
-  current_participantIds = current_participantIds.filter(
-    (id) => id !== targetId,
-  );
-  for (let i = 0; i < current_participantIds.length; i++) {
-    console.log('current_participantIds: ' + current_participantIds[i]);
-    participants.appendChild(buildParticipant(current_participantIds[i]));
+  current_participants = current_participants.filter((id) => id !== targetId);
+  for (const participant of current_participants) {
+    console.log('participant: ', participant);
+    participants.appendChild(buildParticipant(participant));
+  }
+}
+
+function handleAddAdmin(roomId, targetId) {
+  current_participants = current_participants.map((participant) => {
+    if (participant.id === targetId) {
+      participant.grade = 1;
+    }
+    return participant;
+  });
+  const participants = document.getElementById('participants');
+  participants.innerHTML = '';
+  for (const participant of current_participants) {
+    participants.appendChild(buildParticipant(participant));
+  }
+}
+
+function handleRemoveAdmin(roomId, targetId) {
+  current_participants = current_participants.map((participant) => {
+    if (participant.id === targetId) {
+      participant.grade = 0;
+    }
+    return participant;
+  });
+  const participants = document.getElementById('participants');
+  participants.innerHTML = '';
+  for (const participant of current_participants) {
+    participants.appendChild(buildParticipant(participant));
   }
 }
 
@@ -186,10 +250,11 @@ function buildParticipant(participant) {
   const li = document.createElement('li');
   const span = document.createElement('span');
 
+  let text = participant.id + ': ' + participant.nickName;
+  if (participant.grade !== 0) text += ' (관리자)';
+
   span.classList.add('participant');
-  span.appendChild(
-    document.createTextNode(participant.id + ': ' + participant.nickName),
-  );
+  span.appendChild(document.createTextNode(text));
   li.appendChild(span);
 
   const kickButton = document.createElement('button');
