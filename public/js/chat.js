@@ -65,6 +65,8 @@ function sendRoomMessage() {
     text: roomMessage.value,
     roomId: current_roomId,
   });
+  roomMessage.value = '';
+  roomMessage.focus();
 }
 
 // DM 을 보낼 시
@@ -75,7 +77,7 @@ function sendDirectMessage() {
     text: directMessage.value,
     receiverId: receiver.value,
   });
-  directMessage.innerHTML = '';
+  directMessage.value = '';
 }
 
 // room-list 이벤트를 받으면
@@ -85,7 +87,18 @@ function handleRoomList(rooms) {
 
   rooms.forEach((room) => {
     const roomElement = document.createElement('li');
-    roomElement.innerHTML = `<strong>${room.title}</strong> (Owned by: ${room.owner.nickName}) - ${room.headCount}`;
+    const span = document.createElement('span');
+    span.classList.add('room');
+    span.appendChild(
+      document.createTextNode(
+        room.title +
+          ' (Owned by: ' +
+          room.owner.nickName +
+          ') - ' +
+          room.headCount,
+      ),
+    );
+    roomElement.appendChild(span);
 
     const joinButton = document.createElement('button');
     joinButton.innerText = 'Join Room';
@@ -163,6 +176,7 @@ function handleReceiveDirectMessage(text, receiverId, senderId) {
 // 메시지를 생성하는 함수
 function buildNewMessage(text, senderId) {
   const li = document.createElement('li');
+  li.classList.add('message');
   li.appendChild(document.createTextNode(senderId + ': ' + text));
   return li;
 }
@@ -170,7 +184,13 @@ function buildNewMessage(text, senderId) {
 // 참여자를 생성하는 함수
 function buildParticipant(participant) {
   const li = document.createElement('li');
-  li.appendChild(document.createTextNode(participant.nickName));
+  const span = document.createElement('span');
+
+  span.classList.add('participant');
+  span.appendChild(
+    document.createTextNode(participant.id + ': ' + participant.nickName),
+  );
+  li.appendChild(span);
 
   const kickButton = document.createElement('button');
   kickButton.appendChild(document.createTextNode('Kick'));
