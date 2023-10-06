@@ -13,7 +13,8 @@ export class Room {
   ) {
     this.id = uuid();
     this.title = title;
-    this.participants = [new ParticipantData(owner, 2)];
+    this.participants = [];
+    this.participants.push(new ParticipantData(owner, 2));
     this.bannedUsers = [];
     this.invitedUsers = [];
     this.isPrivate = isPrivate;

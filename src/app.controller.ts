@@ -12,9 +12,11 @@ export class AppController {
     private readonly userService: UserService,
   ) {}
 
+  @Public()
   @Get('/')
-  getHello(): string {
-    return this.appService.getHello();
+  @Render('index')
+  index(@Query('message') message: string) {
+    return { message: message };
   }
 
   @Get('/user')
