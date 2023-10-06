@@ -77,15 +77,26 @@ export class AuthController {
 
   @Public()
   @Post('/signUp')
-  async singUp(@Body('id') id: number, @Body('password') password: string) {
+  async singUp(@Body('id') id: number,
+    @Body('password') password: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const user = await this.userRepository.create({
       id: id,
       password: password,
-      nickName: 'test' + id,
-      intraName: 'test' + id,
+      nickName: 'tester' + id,
+      intraName: 'tester' + id,
+      avatar: '',
+      rankScore: 1000,
       two_factor_auth: false,
     });
-    await this.userRepository.save(user);
+    try {
+      await this.userRepository.save(user);
+    } catch (error) {
+      res.redirect('http://localhost:8080?message=Already Used ID!');
+      return;
+    }
+    res.redirect('http://localhost:8080/login');
   }
 
   @Public()

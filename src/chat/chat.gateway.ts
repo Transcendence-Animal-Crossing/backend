@@ -1,8 +1,4 @@
-import {
-  BadRequestException, ConflictException,
-  ForbiddenException,
-  UseFilters,
-} from '@nestjs/common';
+import { UseFilters } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -24,8 +20,6 @@ import { ActionRoomDto } from './dto/action-room.dto';
 import { CreateRoomDto } from '../room/dto/create-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { WsExceptionFilter } from './WsExceptionFilter';
-import { UserDto } from '../user/dto/user.dto';
-import { UserData } from '../room/data/user.data';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
 
 // @UsePipes(new ValidationPipe())
@@ -98,6 +92,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client
       .to(this.userClientMap.get(Number(dto.receiverId)))
       .emit('direct-message', dto);
+    client.emit('direct-message', dto);
   }
 
   @SubscribeMessage('add-admin')
@@ -125,6 +120,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     roomMessageDto.senderId = userId;
 
     client.to(roomMessageDto.roomId).emit('room-message', roomMessageDto);
+    client.emit('room-message', roomMessageDto);
   }
 
   @SubscribeMessage('room-kick')

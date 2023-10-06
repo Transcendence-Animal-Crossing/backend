@@ -21,6 +21,7 @@ import { ActionRoomDto } from '../chat/dto/action-room.dto';
 import { DetailRoomDto } from './dto/detail.room.dto';
 import { WebSocketServer } from '@nestjs/websockets';
 import { Grade } from './data/user.grade';
+import { SimpleRoomDto } from './dto/simple.room.dto';
 
 @Injectable()
 export class RoomService {
@@ -35,11 +36,12 @@ export class RoomService {
   server;
 
   async findAll() {
-    return this.roomRepository.findAll();
-  }
-
-  async getRoomList() {
-
+    const rooms = this.roomRepository.findAll();
+    const roomList = [];
+    for (const room of rooms) {
+      roomList.push(new SimpleRoomDto(room));
+    }
+    return roomList;
   }
 
   findById(id: string) {
