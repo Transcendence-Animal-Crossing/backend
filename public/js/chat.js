@@ -15,12 +15,13 @@ const socket = io('http://localhost:8080', {
 
 // socket.on('[이벤트명]', [콜백함수])로 서버에서 발생한 이벤트를 받음
 socket.on('room-list', (rooms) => {
+  console.log('room-list: ', rooms);
   handleRoomList(rooms);
 });
-socket.on('room-participants', (participantIds) => {
-  console.log('participantIds: ' + participantIds);
-  current_participantIds = participantIds;
-  handleParticipantsList(participantIds);
+socket.on('room-detail', (roomDetail) => {
+  console.log('room-detail: ', roomDetail);
+  console.log('room-detail.participants: ', roomDetail.participants);
+  handleRoomDetail(roomDetail);
 });
 socket.on('room-message', ({ text, roomId, senderId }) => {
   handleReceiveRoomMessage(text, senderId);
@@ -74,6 +75,7 @@ function sendDirectMessage() {
     text: directMessage.value,
     receiverId: receiver.value,
   });
+  directMessage.innerHTML = '';
 }
 
 // room-list 이벤트를 받으면
@@ -83,12 +85,14 @@ function handleRoomList(rooms) {
 
   rooms.forEach((room) => {
     const roomElement = document.createElement('li');
-    roomElement.innerHTML = `<strong>${room.name}</strong> (Owned by: ${room.ownerId}) - ${room.participantIds.length}`;
+    roomElement.innerHTML = `<strong>${room.title}</strong> (Owned by: ${room.owner.nickName}) - ${room.headCount}`;
 
     const joinButton = document.createElement('button');
     joinButton.innerText = 'Join Room';
     joinButton.onclick = function () {
-      socket.emit('room-leave', { roomId: room.id });
+      if (current_roomId !== null) {
+        socket.emit('room-leave', { roomId: current_roomId });
+      }
       socket.emit('room-join', { roomId: room.id });
 
       current_roomId = room.id;
@@ -108,12 +112,20 @@ function handleRoomList(rooms) {
   });
 }
 
-// room-participants 이벤트를 받으면
-function handleParticipantsList(participantIds) {
+// room-detail 이벤트를 받으면
+function handleRoomDetail(roomDetail) {
+  const roomTitle = document.getElementById('roomTitle');
+  const participants = document.getElementById('participants');
+
+  roomTitle.innerText = roomDetail.title;
   participants.innerHTML = '';
-  for (let i = 0; i < participantIds.length; i++) {
-    console.log('participant: ' + participantIds[i]);
-    participants.appendChild(buildParticipant(participantIds[i]));
+  // for (let i = 0; i < roomDetail.participants.length; i++) {
+  //   console.log('participant: ', participants[i]);
+  //   participants.appendChild(buildParticipant(participants[i]));
+  // }
+  for (const participant of roomDetail.participants) {
+    console.log('participant: ', participant);
+    participants.appendChild(buildParticipant(participant));
   }
 }
 function handleRoomKick(roomId, targetId) {
@@ -156,16 +168,16 @@ function buildNewMessage(text, senderId) {
 }
 
 // 참여자를 생성하는 함수
-function buildParticipant(participantId) {
+function buildParticipant(participant) {
   const li = document.createElement('li');
-  li.appendChild(document.createTextNode(participantId));
+  li.appendChild(document.createTextNode(participant.nickName));
 
   const kickButton = document.createElement('button');
   kickButton.appendChild(document.createTextNode('Kick'));
   kickButton.onclick = () => {
     socket.emit('room-kick', {
       roomId: current_roomId,
-      targetId: participantId,
+      targetId: participant.id,
     });
   };
 
