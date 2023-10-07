@@ -12,9 +12,11 @@ export class AppController {
     private readonly userService: UserService,
   ) {}
 
+  @Public()
   @Get('/')
-  getHello(): string {
-    return this.appService.getHello();
+  @Render('index')
+  index(@Query('message') message: string) {
+    return { message: message };
   }
 
   @Get('/user')
@@ -26,30 +28,6 @@ export class AppController {
   @Get('/login')
   @Render('login')
   login() {}
-
-  @Get('/index')
-  @Render('index')
-  root() {
-    return { message: 'Hello world!' };
-  }
-
-  @Get('/dm')
-  @Render('dm')
-  dm(@Req() req) {
-    return { userId: req.user.id };
-  }
-
-  @Get('/chat/rooms')
-  @Render('rooms')
-  rooms() {
-    return { rooms: this.roomService.findAll() };
-  }
-
-  @Get('/chat/:id')
-  @Render('room')
-  room(@Param('id') id: string) {
-    return { roomId: id };
-  }
 
   @Get('/chat')
   @Render('chat')

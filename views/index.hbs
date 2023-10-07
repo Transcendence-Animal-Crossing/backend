@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up Page</title>
+  <link rel="stylesheet" href="css/index.css">
+  <script src="js/index.js"></script>
+</head>
+<body>
+<div id="main-container">
+  <section id="signUp">
+    <h1>Sign Up</h1>
+    <form action="/auth/signUp" method="post" id="signUp-form">
+      <div class="input-group">
+        <label for="id">ID (숫자)</label>
+        <input type="text" id="id" name="id" required pattern="\d+" title="숫자만 입력해주세요.">
+      </div>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" required>
+      </div>
+      <button type="submit" id="signUp-button">Sign Up</button>
+    </form>
+  </section>
+  <button id="login-button" onclick="location.href='/login'">로그인 하러 가기</button>
+</div>
+</body>
+</html>

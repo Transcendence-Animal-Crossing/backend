@@ -8,9 +8,7 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { jwtConstants } from './strategies/constants';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Room } from '../room/entities/room.entity';
 import { User } from '../user/entities/user.entity';
-import { Message } from '../chat/entity/message.entity';
 
 @Module({
   imports: [
