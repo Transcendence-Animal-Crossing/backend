@@ -8,14 +8,23 @@ import {
   HttpException,
   Post,
   Body,
+  HttpStatus,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './guards/public';
 import { UserService } from '../user/user.service';
 import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
+<<<<<<< HEAD
+import { LocalAuthGuard } from './guards/local-auth.guard';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { UpdateUserDto } from '../user/dto/update-user.dto';
+import { CreateUserDto } from 'src/user/dto/create-user.dto';
+=======
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+>>>>>>> dbfe18156ba3436a28e8a6c33a72ffeec45be536
 
 @Controller('auth')
 export class AuthController {
@@ -32,21 +41,32 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    let accessToken: string;
+    let tokens: any;
     try {
-      accessToken = await this.authService.getAccessToken(code);
+      const accessToken = await this.authService.getAccessToken(code);
+
+      const userPublicData: any =
+        await this.authService.getProfile(accessToken);
+      const existingUser = await this.userService.findByName(
+        userPublicData.intraName,
+      );
+      let user: User;
+      if (!existingUser) {
+        user = await this.userService.createOrUpdateUser(userPublicData);
+        //console.log('new user', user);
+      } else {
+        user = existingUser;
+        //console.log('already existed', user);
+      }
+      tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
       throw new HttpException('Invalid or Already Used code', 400);
     }
-
-    const userPublicData: any = await this.authService.getProfile(accessToken);
-    // console.log(userPublicData);
-    const user: User =
-      await this.userService.createOrUpdateUser(userPublicData);
-    const jwt: string = await this.authService.signJwt(user.id);
-    res.cookie('jwt', jwt);
-    console.log(jwt);
-    return jwt;
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    return tokens;
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
@@ -55,7 +75,7 @@ export class AuthController {
   @Public()
   @Redirect(
     // 'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-e80da690cddde3da8e17af2a1458d99e28169a63558faf52a154b2d85d627ea1&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&response_type=code',
-    'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-e80da690cddde3da8e17af2a1458d99e28169a63558faf52a154b2d85d627ea1&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth%2Fcallback&response_type=code',
+    'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-d927cd123502f27db21ee7ead26256f9fffb935090debfe592a3658c6bdefea0&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth%2Fcallback&response_type=code',
     302,
   )
   @Get('/login')
@@ -77,7 +97,26 @@ export class AuthController {
 
   @Public()
   @Post('/signUp')
-  async singUp(@Body('id') id: number,
+  async singUp(
+    @Body() userDto: CreateUserDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const tokens = await this.authService.signUp(userDto);
+    if (!tokens) {
+      throw new HttpException('you must log in at 42', HttpStatus.BAD_REQUEST);
+    }
+
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+
+    return tokens;
+  }
+
+  @Public()
+  @Post('/demoSignUp')
+  async demoSingUp(@Body('id') id: number,
     @Body('password') password: string,
     @Res({ passthrough: true }) res: Response,
   ) {
@@ -117,5 +156,16 @@ export class AuthController {
     res.cookie('jwt', token);
 
     res.redirect('http://localhost:8080/chat?token=' + token);
+  }
+
+  @Post('/tokenUpdate')
+  async updateTokens(@Req() req: Request) {
+    const { refreshToken } = req.cookies;
+    const accessToken = await this.authService.updateAccessToken(refreshToken);
+    if (!accessToken) {
+      throw new HttpException('token update failed', HttpStatus.UNAUTHORIZED);
+    }
+
+    return accessToken;
   }
 }

@@ -2,13 +2,13 @@ import {
   Column,
   CreateDateColumn,
   Entity,
-  PrimaryColumn,
+  PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
 @Entity()
 export class User {
-  @PrimaryColumn()
+  @PrimaryGeneratedColumn()
   id: number;
 
   @Column()
@@ -40,12 +40,11 @@ export class User {
 
   static create(data: any): User {
     const user = new User();
-    user.id = data.id;
-    user.password = 'password';
+    user.password = '';
     user.nickName = data.login;
     user.intraName = data.login;
     user.avatar = '';
-    user.rankScore = 1000;
+    user.rankScore = 0;
     user.two_factor_auth = false;
     return user;
   }
