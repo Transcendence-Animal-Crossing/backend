@@ -206,7 +206,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return id !== userId;
     });
     const users = await this.userService.findByIds(ids);
-    client.emit('message-load', messages);
+    client.emit('message-load', users);
   }
 
   private getClientByUserId(userId: number): Socket | null {
