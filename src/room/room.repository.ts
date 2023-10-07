@@ -15,7 +15,6 @@ export class RoomRepository {
   }
   save(room) {
     this.rooms.push(room);
-    console.log(this.rooms);
   }
   find(id) {
     return this.rooms.find((room) => room.id === id);

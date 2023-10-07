@@ -33,6 +33,9 @@ socket.on('room-leave', (userData) => {
 socket.on('room-kick', ({ roomId, targetId }) => {
   handleRoomKick(roomId, targetId);
 });
+socket.on('room-ban', ({ roomId, targetId }) => {
+  handleRoomBan(roomId, targetId);
+});
 socket.on('add-admin', ({ roomId, targetId }) => {
   handleAddAdmin(roomId, targetId);
 });
@@ -187,7 +190,26 @@ function handleRoomKick(roomId, targetId) {
     participants.innerHTML = '';
     const span_roomId = document.getElementById('roomId');
     span_roomId.innerText = 'Kicked';
+    current_roomId = null;
     alert('강퇴당했습니다.');
+    return;
+  }
+  current_participants = current_participants.filter((id) => id !== targetId);
+  for (const participant of current_participants) {
+    console.log('participant: ', participant);
+    participants.appendChild(buildParticipant(participant));
+  }
+}
+
+function handleRoomBan(roomId, targetId) {
+  const participants = document.getElementById('participants');
+  participants.innerHTML = '';
+  if (userId === targetId) {
+    participants.innerHTML = '';
+    const span_roomId = document.getElementById('roomId');
+    span_roomId.innerText = 'Banned';
+    current_roomId = null;
+    alert('밴당했습니다.');
     return;
   }
   current_participants = current_participants.filter((id) => id !== targetId);
@@ -265,7 +287,16 @@ function buildParticipant(participant) {
       targetId: participant.id,
     });
   };
+  const banButton = document.createElement('button');
+  banButton.appendChild(document.createTextNode('Ban'));
+  banButton.onclick = () => {
+    socket.emit('room-ban', {
+      roomId: current_roomId,
+      targetId: participant.id,
+    });
+  };
 
   li.appendChild(kickButton);
+  li.appendChild(banButton);
   return li;
 }

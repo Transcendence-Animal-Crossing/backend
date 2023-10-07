@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
+import { UserData } from '../room/data/user.data';
 
 @Injectable()
 export class UserService {
@@ -30,6 +31,18 @@ export class UserService {
 
   async findByName(name: string): Promise<User> {
     return this.userRepository.findOneBy({ intraName: name });
+  }
+
+  async findByIds(ids: number[]): Promise<User[]> {
+    return this.userRepository.findBy({ id: In(ids) });
+  }
+
+  async getUserDataByIds(ids: number[]): Promise<UserData[]> {
+    return this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.nickName', 'user.intraName', 'user.avatar'])
+      .where('user.id IN (:...ids)', { ids: ids })
+      .getMany();
   }
 
   async createOrUpdateUser(userPublicData: any): Promise<User> {
