@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UserService } from '../user/user.service';
 import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
-import { User } from "../user/entities/user.entity";
+import { User } from '../user/entities/user.entity';
 import * as bcrypt from 'bcryptjs';
+import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { hasSubscribers } from 'diagnostics_channel';
 
 @Injectable()
 export class AuthService {
@@ -22,8 +28,16 @@ export class AuthService {
       redirect_uri: process.env.OAUTH2_42_REDIRECT_URI,
     };
     const response = await axios.post(getTokenUrl, request);
-
     return response.data.access_token;
+  }
+
+  async signUp(userDto: CreateUserDto) {
+    const userId = await this.userService.updateUser(userDto);
+    if (!userId) {
+      return null;
+    }
+    const tokens = await this.generateTokens(userId.toString());
+    return tokens;
   }
 
   async getProfile(accessToken: string): Promise<any> {
@@ -50,9 +64,8 @@ export class AuthService {
       throw new NotFoundException(`There is no user under this username`);
     }
 
-    // const passwordEquals = await bcrypt.compare(password, user.password);
-    // if (passwordEquals) return user;
-    if (password === user.password) return user;
+    const passwordEquals = await bcrypt.compare(password, user.password);
+    if (passwordEquals) return user;
 
     throw new UnauthorizedException({ message: 'Incorrect password' });
   }
@@ -65,6 +78,40 @@ export class AuthService {
 
       return payload;
     } catch (err) {
+      return null;
+    }
+  }
+  verifyRefreshToken(refreshToken: string) {
+    const payload = this.jwtService.verify(refreshToken, {
+      secret: process.env.JWT_ACCESS_SECRET,
+    });
+
+    return payload;
+  }
+
+  async generateTokens(id: string) {
+    const payload = { id };
+    const accessToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: process.env.JWT_ACCESS_EXPIRE,
+    });
+    const refreshToken = this.jwtService.sign(payload, {
+      secret: process.env.JWT_REFRESH_SECRET,
+      expiresIn: process.env.JWT_REFRESH_EXPIRE,
+    });
+    const tokens = { accessToken, refreshToken };
+
+    return tokens;
+  }
+
+  async updateAccessToken(refreshToken: string) {
+    try {
+      const userId = this.verifyRefreshToken(refreshToken);
+
+      const tokens = await this.generateTokens(userId);
+
+      return tokens.accessToken;
+    } catch (e) {
       return null;
     }
   }
