@@ -19,6 +19,7 @@ import { ActionRoomDto } from '../chat/dto/action-room.dto';
 import { WebSocketServer } from '@nestjs/websockets';
 import { Grade } from './data/user.grade';
 import { SimpleRoomDto } from './dto/simple.room.dto';
+import { UserData } from './data/user.data';
 
 @Injectable()
 export class RoomService {
@@ -58,6 +59,8 @@ export class RoomService {
   async joinRoom(userId: number, room: Room) {
     if (this.isParticipant(userId, room))
       throw new ConflictException('해당 방에 이미 들어가 있습니다.');
+    if (this.isBanned(userId, room))
+      throw new ForbiddenException('해당 방으로의 입장이 금지되었습니다.');
 
     const user = await this.userService.findOne(userId);
     this.roomRepository.joinRoom(user, room);
@@ -81,8 +84,7 @@ export class RoomService {
     const room = this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
-    console.log('userGrade: ', userGrade);
-    console.log('targetGrade: ', targetGrade);
+
     if (userGrade <= targetGrade)
       throw new ForbiddenException('해당 유저를 강퇴할 권한이 없습니다.');
 
@@ -91,6 +93,29 @@ export class RoomService {
         (participant) => participant.id !== dto.targetId,
       );
     else throw new BadRequestException('해당 유저가 방에 없습니다.');
+
+    this.roomRepository.update(room);
+  }
+
+  ban(userId: number, dto: ActionRoomDto) {
+    const room = this.findById(dto.roomId);
+    const userGrade = this.getGrade(userId, room);
+    const targetGrade = this.getGrade(dto.targetId, room);
+    let target = null;
+
+    if (userGrade <= targetGrade)
+      throw new ForbiddenException('해당 유저를 밴할 권한이 없습니다.');
+
+    if (this.isParticipant(dto.targetId, room)) {
+      for (let i = 0; i < room.participants.length; i++) {
+        if (room.participants[i].id === dto.targetId) {
+          target = room.participants[i];
+          room.participants.splice(i, 1);
+          break;
+        }
+      }
+    } else throw new BadRequestException('해당 유저가 방에 없습니다.');
+    room.bannedUsers.push(new UserData(target));
 
     this.roomRepository.update(room);
   }
@@ -111,8 +136,13 @@ export class RoomService {
     return false;
   }
 
+  isBanned(userId: number, room: Room) {
+    for (const bannedUser of room.bannedUsers)
+      if (bannedUser.id === userId) return true;
+    return false;
+  }
+
   getGrade(userId: number, room: Room): number {
-    console.log('getGrade()');
     for (const participant of room.participants)
       if (participant.id === userId) return participant.grade;
     throw new BadRequestException('해당 유저가 방에 없습니다.');

@@ -1,4 +1,4 @@
-import { UseFilters } from '@nestjs/common';
+import { ForbiddenException, UseFilters } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -23,6 +23,8 @@ import { WsExceptionFilter } from './WsExceptionFilter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
 import { ParticipantData } from '../room/data/participant.data';
 import { UserData } from '../room/data/user.data';
+import { MessageService } from './message.service';
+import { LoadMessageDto } from './dto/load-message.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -38,6 +40,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly userService: UserService,
     private readonly authService: AuthService,
     private readonly roomService: RoomService,
+    private readonly messageService: MessageService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -102,7 +105,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
     const room = this.roomService.findById(dto.roomId);
 
-    // user 가 ban 되었는지 확인
     await this.roomService.joinRoom(userId, room);
 
     client.join(dto.roomId);
@@ -123,16 +125,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
   }
 
-  @SubscribeMessage('direct-message')
-  async onDirectMessage(client: Socket, dto: DirectMessageDto) {
-    dto.senderId = this.clientUserMap.get(client.id);
+  @SubscribeMessage('room-kick')
+  async onRoomKick(client: Socket, dto: ActionRoomDto) {
+    const userId = this.clientUserMap.get(client.id);
 
-    // user 가 차단되었는지 확인필요
-    // message 저장필요
-    client
-      .to(this.userClientMap.get(Number(dto.receiverId)))
-      .emit('direct-message', dto);
-    client.emit('direct-message', dto);
+    this.roomService.kick(userId, dto);
+    this.server.to(dto.roomId).emit('room-kick', dto);
+
+    const kickedClient = this.getClientByUserId(dto.targetId);
+    kickedClient.leave(dto.roomId);
+  }
+
+  @SubscribeMessage('room-ban')
+  async onRoomBan(client: Socket, dto: ActionRoomDto) {
+    const userId = this.clientUserMap.get(client.id);
+
+    this.roomService.ban(userId, dto);
+    this.server.to(dto.roomId).emit('room-ban', dto);
+
+    const bannedClient = this.getClientByUserId(dto.targetId);
+    bannedClient.leave(dto.roomId);
   }
 
   @SubscribeMessage('add-admin')
@@ -156,19 +168,45 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = this.clientUserMap.get(client.id);
     roomMessageDto.senderId = userId;
 
+    const room = this.roomService.findById(roomMessageDto.roomId);
+    if (this.roomService.isParticipant(userId, room))
+      throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
+
     client.to(roomMessageDto.roomId).emit('room-message', roomMessageDto);
     client.emit('room-message', roomMessageDto);
   }
 
-  @SubscribeMessage('room-kick')
-  async onRoomKick(client: Socket, dto: ActionRoomDto) {
+  @SubscribeMessage('direct-message')
+  async onDirectMessage(client: Socket, dto: DirectMessageDto) {
+    dto.senderId = this.clientUserMap.get(client.id);
+
+    // user 가 차단되었는지 확인필요
+    // message 저장필요
+    client
+      .to(this.userClientMap.get(Number(dto.receiverId)))
+      .emit('direct-message', dto);
+    client.emit('direct-message', dto);
+    await this.messageService.createAndSave(dto);
+  }
+
+  @SubscribeMessage('message-load')
+  async onMessageLoad(client: Socket, loadMessageDto: LoadMessageDto) {
     const userId = this.clientUserMap.get(client.id);
+    const messages = await this.messageService.loadMessage(
+      userId,
+      loadMessageDto,
+    );
+    client.emit('message-load', messages);
+  }
 
-    this.roomService.kick(userId, dto);
-    this.server.to(dto.roomId).emit('room-kick', dto);
-
-    const kickedClient = this.getClientByUserId(dto.targetId);
-    kickedClient.leave(dto.roomId);
+  @SubscribeMessage('user-list')
+  async onUserList(client: Socket) {
+    const userId = this.clientUserMap.get(client.id);
+    const ids = Array.from(this.userClientMap.keys()).filter((id) => {
+      return id !== userId;
+    });
+    const users = await this.userService.findByIds(ids);
+    client.emit('message-load', messages);
   }
 
   private getClientByUserId(userId: number): Socket | null {

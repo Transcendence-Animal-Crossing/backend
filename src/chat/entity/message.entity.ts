@@ -3,8 +3,8 @@ import {
   PrimaryGeneratedColumn,
   Column,
   CreateDateColumn, ManyToOne
-} from "typeorm";
-import { User } from "../../user/entities/user.entity";
+} from 'typeorm';
+import { User } from '../../user/entities/user.entity';
 
 @Entity()
 export class Message {
@@ -22,4 +22,12 @@ export class Message {
 
   @ManyToOne(() => User)
   receiver: User;
+
+  static create(text: string, sender: User, receiver: User): Message {
+    const message = new Message();
+    message.text = text;
+    message.sender = sender;
+    message.receiver = receiver;
+    return message;
+  }
 }
