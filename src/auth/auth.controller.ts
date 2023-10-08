@@ -15,16 +15,10 @@ import { Public } from './guards/public';
 import { UserService } from '../user/user.service';
 import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
-<<<<<<< HEAD
-import { LocalAuthGuard } from './guards/local-auth.guard';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
-=======
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
->>>>>>> dbfe18156ba3436a28e8a6c33a72ffeec45be536
 
 @Controller('auth')
 export class AuthController {
@@ -74,7 +68,7 @@ export class AuthController {
   // 고로 아래 /login 은 클라이언트에서 해줄 것이므로 나중에는 지워질 운명
   @Public()
   @Redirect(
-    // 'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-e80da690cddde3da8e17af2a1458d99e28169a63558faf52a154b2d85d627ea1&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&response_type=code',
+    //'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-e80da690cddde3da8e17af2a1458d99e28169a63558faf52a154b2d85d627ea1&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Fauth%2Fcallback&response_type=code',
     'https://api.intra.42.fr/oauth/authorize?client_id=u-s4t2ud-d927cd123502f27db21ee7ead26256f9fffb935090debfe592a3658c6bdefea0&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fauth%2Fcallback&response_type=code',
     302,
   )
@@ -116,7 +110,8 @@ export class AuthController {
 
   @Public()
   @Post('/demoSignUp')
-  async demoSingUp(@Body('id') id: number,
+  async demoSingUp(
+    @Body('id') id: number,
     @Body('password') password: string,
     @Res({ passthrough: true }) res: Response,
   ) {
