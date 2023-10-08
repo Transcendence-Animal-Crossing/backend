@@ -17,7 +17,6 @@ import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 
 @Controller('auth')
@@ -60,6 +59,8 @@ export class AuthController {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
+    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    res.json(tokens);
     return tokens;
   }
 
@@ -104,6 +105,8 @@ export class AuthController {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
+    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    res.json(tokens);
 
     return tokens;
   }
