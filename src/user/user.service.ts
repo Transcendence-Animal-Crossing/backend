@@ -5,6 +5,7 @@ import { User } from './entities/user.entity';
 import { UserData } from '../room/data/user.data';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
+import { ResponseUserDto, toResponseUserDto } from './dto/response-user.dto';
 
 @Injectable()
 export class UserService {
@@ -20,6 +21,12 @@ export class UserService {
     const user = this.userRepository.findOneBy({ id: id });
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
     return user;
+  }
+
+  async findOneByIntraName(intraName: string): Promise<User> {
+    return this.userRepository.findOne({
+      where: { intraName: intraName },
+    });
   }
 
   async findOneWithParticipants(id: number): Promise<User> {
@@ -64,5 +71,11 @@ export class UserService {
     return user.id;
 
     //todo: 이거 업데이트 하는걸로 빼야함,,
+  }
+  async findOneById(id: number): Promise<ResponseUserDto> {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
+
+    return toResponseUserDto(user);
   }
 }
