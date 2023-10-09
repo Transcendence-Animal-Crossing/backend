@@ -10,6 +10,7 @@ import { User } from '../user/entities/user.entity';
 import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { hasSubscribers } from 'diagnostics_channel';
+import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
 @Injectable()
 export class AuthService {
@@ -40,6 +41,12 @@ export class AuthService {
     return tokens;
   }
 
+  async signIn(userDto: LoginUserDto) {
+    const user = await this.validateUser(userDto);
+    const tokens = await this.generateTokens(user.id.toString());
+    return tokens;
+  }
+
   async getProfile(accessToken: string): Promise<any> {
     const response = await axios.get('https://api.intra.42.fr/v2/me', {
       headers: {
@@ -58,13 +65,18 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  async validateUser(id: number, password: string): Promise<User> {
-    const user = await this.userService.findOne(id);
+  async validateUser(userDto: LoginUserDto): Promise<User> {
+    const user = await this.userService.findOneByIntraName(userDto.intraName);
     if (!user) {
-      throw new NotFoundException(`There is no user under this username`);
+      throw new NotFoundException(
+        `로그인 실패 인트라 네임 없음~ There is no user under this username`,
+      );
     }
 
-    const passwordEquals = await bcrypt.compare(password, user.password);
+    const passwordEquals = await bcrypt.compare(
+      userDto.password,
+      user.password,
+    );
     if (passwordEquals) return user;
 
     throw new UnauthorizedException({ message: 'Incorrect password' });
