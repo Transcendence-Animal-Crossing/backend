@@ -3,7 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-  NotFoundException,
+  NotFoundException, UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -33,10 +33,11 @@ export class RoomService {
   @WebSocketServer()
   server;
 
-  async findAll() {
+  async findPublicRooms() {
     const rooms = this.roomRepository.findAll();
     const roomList = [];
     for (const room of rooms) {
+      if (room.isPrivate) continue;
       roomList.push(new SimpleRoomDto(room));
     }
     return roomList;
@@ -56,11 +57,15 @@ export class RoomService {
     return data;
   }
 
-  async joinRoom(userId: number, room: Room) {
+  async joinRoom(userId: number, room: Room, password: string) {
     if (this.isParticipant(userId, room))
       throw new ConflictException('해당 방에 이미 들어가 있습니다.');
     if (this.isBanned(userId, room))
       throw new ForbiddenException('해당 방으로의 입장이 금지되었습니다.');
+    if (room.isLocked && room.password !== password)
+      throw new ForbiddenException('비밀번호가 틀렸습니다.');
+    if (room.isPrivate && !this.isInvited(userId, room))
+      throw new UnauthorizedException('해당 방에 초대되지 않았습니다.');
 
     const user = await this.userService.findOne(userId);
     this.roomRepository.joinRoom(user, room);
@@ -139,6 +144,12 @@ export class RoomService {
   isBanned(userId: number, room: Room) {
     for (const bannedUser of room.bannedUsers)
       if (bannedUser.id === userId) return true;
+    return false;
+  }
+
+  isInvited(userId: number, room: Room) {
+    for (const invitedUser of room.invitedUsers)
+      if (invitedUser.id === userId) return true;
     return false;
   }
 

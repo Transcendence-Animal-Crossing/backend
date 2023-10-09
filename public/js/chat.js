@@ -45,6 +45,12 @@ socket.on('remove-admin', ({ roomId, targetId }) => {
 socket.on('room-message', ({ text, roomId, senderId }) => {
   handleReceiveRoomMessage(text, senderId);
 });
+socket.on('user-list', (connectedUsers) => {
+  handleConnectedUsers(connectedUsers);
+});
+socket.on('message-load', (messages) => {
+  handleDirectMessageLoad(messages);
+});
 socket.on('exception', ({ status, message }) => {
   // 권한이 없다 등의 메시지
   // jwt 토큰이 유효하지 않거나, 만료되었을 때도 이벤트가 발생
@@ -57,14 +63,14 @@ socket.on('exception', ({ status, message }) => {
   alert(message);
 });
 
-socket.on('direct-message', ({ text, receiverId, senderId }) => {
-  console.log(text, receiverId, senderId);
-  handleReceiveDirectMessage(text, receiverId, senderId);
+socket.on('direct-message', (message) => {
+  handleReceiveDirectMessage(message);
 });
 
 // HTML 로드되면 서버에 room-list 이벤트를 보내서 방 목록을 요청
 document.addEventListener('DOMContentLoaded', function () {
   socket.emit('room-list');
+  if (current_roomId !== null) socket.emit('room-detail', current_roomId);
 });
 
 // 방 생성 버튼 클릭 시
@@ -115,15 +121,33 @@ function handleRoomList(rooms) {
       ),
     );
     roomElement.appendChild(span);
+    if (room.isLocked) {
+      const input_password = document.createElement('input');
+      input_password.type = 'password';
+      input_password.placeholder = 'Password';
+      input_password.id = 'input_password' + room.id;
+      roomElement.appendChild(input_password);
+    }
 
     const joinButton = document.createElement('button');
     joinButton.innerText = 'Join Room';
     joinButton.onclick = function () {
       if (current_roomId !== null) {
-        socket.emit('room-leave', { roomId: current_roomId });
+        alert('다른 방에 참여하려면 먼저 방을 나가주세요.');
+        return;
       }
-      socket.emit('room-join', { roomId: room.id });
+      if (room.isLocked) {
+        const input_password = document.getElementById(
+          'input_password' + room.id,
+        );
+        socket.emit('room-join', {
+          roomId: room.id,
+          password: input_password.value,
+        });
+        input_password.value = '';
+      } else socket.emit('room-join', { roomId: room.id });
 
+      // 방 참여 성공 시에만 current_roomId를 업데이트 해야하므로 없어져야 하는 코드
       current_roomId = room.id;
       const span_roomId = document.getElementById('roomId');
       span_roomId.innerText = current_roomId;
@@ -133,6 +157,14 @@ function handleRoomList(rooms) {
     leaveButton.innerText = 'Leave Room';
     leaveButton.onclick = function () {
       socket.emit('room-leave', { roomId: room.id });
+      current_roomId = null;
+      const span_roomId = document.getElementById('roomId');
+      span_roomId.innerText = current_roomId;
+
+      const roomTitle = document.getElementById('roomTitle');
+      roomTitle.innerText = '';
+      const participants = document.getElementById('participants');
+      participants.innerHTML = '';
     };
 
     roomElement.appendChild(joinButton);
@@ -253,17 +285,50 @@ function handleReceiveRoomMessage(text, senderId) {
   roomMessages.appendChild(buildNewMessage(text, senderId));
 }
 
-// direct-message 이벤트를 받으면
-function handleReceiveDirectMessage(text, receiverId, senderId) {
-  const directMessages = document.getElementById('directMessages');
-  directMessages.appendChild(buildNewMessage(text, senderId));
+function handleConnectedUsers(connectedUsers) {
+  const userList = document.getElementById('connected-users');
+  userList.innerHTML = '';
+  for (const connectedUser of connectedUsers) {
+    userList.appendChild(buildConnectedUser(connectedUser));
+  }
 }
 
-// 메시지를 생성하는 함수
-function buildNewMessage(text, senderId) {
+function handleDirectMessageLoad(messages) {
+  const directMessages = document.getElementById('directMessages');
+  directMessages.innerHTML = '';
+  console.log('messages: ', messages);
+  for (const message of messages) {
+    console.log('message: ', message);
+    directMessages.appendChild(buildNewMessage(message));
+  }
+}
+
+// direct-message 이벤트를 받으면
+function handleReceiveDirectMessage(message) {
+  const directMessages = document.getElementById('directMessages');
+  directMessages.appendChild(buildNewMessage(message));
+}
+
+function buildNewMessage(message) {
   const li = document.createElement('li');
   li.classList.add('message');
-  li.appendChild(document.createTextNode(senderId + ': ' + text));
+  li.appendChild(
+    document.createTextNode(message.senderId + ': ' + message.text),
+  );
+  return li;
+}
+
+function buildConnectedUser(connectedUser) {
+  const li = document.createElement('li');
+  li.appendChild(document.createTextNode(connectedUser.nickName));
+  const dmButton = document.createElement('button');
+  dmButton.appendChild(document.createTextNode('DM'));
+  dmButton.onclick = () => {
+    socket.emit('message-load', {
+      targetId: connectedUser.id,
+    });
+  };
+  li.appendChild(dmButton);
   return li;
 }
 

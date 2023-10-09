@@ -21,8 +21,8 @@ services:
     restart: always
     networks:
       - tcen
-    volumes:
-      - db-volume:/var/lib/postgresql/data
+#    volumes:
+#      - db-volume:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 5s
@@ -34,13 +34,13 @@ services:
         POSTGRES_PASSWORD: 1234
         POSTGRES_DB: nest
 
-volumes:
-  db-volume:
-    driver: local
-    driver_opts:
-      device: ~/data/db-data
-      type: none
-      o: bind
+#volumes:
+#  db-volume:
+#    driver: local
+#    driver_opts:
+#      device: ~/data/db-data
+#      type: none
+#      o: bind
 
 networks:
   tcen:
