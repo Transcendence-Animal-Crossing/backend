@@ -22,6 +22,12 @@ export class UserService {
     return user;
   }
 
+  async findOneByIntraName(intraName: string): Promise<User> {
+    return this.userRepository.findOne({
+      where: { intraName: intraName },
+    });
+  }
+
   async findOneWithParticipants(id: number): Promise<User> {
     const user = this.userRepository.findOne({
       where: { id: id },
