@@ -40,7 +40,7 @@ export class UserService {
   }
 
   async getUserDataByIds(ids: number[]): Promise<UserData[]> {
-    return this.userRepository
+    return await this.userRepository
       .createQueryBuilder('user')
       .select(['user.id', 'user.nickName', 'user.intraName', 'user.avatar'])
       .where('user.id IN (:...ids)', { ids: ids })

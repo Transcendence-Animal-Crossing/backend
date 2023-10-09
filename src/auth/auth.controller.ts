@@ -15,16 +15,9 @@ import { Public } from './guards/public';
 import { UserService } from '../user/user.service';
 import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
-<<<<<<< HEAD
-import { LocalAuthGuard } from './guards/local-auth.guard';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UpdateUserDto } from '../user/dto/update-user.dto';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
-=======
-import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
->>>>>>> dbfe18156ba3436a28e8a6c33a72ffeec45be536
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Controller('auth')
 export class AuthController {
@@ -116,7 +109,8 @@ export class AuthController {
 
   @Public()
   @Post('/demoSignUp')
-  async demoSingUp(@Body('id') id: number,
+  async demoSingUp(
+    @Body('id') id: number,
     @Body('password') password: string,
     @Res({ passthrough: true }) res: Response,
   ) {

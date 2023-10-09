@@ -21,7 +21,7 @@ h1, h2, h3 {
 }
 
 .input-group {
-    display: flex;
+    /*display: flex;*/
     justify-content: space-between;
     align-items: center;
     margin-top: 20px;

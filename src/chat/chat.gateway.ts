@@ -67,6 +67,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     this.clientUserMap.set(client.id, user.id);
     this.userClientMap.set(user.id, client.id);
+
+    client.emit('user-list', await this.getConnectedUsersData());
   }
 
   async handleDisconnect(client: Socket) {
@@ -78,7 +80,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-list')
   async getRoomList(client: Socket) {
-    client.emit('room-list', await this.roomService.findAll());
+    client.emit('room-list', await this.roomService.findPublicRooms());
   }
 
   @SubscribeMessage('room-detail')
@@ -94,7 +96,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.join(room.id);
     client.emit('room-detail', new DetailRoomDto(room));
-    this.server.emit('room-list', await this.roomService.findAll());
+    this.server.emit('room-list', await this.roomService.findPublicRooms());
     // 나중에 아래처럼 변경
     // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
   }
@@ -105,7 +107,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
     const room = this.roomService.findById(dto.roomId);
 
-    await this.roomService.joinRoom(userId, room);
+    await this.roomService.joinRoom(userId, room, dto.password);
 
     client.join(dto.roomId);
     client.emit('room-detail', new DetailRoomDto(room));
@@ -169,7 +171,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     roomMessageDto.senderId = userId;
 
     const room = this.roomService.findById(roomMessageDto.roomId);
-    if (this.roomService.isParticipant(userId, room))
+    if (!this.roomService.isParticipant(userId, room))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
 
     client.to(roomMessageDto.roomId).emit('room-message', roomMessageDto);
@@ -205,8 +207,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const ids = Array.from(this.userClientMap.keys()).filter((id) => {
       return id !== userId;
     });
-    const users = await this.userService.findByIds(ids);
-    client.emit('message-load', users);
+    const users = await this.userService.getUserDataByIds(ids);
+    client.emit('user-list', users);
+  }
+
+  private async getConnectedUsersData() {
+    const ids = Array.from(this.userClientMap.keys());
+    return await this.userService.getUserDataByIds(ids);
   }
 
   private getClientByUserId(userId: number): Socket | null {

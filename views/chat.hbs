@@ -13,9 +13,17 @@
 <body>
 <div id="main-container">
   <section id="lobby">
-    <h1>Lobby (UserId: <span id='userId'>{{ userId }}</span>)</h1>
+    <h1>Lobby (UserId: <span id='userId'>{{ userId }}</span>) 새로고침 금지!!</h1>
     <ul id="roomList"></ul>
     <div class="input-group">
+      <input type="radio" id="public" name="room_type" value="public" checked>
+      <label for="public">Public</label>
+      <input type="radio" id="private" name="room_type" value="private">
+      <label for="private">Private</label>
+      <input type="radio" id="protected" name="room_type" value="protected">
+      <label for="protected">Protected</label>
+      <input id="input_password" type="text" placeholder="Password" />
+      <br><br>
       <input id="input_title" type="text" placeholder="Room Name" />
       <button onclick="createRoom()">방만들기</button>
     </div>
@@ -31,6 +39,11 @@
       <input id="room-message" type="text" placeholder="Type your message" />
       <button onclick="sendRoomMessage()">전송</button>
     </div>
+  </section>
+
+  <section id='users'>
+    <h1>Connected Users</h1>
+    <ul id="connected-users"></ul>
   </section>
 
   <section id="dm">

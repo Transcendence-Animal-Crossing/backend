@@ -27,17 +27,30 @@ export class MessageService {
     const user = await this.userService.findOne(userId);
     const target = await this.userService.findOne(loadMessageDto.targetId);
 
-    return await this.messageRepository.find({
-      where: [
-        { sender: { id: user.id }, receiver: { id: target.id } },
-        { sender: { id: target.id }, receiver: { id: user.id } },
-      ],
-      relations: {
-        sender: true,
-        receiver: true,
-      },
-      order: { created_at: 'DESC' },
-      take: 20,
-    });
+    const messageData = await this.messageRepository
+      .createQueryBuilder('message')
+      .select([
+        'message.id AS messageId',
+        'message.text AS text',
+        'message.created_at AS date',
+        'sender.id AS senderid',
+        'receiver.id AS receiverid',
+      ])
+      .innerJoin('message.sender', 'sender')
+      .innerJoin('message.receiver', 'receiver')
+      .where(
+        '(sender.id = :userId AND receiver.id = :targetId) OR (sender.id = :targetId AND receiver.id = :userId)',
+        { userId: user.id, targetId: target.id },
+      )
+      .orderBy('message.created_at', 'DESC')
+      .take(20)
+      .getRawMany();
+    return messageData.map((data) => ({
+      date: data.date,
+      text: data.text,
+      senderId: data.senderid,
+      receiverId: data.receiverid,
+      messageId: data.messageid,
+    }));
   }
 }
