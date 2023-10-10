@@ -78,4 +78,15 @@ export class UserService {
 
     return toResponseUserDto(user);
   }
+
+  async block(user: User, targetId: number) {
+    if (user.blockIds.includes(targetId)) return;
+    user.blockIds.push(targetId);
+    await this.userRepository.save(user);
+  }
+
+  async unblock(user: User, targetId: number) {
+    user.blockIds = user.blockIds.filter((id) => id !== targetId);
+    await this.userRepository.save(user);
+  }
 }

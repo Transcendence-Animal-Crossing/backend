@@ -3,7 +3,8 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
-  NotFoundException, UnauthorizedException,
+  NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -73,15 +74,46 @@ export class RoomService {
 
   async create(dto: CreateRoomDto, ownerId: number) {
     const owner = await this.userService.findOne(ownerId);
-    const room = new Room(
-      dto.title,
-      owner,
-      dto.mode,
-      dto.password,
-    );
+    const room = new Room(dto.title, owner, dto.mode, dto.password);
 
     this.roomRepository.save(room);
     return room;
+  }
+
+  mute(userId: number, dto: ActionRoomDto) {
+    const room = this.findById(dto.roomId);
+    const userGrade = this.getGrade(userId, room);
+    const targetGrade = this.getGrade(dto.targetId, room);
+
+    if (userGrade <= targetGrade)
+      throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
+
+    for (const participant of room.participants) {
+      if (participant.id === dto.targetId) {
+        participant.mute = true;
+        this.roomRepository.update(room);
+        return;
+      }
+    }
+    throw new BadRequestException('해당 유저가 방에 없습니다.');
+  }
+
+  unmute(userId: number, dto: ActionRoomDto) {
+    const room = this.findById(dto.roomId);
+    const userGrade = this.getGrade(userId, room);
+    const targetGrade = this.getGrade(dto.targetId, room);
+
+    if (userGrade <= targetGrade)
+      throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
+
+    for (const participant of room.participants) {
+      if (participant.id === dto.targetId) {
+        participant.mute = false;
+        this.roomRepository.update(room);
+        return;
+      }
+    }
+    throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 
   kick(userId: number, dto: ActionRoomDto) {
@@ -127,11 +159,26 @@ export class RoomService {
   leave(userId: number, room: Room) {
     if (!this.isParticipant(userId, room))
       throw new BadRequestException('방 안에 있지 않습니다.');
+    if (this.getGrade(userId, room) === Grade.OWNER) {
+      if (room.participants.length === 1) {
+        this.roomRepository.delete(room);
+        return;
+      }
+      this.handOverOwner(userId, room);
+    }
 
     room.participants = room.participants.filter(
       (participant) => participant.id !== userId,
     );
     this.roomRepository.update(room);
+  }
+
+  handOverOwner(userId: number, room: Room) {
+    if (room.participants.length === 1) {
+      this.roomRepository.delete(room);
+      return;
+    }
+    room.participants[1].grade = Grade.OWNER;
   }
 
   isParticipant(userId: number, room: Room) {
@@ -171,6 +218,7 @@ export class RoomService {
         break;
       }
     }
+    this.sortParticipants(room);
     this.roomRepository.save(room);
   }
 
@@ -187,6 +235,7 @@ export class RoomService {
         break;
       }
     }
+    this.sortParticipants(room);
     this.roomRepository.save(room);
   }
 
@@ -204,5 +253,24 @@ export class RoomService {
     this.roomRepository.save(room);
 
     return room;
+  }
+
+  sortParticipants(room: Room) {
+    room.participants.sort((a, b) => {
+      if (a.grade > b.grade) return -1;
+      else if (a.grade < b.grade) return 1;
+      else {
+        if (a.grade === Grade.ADMIN) {
+          if (a.adminTime > b.adminTime) return -1;
+          else if (a.adminTime < b.adminTime) return 1;
+          else return 0;
+        } else {
+          if (a.joinTime > b.joinTime) return -1;
+          else if (a.joinTime < b.joinTime) return 1;
+          else return 0;
+        }
+      }
+    });
+    console.log('Sorted participants: ', room.participants);
   }
 }
