@@ -60,7 +60,7 @@ export class AuthController {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    // res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     res.json(tokens);
     return tokens;
   }
@@ -135,6 +135,26 @@ export class AuthController {
       return;
     }
     res.redirect('http://localhost:8080/login');
+  }
+
+  @Public()
+  @Post('/demoSignIn')
+  async demoSingIn(
+    @Body('id') id: number,
+    @Body('password') password: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    console.log('id: ' + id);
+    console.log('password: ' + password);
+    const user = await this.userService.findOne(id);
+
+    if (!user || user.password !== password)
+      throw new HttpException('Invalid id or password', 400);
+    const token = await this.authService.signJwt(id);
+
+    res.cookie('jwt', token);
+
+    res.redirect('http://localhost:8080/chat?token=' + token);
   }
 
   @Public()

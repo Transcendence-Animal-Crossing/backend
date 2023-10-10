@@ -57,7 +57,9 @@ export class AuthService {
   }
 
   verifyJwt(token: string) {
-    return this.jwtService.verify(token);
+    return this.jwtService.verify(token, {
+      ignoreExpiration: false,
+    });
   }
 
   async signJwt(userId: number): Promise<string> {

@@ -35,6 +35,14 @@ input[type="text"] {
     margin-right: 10px;
 }
 
+input[type="password"] {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    flex: 1;
+    margin-right: 10px;
+}
+
 button {
     background-color: #007BFF; /* Blue */
     color: #fff;

@@ -9,14 +9,12 @@ export class DetailRoomDto {
     this.participants = room.participants;
     this.bannedUsers = room.bannedUsers;
     this.invitedUsers = room.invitedUsers;
-    this.isPrivate = room.isPrivate;
-    this.isLocked = room.isLocked;
+    this.mode = room.mode;
   }
   id: string;
   title: string;
   participants: ParticipantData[];
   bannedUsers: UserData[];
   invitedUsers: UserData[];
-  isPrivate: boolean;
-  isLocked: boolean;
+  mode: string;
 }
