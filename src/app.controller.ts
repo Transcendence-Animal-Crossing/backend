@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, Render, Req } from '@nestjs/common';
+import { Controller, Get, Query, Render, Req } from '@nestjs/common';
 import { AppService } from './app.service';
 import { RoomService } from './room/room.service';
 import { UserService } from './user/user.service';
@@ -13,6 +13,10 @@ export class AppController {
     private readonly userService: UserService,
     private readonly authService: AuthService,
   ) {}
+
+  /*
+    아래 코드들은 전부 채팅 데모들을 위한 것들로 실제로는 필요 없음.
+   */
 
   @Public()
   @Get('/')
@@ -34,7 +38,16 @@ export class AppController {
   @Public()
   @Get('/chat')
   @Render('chat')
-  chat(@Query('token') token: string) {
-    return { userId: this.authService.verifyJwt(token).id, token: token };
+  async chat(@Query('token') token: string) {
+    const userId = this.authService.verifyJwt(token).id;
+    const user = await this.userService.findOne(userId);
+    return { user: user, token: token };
+  }
+
+  @Public()
+  @Get('/me')
+  async me(@Req() req) {
+    const userId = this.authService.verifyJwt(req.cookies.jwt).id;
+    return await this.userService.findOne(userId);
   }
 }

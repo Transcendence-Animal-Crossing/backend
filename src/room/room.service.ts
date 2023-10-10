@@ -159,13 +159,9 @@ export class RoomService {
   leave(userId: number, room: Room) {
     if (!this.isParticipant(userId, room))
       throw new BadRequestException('방 안에 있지 않습니다.');
-    if (this.getGrade(userId, room) === Grade.OWNER) {
-      if (room.participants.length === 1) {
-        this.roomRepository.delete(room);
-        return;
-      }
-      this.handOverOwner(userId, room);
-    }
+    if (this.getGrade(userId, room) === Grade.OWNER)
+      this.ownerLeave(userId, room);
+    // if (this.ownerLeave(userId, room) === undefined) return;
 
     room.participants = room.participants.filter(
       (participant) => participant.id !== userId,
@@ -173,12 +169,12 @@ export class RoomService {
     this.roomRepository.update(room);
   }
 
-  handOverOwner(userId: number, room: Room) {
+  ownerLeave(userId: number, room: Room) {
     if (room.participants.length === 1) {
-      this.roomRepository.delete(room);
-      return;
-    }
-    room.participants[1].grade = Grade.OWNER;
+      this.roomRepository.delete(room.id);
+      room = undefined;
+    } else room.participants[1].grade = Grade.OWNER;
+    return room;
   }
 
   isParticipant(userId: number, room: Room) {
