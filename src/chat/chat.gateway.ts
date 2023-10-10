@@ -130,11 +130,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
     const room = this.roomService.findById(dto.roomId);
 
-    // 방장이 나갔을 경우, 다른 사람 방장으로 변경
     this.roomService.leave(userId, room);
     client.leave(dto.roomId);
 
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
+    this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
+    return;
   }
 
   @SubscribeMessage('room-invite')

@@ -53,6 +53,10 @@ button {
     transition: background-color 0.3s;
 }
 
+button:disabled {
+    display: none;
+}
+
 button:hover {
     background-color: #0056b3; /* Darker Blue */
 }
