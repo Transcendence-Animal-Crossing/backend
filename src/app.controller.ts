@@ -3,6 +3,7 @@ import { AppService } from './app.service';
 import { RoomService } from './room/room.service';
 import { UserService } from './user/user.service';
 import { Public } from './auth/guards/public';
+import { AuthService } from './auth/auth.service';
 
 @Controller()
 export class AppController {
@@ -10,6 +11,7 @@ export class AppController {
     private readonly appService: AppService,
     private readonly roomService: RoomService,
     private readonly userService: UserService,
+    private readonly authService: AuthService,
   ) {}
 
   @Public()
@@ -29,9 +31,10 @@ export class AppController {
   @Render('login')
   login() {}
 
+  @Public()
   @Get('/chat')
   @Render('chat')
-  chat(@Req() req, @Query('token') token: string) {
-    return { userId: req.user.id, token: token };
+  chat(@Query('token') token: string) {
+    return { userId: this.authService.verifyJwt(token).id, token: token };
   }
 }

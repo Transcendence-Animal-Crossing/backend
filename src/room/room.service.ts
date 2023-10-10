@@ -33,11 +33,11 @@ export class RoomService {
   @WebSocketServer()
   server;
 
-  async findPublicRooms() {
+  async findNotPrivateRooms() {
     const rooms = this.roomRepository.findAll();
     const roomList = [];
     for (const room of rooms) {
-      if (room.isPrivate) continue;
+      if (room.mode === 'PRIVATE') continue;
       roomList.push(new SimpleRoomDto(room));
     }
     return roomList;
@@ -62,9 +62,9 @@ export class RoomService {
       throw new ConflictException('해당 방에 이미 들어가 있습니다.');
     if (this.isBanned(userId, room))
       throw new ForbiddenException('해당 방으로의 입장이 금지되었습니다.');
-    if (room.isLocked && room.password !== password)
+    if (room.mode === 'PROTECTED' && room.password !== password)
       throw new ForbiddenException('비밀번호가 틀렸습니다.');
-    if (room.isPrivate && !this.isInvited(userId, room))
+    if (room.mode === 'PRIVATE' && !this.isInvited(userId, room))
       throw new UnauthorizedException('해당 방에 초대되지 않았습니다.');
 
     const user = await this.userService.findOne(userId);
@@ -76,8 +76,7 @@ export class RoomService {
     const room = new Room(
       dto.title,
       owner,
-      dto.isLocked,
-      dto.isPrivate,
+      dto.mode,
       dto.password,
     );
 
@@ -180,7 +179,7 @@ export class RoomService {
     if (this.getGrade(userId, room) !== Grade.OWNER)
       throw new ForbiddenException('방장만이 관리자를 회수할 수 있습니다.');
     if (this.getGrade(dto.targetId, room) != Grade.ADMIN)
-      throw new ConflictException('해당 유저는 관리자가 아닙니다.');
+      throw new ConflictException('해당 유저는 방장이거나, 관리자가 아닙니다.');
 
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
@@ -189,5 +188,21 @@ export class RoomService {
       }
     }
     this.roomRepository.save(room);
+  }
+
+  async invite(userId: number, dto: ActionRoomDto) {
+    const room = this.findById(dto.roomId);
+    if (!this.isParticipant(userId, room))
+      throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
+    if (this.isParticipant(dto.targetId, room))
+      throw new ConflictException('해당 유저는 이미 방에 있습니다.');
+    if (this.isInvited(dto.targetId, room))
+      throw new ConflictException('해당 유저는 이미 초대되었습니다.');
+
+    const target = await this.userService.findOne(dto.targetId);
+    room.invitedUsers.push(new UserData(target));
+    this.roomRepository.save(room);
+
+    return room;
   }
 }

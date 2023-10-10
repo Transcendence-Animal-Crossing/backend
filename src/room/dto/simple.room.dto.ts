@@ -7,11 +7,11 @@ export class SimpleRoomDto {
     this.title = room.title;
     this.owner = room.participants[0];
     this.headCount = room.participants.length;
-    this.isLocked = room.isLocked;
+    this.mode = room.mode;
   }
   id: string;
   title: string;
   owner: UserData;
   headCount: number;
-  isLocked: boolean;
+  mode: string;
 }

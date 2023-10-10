@@ -25,6 +25,7 @@ import { ParticipantData } from '../room/data/participant.data';
 import { UserData } from '../room/data/user.data';
 import { MessageService } from './message.service';
 import { LoadMessageDto } from './dto/load-message.dto';
+import { SimpleRoomDto } from '../room/dto/simple.room.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -80,7 +81,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-list')
   async getRoomList(client: Socket) {
-    client.emit('room-list', await this.roomService.findPublicRooms());
+    client.emit('room-list', await this.roomService.findNotPrivateRooms());
   }
 
   @SubscribeMessage('room-detail')
@@ -96,7 +97,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     client.join(room.id);
     client.emit('room-detail', new DetailRoomDto(room));
-    this.server.emit('room-list', await this.roomService.findPublicRooms());
+    this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
     // 나중에 아래처럼 변경
     // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
   }
@@ -127,10 +128,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
   }
 
+  @SubscribeMessage('room-invite')
+  async onRoomInvite(client: Socket, dto: ActionRoomDto) {
+    const userId = this.clientUserMap.get(client.id);
+    const room = await this.roomService.invite(userId, dto);
+    const invitedClient = this.getClientByUserId(dto.targetId);
+    invitedClient.emit('room-invite', new SimpleRoomDto(room));
+  }
+
   @SubscribeMessage('room-kick')
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
 
+    console.log('room-kick: ', dto);
     this.roomService.kick(userId, dto);
     this.server.to(dto.roomId).emit('room-kick', dto);
 
@@ -154,7 +164,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = this.clientUserMap.get(client.id);
 
     await this.roomService.addAdmin(userId, dto);
-    client.to(dto.roomId).emit('add-admin', dto);
+    this.server.to(dto.roomId).emit('add-admin', dto);
   }
 
   @SubscribeMessage('remove-admin')
@@ -162,7 +172,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = this.clientUserMap.get(client.id);
 
     await this.roomService.removeAdmin(userId, dto);
-    client.to(dto.roomId).emit('remove-admin', dto);
+    this.server.to(dto.roomId).emit('remove-admin', dto);
   }
 
   @SubscribeMessage('room-message')

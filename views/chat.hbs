@@ -13,7 +13,7 @@
 <body>
 <div id="main-container">
   <section id="lobby">
-    <h1>Lobby (UserId: <span id='userId'>{{ userId }}</span>) 새로고침 금지!!</h1>
+    <h1>[Lobby] (UserId: <span id='userId'>{{ userId }}</span>) 새로고침 금지!!</h1>
     <ul id="roomList"></ul>
     <div class="input-group">
       <input type="radio" id="public" name="room_type" value="public" checked>
@@ -22,7 +22,7 @@
       <label for="private">Private</label>
       <input type="radio" id="protected" name="room_type" value="protected">
       <label for="protected">Protected</label>
-      <input id="input_password" type="text" placeholder="Password" />
+      <input id="input_password" type="password" placeholder="Password" />
       <br><br>
       <input id="input_title" type="text" placeholder="Room Name" />
       <button onclick="createRoom()">방만들기</button>
@@ -30,9 +30,11 @@
   </section>
 
   <section id="room">
-    <h1>In Room</h1>
+    <h1>[In Room]</h1>
     <h3>RoomId: <span id="roomId"></span></h3>
     <h3>RoomTitle: <span id="roomTitle"></span></h3>
+    <input id="input_inviteId" type="text" placeholder="UserID" />
+    <button onclick="inviteUser()">초대하기</button>
     <ul id="participants"></ul>
     <ul id="roomMessages"></ul>
     <div class="input-group">
@@ -42,12 +44,12 @@
   </section>
 
   <section id='users'>
-    <h1>Connected Users</h1>
+    <h1>[Connected Users]</h1>
     <ul id="connected-users"></ul>
   </section>
 
   <section id="dm">
-    <h1>DM</h1>
+    <h1>[DM]</h1>
     <ul id="directMessages"></ul>
     <div class="input-group">
       <input id="receiver" type="text" placeholder="Receiver ID" />

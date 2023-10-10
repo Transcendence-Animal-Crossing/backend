@@ -30,6 +30,10 @@ socket.on('room-join', (participantData) => {
 socket.on('room-leave', (userData) => {
   handleRoomLeave(userData);
 });
+socket.on('room-invite', (simpleRoomDto) => {
+  console.log('simpleRoomDto: ', simpleRoomDto);
+  handleRoomInvited(simpleRoomDto);
+});
 socket.on('room-kick', ({ roomId, targetId }) => {
   handleRoomKick(roomId, targetId);
 });
@@ -42,8 +46,8 @@ socket.on('add-admin', ({ roomId, targetId }) => {
 socket.on('remove-admin', ({ roomId, targetId }) => {
   handleRemoveAdmin(roomId, targetId);
 });
-socket.on('room-message', ({ text, roomId, senderId }) => {
-  handleReceiveRoomMessage(text, senderId);
+socket.on('room-message', (message) => {
+  handleReceiveRoomMessage(message);
 });
 socket.on('user-list', (connectedUsers) => {
   handleConnectedUsers(connectedUsers);
@@ -76,8 +80,28 @@ document.addEventListener('DOMContentLoaded', function () {
 // 방 생성 버튼 클릭 시
 function createRoom() {
   const input_title = document.getElementById('input_title');
-  console.log('createRoom: ' + input_title.value);
-  socket.emit('room-create', { title: input_title.value });
+  const radio_public = document.getElementById('public');
+  const radio_private = document.getElementById('private');
+  const input_password = document.getElementById('input_password');
+
+  const title = input_title.value;
+  const mode = radio_public.checked
+    ? 'PUBLIC'
+    : radio_private.checked
+    ? 'PRIVATE'
+    : 'PROTECTED';
+  const password = input_password.value;
+
+  socket.emit('room-create', { title: title, mode: mode, password: password });
+}
+
+function inviteUser() {
+  const input_inviteId = document.getElementById('input_inviteId');
+  socket.emit('room-invite', {
+    roomId: current_roomId,
+    targetId: Number(input_inviteId.value),
+  });
+  input_inviteId.value = '';
 }
 
 // 방 안에서 메시지를 보낼 시
@@ -121,7 +145,7 @@ function handleRoomList(rooms) {
       ),
     );
     roomElement.appendChild(span);
-    if (room.isLocked) {
+    if (room.mode === 'PROTECTED') {
       const input_password = document.createElement('input');
       input_password.type = 'password';
       input_password.placeholder = 'Password';
@@ -136,7 +160,7 @@ function handleRoomList(rooms) {
         alert('다른 방에 참여하려면 먼저 방을 나가주세요.');
         return;
       }
-      if (room.isLocked) {
+      if (room.mode === 'PROTECTED') {
         const input_password = document.getElementById(
           'input_password' + room.id,
         );
@@ -148,9 +172,9 @@ function handleRoomList(rooms) {
       } else socket.emit('room-join', { roomId: room.id });
 
       // 방 참여 성공 시에만 current_roomId를 업데이트 해야하므로 없어져야 하는 코드
-      current_roomId = room.id;
-      const span_roomId = document.getElementById('roomId');
-      span_roomId.innerText = current_roomId;
+      // current_roomId = room.id;
+      // const span_roomId = document.getElementById('roomId');
+      // span_roomId.innerText = current_roomId;
     };
 
     const leaveButton = document.createElement('button');
@@ -233,6 +257,24 @@ function handleRoomKick(roomId, targetId) {
   }
 }
 
+function handleRoomInvited(simpleRoomDto) {
+  if (current_roomId !== null) {
+    alert('초대장이 도착했지만, 방에 입장해 있어 무시됩니다.');
+    return;
+  }
+  const message =
+    simpleRoomDto.owner.nickName +
+    '님으로부터 초대장이 도착했습니다.' +
+    '\n' +
+    '방 제목: ' +
+    simpleRoomDto.title +
+    '\n' +
+    '참여인원: : ' +
+    simpleRoomDto.headCount;
+  const acceptTF = confirm(message);
+  if (acceptTF) socket.emit('room-join', { roomId: simpleRoomDto.id });
+}
+
 function handleRoomBan(roomId, targetId) {
   const participants = document.getElementById('participants');
   participants.innerHTML = '';
@@ -263,6 +305,13 @@ function handleAddAdmin(roomId, targetId) {
   for (const participant of current_participants) {
     participants.appendChild(buildParticipant(participant));
   }
+  const roomMessages = document.getElementById('roomMessages');
+  roomMessages.appendChild(
+    buildNewMessage({
+      senderId: 'System',
+      text: targetId + '님이 관리자가 되었습니다.',
+    }),
+  );
 }
 
 function handleRemoveAdmin(roomId, targetId) {
@@ -277,12 +326,19 @@ function handleRemoveAdmin(roomId, targetId) {
   for (const participant of current_participants) {
     participants.appendChild(buildParticipant(participant));
   }
+  const roomMessages = document.getElementById('roomMessages');
+  roomMessages.appendChild(
+    buildNewMessage({
+      senderId: 'System',
+      text: targetId + '님의 관리자 권한이 해제되었습니다.',
+    }),
+  );
 }
 
 // room-message 이벤트를 받으면
-function handleReceiveRoomMessage(text, senderId) {
+function handleReceiveRoomMessage(message) {
   const roomMessages = document.getElementById('roomMessages');
-  roomMessages.appendChild(buildNewMessage(text, senderId));
+  roomMessages.appendChild(buildNewMessage(message));
 }
 
 function handleConnectedUsers(connectedUsers) {
@@ -360,8 +416,27 @@ function buildParticipant(participant) {
       targetId: participant.id,
     });
   };
+  const adminButton = document.createElement('button');
+  if (participant.grade === 0) {
+    adminButton.appendChild(document.createTextNode('Add Admin'));
+    adminButton.onclick = () => {
+      socket.emit('add-admin', {
+        roomId: current_roomId,
+        targetId: participant.id,
+      });
+    };
+  } else {
+    adminButton.appendChild(document.createTextNode('Remove Admin'));
+    adminButton.onclick = () => {
+      socket.emit('remove-admin', {
+        roomId: current_roomId,
+        targetId: participant.id,
+      });
+    };
+  }
 
   li.appendChild(kickButton);
   li.appendChild(banButton);
+  li.appendChild(adminButton);
   return li;
 }
