@@ -127,6 +127,8 @@ export class AuthController {
       avatar: '',
       rankScore: 1000,
       two_factor_auth: false,
+      achievements: [],
+      blockIds: [],
     });
     try {
       await this.userRepository.save(user);

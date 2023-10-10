@@ -26,6 +26,7 @@ import { UserData } from '../room/data/user.data';
 import { MessageService } from './message.service';
 import { LoadMessageDto } from './dto/load-message.dto';
 import { SimpleRoomDto } from '../room/dto/simple.room.dto';
+import { ActionDto } from './dto/action.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -70,6 +71,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.userClientMap.set(user.id, client.id);
 
     client.emit('user-list', await this.getConnectedUsersData());
+    for (const blockId of user.blockIds) {
+      client.join('block-' + blockId);
+    }
+    // 친구 기능이 추가되면 아래 코드를 사용
+    // for (const follow of follows) {
+    //   client.join('follow-' + follow.id);
+    // }
+    // client.to('follow-' + user.id).emit('follow', new UserData(user));
   }
 
   async handleDisconnect(client: Socket) {
@@ -98,7 +107,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.join(room.id);
     client.emit('room-detail', new DetailRoomDto(room));
     this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
-    // 나중에 아래처럼 변경
+    // 나중에 아래처럼 변경해야 할까?
     // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
   }
 
@@ -136,11 +145,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     invitedClient.emit('room-invite', new SimpleRoomDto(room));
   }
 
+  @SubscribeMessage('room-mute')
+  async onRoomMute(client: Socket, dto: ActionRoomDto) {
+    const userId = this.clientUserMap.get(client.id);
+
+    this.roomService.mute(userId, dto);
+    this.server.to(dto.roomId).emit('room-mute', dto);
+  }
+
+  @SubscribeMessage('room-unmute')
+  async onRoomUnMute(client: Socket, dto: ActionRoomDto) {
+    const userId = this.clientUserMap.get(client.id);
+
+    this.roomService.unmute(userId, dto);
+    this.server.to(dto.roomId).emit('room-unmute', dto);
+  }
+
   @SubscribeMessage('room-kick')
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
 
-    console.log('room-kick: ', dto);
     this.roomService.kick(userId, dto);
     this.server.to(dto.roomId).emit('room-kick', dto);
 
@@ -184,7 +208,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!this.roomService.isParticipant(userId, room))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
 
-    client.to(roomMessageDto.roomId).emit('room-message', roomMessageDto);
+    client
+      .to(roomMessageDto.roomId)
+      .except('block-' + userId)
+      .emit('room-message', roomMessageDto);
     client.emit('room-message', roomMessageDto);
   }
 
@@ -192,10 +219,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onDirectMessage(client: Socket, dto: DirectMessageDto) {
     dto.senderId = this.clientUserMap.get(client.id);
 
-    // user 가 차단되었는지 확인필요
-    // message 저장필요
     client
       .to(this.userClientMap.get(Number(dto.receiverId)))
+      .except('block-' + dto.senderId)
       .emit('direct-message', dto);
     client.emit('direct-message', dto);
     await this.messageService.createAndSave(dto);
@@ -219,6 +245,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     });
     const users = await this.userService.getUserDataByIds(ids);
     client.emit('user-list', users);
+  }
+
+  @SubscribeMessage('user-block')
+  async onUserBlock(client: Socket, dto: ActionDto) {
+    const userId = this.clientUserMap.get(client.id);
+    const user = await this.userService.findOne(userId);
+    // 친구라면 친구를 끊는 로직이 추가되어야 함
+    await this.userService.block(user, dto.targetId);
+    client.emit('user-block', dto);
+    client.join('block-' + dto.targetId);
+  }
+
+  @SubscribeMessage('user-unblock')
+  async onUserUnblock(client: Socket, dto: ActionDto) {
+    const userId = this.clientUserMap.get(client.id);
+    const user = await this.userService.findOne(userId);
+
+    await this.userService.unblock(user, dto.targetId);
+    client.emit('user-unblock', dto);
+    client.leave('block-' + dto.targetId);
   }
 
   private async getConnectedUsersData() {

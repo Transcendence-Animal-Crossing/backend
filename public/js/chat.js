@@ -34,6 +34,12 @@ socket.on('room-invite', (simpleRoomDto) => {
   console.log('simpleRoomDto: ', simpleRoomDto);
   handleRoomInvited(simpleRoomDto);
 });
+socket.on('room-mute', ({ roomId, targetId }) => {
+  handleRoomMute(roomId, targetId);
+});
+socket.on('room-unmute', ({ roomId, targetId }) => {
+  handleRoomUnMute(roomId, targetId);
+});
 socket.on('room-kick', ({ roomId, targetId }) => {
   handleRoomKick(roomId, targetId);
 });
@@ -170,11 +176,6 @@ function handleRoomList(rooms) {
         });
         input_password.value = '';
       } else socket.emit('room-join', { roomId: room.id });
-
-      // 방 참여 성공 시에만 current_roomId를 업데이트 해야하므로 없어져야 하는 코드
-      // current_roomId = room.id;
-      // const span_roomId = document.getElementById('roomId');
-      // span_roomId.innerText = current_roomId;
     };
 
     const leaveButton = document.createElement('button');
@@ -205,6 +206,14 @@ function handleRoomJoin(participantData) {
   const participants = document.getElementById('participants');
   participants.appendChild(buildParticipant(participantData));
   current_participants.push(participantData);
+
+  const roomMessages = document.getElementById('roomMessages');
+  roomMessages.appendChild(
+    buildNewMessage({
+      senderId: 'System',
+      text: participantData.id + '님이 방에 참가했습니다.',
+    }),
+  );
 }
 
 // room-leave 이벤트를 받으면
@@ -219,6 +228,55 @@ function handleRoomLeave(userData) {
     console.log('participant: ', participant);
     participants.appendChild(buildParticipant(participant));
   }
+  const roomMessages = document.getElementById('roomMessages');
+  roomMessages.appendChild(
+    buildNewMessage({
+      senderId: 'System',
+      text: userData.id + '님이 방을 떠났습니다.',
+    }),
+  );
+}
+
+function handleRoomMute(roomId, targetId) {
+  current_participants = current_participants.map((participant) => {
+    if (participant.id === targetId) {
+      participant.mute = true;
+    }
+    return participant;
+  });
+  const participants = document.getElementById('participants');
+  participants.innerHTML = '';
+  for (const participant of current_participants) {
+    participants.appendChild(buildParticipant(participant));
+  }
+  const roomMessages = document.getElementById('roomMessages');
+  roomMessages.appendChild(
+    buildNewMessage({
+      senderId: 'System',
+      text: targetId + '님이 채팅금지 당했습니다.',
+    }),
+  );
+}
+
+function handleRoomUnMute(roomId, targetId) {
+  current_participants = current_participants.map((participant) => {
+    if (participant.id === targetId) {
+      participant.mute = false;
+    }
+    return participant;
+  });
+  const participants = document.getElementById('participants');
+  participants.innerHTML = '';
+  for (const participant of current_participants) {
+    participants.appendChild(buildParticipant(participant));
+  }
+  const roomMessages = document.getElementById('roomMessages');
+  roomMessages.appendChild(
+    buildNewMessage({
+      senderId: 'System',
+      text: targetId + '님의 채팅금지가 해제되었습니다.',
+    }),
+  );
 }
 
 // room-detail 이벤트를 받으면
@@ -384,7 +442,16 @@ function buildConnectedUser(connectedUser) {
       targetId: connectedUser.id,
     });
   };
+  const blockButton = document.createElement('button');
+  blockButton.appendChild(document.createTextNode('Block'));
+  blockButton.onclick = () => {
+    socket.emit('user-block', {
+      targetId: connectedUser.id,
+    });
+  };
+
   li.appendChild(dmButton);
+  li.appendChild(blockButton);
   return li;
 }
 
@@ -400,6 +467,24 @@ function buildParticipant(participant) {
   span.appendChild(document.createTextNode(text));
   li.appendChild(span);
 
+  const muteButton = document.createElement('button');
+  if (participant.mute === false) {
+    muteButton.appendChild(document.createTextNode('Mute'));
+    muteButton.onclick = () => {
+      socket.emit('room-mute', {
+        roomId: current_roomId,
+        targetId: participant.id,
+      });
+    };
+  } else {
+    muteButton.appendChild(document.createTextNode('Unmute'));
+    muteButton.onclick = () => {
+      socket.emit('room-unmute', {
+        roomId: current_roomId,
+        targetId: participant.id,
+      });
+    };
+  }
   const kickButton = document.createElement('button');
   kickButton.appendChild(document.createTextNode('Kick'));
   kickButton.onclick = () => {
@@ -435,6 +520,7 @@ function buildParticipant(participant) {
     };
   }
 
+  li.appendChild(muteButton);
   li.appendChild(kickButton);
   li.appendChild(banButton);
   li.appendChild(adminButton);
