@@ -180,8 +180,6 @@ export class AuthController {
     @Body('password') password: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    console.log('id: ' + id);
-    console.log('password: ' + password);
     const user = await this.userService.findOne(id);
 
     if (!user || user.password !== password)

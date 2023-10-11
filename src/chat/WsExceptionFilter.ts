@@ -2,8 +2,9 @@ import {
   Catch,
   ArgumentsHost,
   ExceptionFilter,
-  HttpException, UnauthorizedException
-} from "@nestjs/common";
+  HttpException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Socket } from 'socket.io';
 
 @Catch(HttpException)
