@@ -1,6 +1,5 @@
 export class CreateRoomDto {
   title: string;
-  isLocked: boolean;
-  isPrivate: boolean;
+  mode: string;
   password: string;
 }

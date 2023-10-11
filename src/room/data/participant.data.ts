@@ -5,14 +5,12 @@ export class ParticipantData extends UserData {
   constructor(user: User, grade: number) {
     super(user);
     this.grade = grade;
-    this.muteDuration = 0;
-    this.muteTime = new Date();
+    this.mute = false;
     this.joinTime = new Date();
     this.adminTime = new Date();
   }
   grade: number;
-  muteDuration: number;
-  muteTime: Date;
+  mute: boolean;
   joinTime: Date;
   adminTime: Date;
 }

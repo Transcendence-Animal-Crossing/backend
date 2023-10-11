@@ -11,9 +11,15 @@ import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { RoomModule } from './room/room.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
+    CacheModule.register({
+      ttl: 5000,
+      max: 1000,
+      isGlobal: true,
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,

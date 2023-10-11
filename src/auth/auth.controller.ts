@@ -15,9 +15,9 @@ import { Public } from './guards/public';
 import { UserService } from '../user/user.service';
 import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
-import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { InjectRepository } from '@nestjs/typeorm';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
 @Controller('auth')
@@ -60,7 +60,7 @@ export class AuthController {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    // res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     res.json(tokens);
     return tokens;
   }
@@ -127,6 +127,8 @@ export class AuthController {
       avatar: '',
       rankScore: 1000,
       two_factor_auth: false,
+      achievements: [],
+      blockIds: [],
     });
     try {
       await this.userRepository.save(user);
@@ -135,6 +137,26 @@ export class AuthController {
       return;
     }
     res.redirect('http://localhost:8080/login');
+  }
+
+  @Public()
+  @Post('/demoSignIn')
+  async demoSingIn(
+    @Body('id') id: number,
+    @Body('password') password: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    console.log('id: ' + id);
+    console.log('password: ' + password);
+    const user = await this.userService.findOne(id);
+
+    if (!user || user.password !== password)
+      throw new HttpException('Invalid id or password', 400);
+    const token = await this.authService.signJwt(id);
+
+    res.cookie('jwt', token);
+
+    res.redirect('http://localhost:8080/chat?token=' + token);
   }
 
   @Public()
