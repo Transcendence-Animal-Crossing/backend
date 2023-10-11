@@ -21,6 +21,7 @@ import { WebSocketServer } from '@nestjs/websockets';
 import { Grade } from './data/user.grade';
 import { SimpleRoomDto } from './dto/simple.room.dto';
 import { UserData } from './data/user.data';
+import { ParticipantData } from './data/participant.data';
 
 @Injectable()
 export class RoomService {
@@ -35,7 +36,7 @@ export class RoomService {
   server;
 
   async findNotPrivateRooms() {
-    const rooms = this.roomRepository.findAll();
+    const rooms = await this.roomRepository.findAll();
     const roomList = [];
     for (const room of rooms) {
       if (room.mode === 'PRIVATE') continue;
@@ -44,18 +45,10 @@ export class RoomService {
     return roomList;
   }
 
-  findById(id: string) {
-    const room = this.roomRepository.find(id);
-    if (!room) {
-      throw new NotFoundException(`There is no room under id ${id}`);
-    }
+  async findById(id: string): Promise<Room> {
+    const room = await this.roomRepository.find(id);
+    if (!room) throw new NotFoundException(`There is no room under id ${id}`);
     return room;
-  }
-
-  async getParticipantData(room: Room) {
-    const data = [];
-    for (const participant of room.participants) data.push(participant);
-    return data;
   }
 
   async joinRoom(userId: number, room: Room, password: string) {
@@ -69,19 +62,20 @@ export class RoomService {
       throw new UnauthorizedException('해당 방에 초대되지 않았습니다.');
 
     const user = await this.userService.findOne(userId);
-    this.roomRepository.joinRoom(user, room);
+    room.participants.push(new ParticipantData(user, 0));
+    await this.roomRepository.update(room);
   }
 
   async create(dto: CreateRoomDto, ownerId: number) {
     const owner = await this.userService.findOne(ownerId);
     const room = new Room(dto.title, owner, dto.mode, dto.password);
 
-    this.roomRepository.save(room);
+    await this.roomRepository.save(room);
     return room;
   }
 
-  mute(userId: number, dto: ActionRoomDto) {
-    const room = this.findById(dto.roomId);
+  async mute(userId: number, dto: ActionRoomDto) {
+    const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
 
@@ -91,15 +85,15 @@ export class RoomService {
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
         participant.mute = true;
-        this.roomRepository.update(room);
+        await this.roomRepository.update(room);
         return;
       }
     }
     throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 
-  unmute(userId: number, dto: ActionRoomDto) {
-    const room = this.findById(dto.roomId);
+  async unmute(userId: number, dto: ActionRoomDto) {
+    const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
 
@@ -109,15 +103,15 @@ export class RoomService {
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
         participant.mute = false;
-        this.roomRepository.update(room);
+        await this.roomRepository.update(room);
         return;
       }
     }
     throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 
-  kick(userId: number, dto: ActionRoomDto) {
-    const room = this.findById(dto.roomId);
+  async kick(userId: number, dto: ActionRoomDto) {
+    const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
 
@@ -130,11 +124,11 @@ export class RoomService {
       );
     else throw new BadRequestException('해당 유저가 방에 없습니다.');
 
-    this.roomRepository.update(room);
+    await this.roomRepository.update(room);
   }
 
-  ban(userId: number, dto: ActionRoomDto) {
-    const room = this.findById(dto.roomId);
+  async ban(userId: number, dto: ActionRoomDto) {
+    const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
     let target = null;
@@ -153,10 +147,10 @@ export class RoomService {
     } else throw new BadRequestException('해당 유저가 방에 없습니다.');
     room.bannedUsers.push(new UserData(target));
 
-    this.roomRepository.update(room);
+    await this.roomRepository.update(room);
   }
 
-  leave(userId: number, room: Room) {
+  async leave(userId: number, room: Room) {
     if (!this.isParticipant(userId, room))
       throw new BadRequestException('방 안에 있지 않습니다.');
     if (this.getGrade(userId, room) === Grade.OWNER)
@@ -166,7 +160,7 @@ export class RoomService {
     room.participants = room.participants.filter(
       (participant) => participant.id !== userId,
     );
-    this.roomRepository.update(room);
+    await this.roomRepository.update(room);
   }
 
   ownerLeave(userId: number, room: Room) {
@@ -202,7 +196,7 @@ export class RoomService {
   }
 
   async addAdmin(userId: number, dto: ActionRoomDto) {
-    const room = this.findById(dto.roomId);
+    const room = await this.findById(dto.roomId);
     if (this.getGrade(userId, room) !== Grade.OWNER)
       throw new ForbiddenException('방장만이 관리자를 추가할 수 있습니다.');
     if (this.getGrade(dto.targetId, room) > Grade.PARTICIPANT)
@@ -215,11 +209,11 @@ export class RoomService {
       }
     }
     this.sortParticipants(room);
-    this.roomRepository.save(room);
+    await this.roomRepository.save(room);
   }
 
   async removeAdmin(userId: number, dto: ActionRoomDto) {
-    const room = this.findById(dto.roomId);
+    const room = await this.findById(dto.roomId);
     if (this.getGrade(userId, room) !== Grade.OWNER)
       throw new ForbiddenException('방장만이 관리자를 회수할 수 있습니다.');
     if (this.getGrade(dto.targetId, room) != Grade.ADMIN)
@@ -232,11 +226,11 @@ export class RoomService {
       }
     }
     this.sortParticipants(room);
-    this.roomRepository.save(room);
+    await this.roomRepository.save(room);
   }
 
   async invite(userId: number, dto: ActionRoomDto) {
-    const room = this.findById(dto.roomId);
+    const room = await this.findById(dto.roomId);
     if (!this.isParticipant(userId, room))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
     if (this.isParticipant(dto.targetId, room))
@@ -246,7 +240,7 @@ export class RoomService {
 
     const target = await this.userService.findOne(dto.targetId);
     room.invitedUsers.push(new UserData(target));
-    this.roomRepository.save(room);
+    await this.roomRepository.save(room);
 
     return room;
   }
