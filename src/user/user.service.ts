@@ -1,7 +1,8 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
+import { UserData } from '../room/data/user.data';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { ResponseUserDto, toResponseUserDto } from './dto/response-user.dto';
@@ -41,6 +42,18 @@ export class UserService {
     return this.userRepository.findOneBy({ intraName: name });
   }
 
+  async findByIds(ids: number[]): Promise<User[]> {
+    return this.userRepository.findBy({ id: In(ids) });
+  }
+
+  async getUserDataByIds(ids: number[]): Promise<UserData[]> {
+    return await this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.nickName', 'user.intraName', 'user.avatar'])
+      .where('user.id IN (:...ids)', { ids: ids })
+      .getMany();
+  }
+
   async createOrUpdateUser(userPublicData: any): Promise<User> {
     console.log('create', userPublicData.nickName);
     return this.userRepository.save(User.create(userPublicData));
@@ -64,5 +77,16 @@ export class UserService {
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
 
     return toResponseUserDto(user);
+  }
+
+  async block(user: User, targetId: number) {
+    if (user.blockIds.includes(targetId)) return;
+    user.blockIds.push(targetId);
+    await this.userRepository.save(user);
+  }
+
+  async unblock(user: User, targetId: number) {
+    user.blockIds = user.blockIds.filter((id) => id !== targetId);
+    await this.userRepository.save(user);
   }
 }

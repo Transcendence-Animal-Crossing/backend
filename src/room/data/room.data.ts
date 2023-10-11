@@ -4,21 +4,14 @@ import { ParticipantData } from './participant.data';
 import { User } from '../../user/entities/user.entity';
 
 export class Room {
-  constructor(
-    title: string,
-    owner: User,
-    isLocked: boolean,
-    isPrivate: boolean,
-    password: string,
-  ) {
+  constructor(title: string, owner: User, mode: string, password: string) {
     this.id = uuid();
     this.title = title;
     this.participants = [];
     this.participants.push(new ParticipantData(owner, 2));
     this.bannedUsers = [];
     this.invitedUsers = [];
-    this.isPrivate = isPrivate;
-    this.isLocked = isLocked;
+    this.mode = mode;
     this.password = password;
   }
 
@@ -27,7 +20,6 @@ export class Room {
   participants: ParticipantData[];
   bannedUsers: UserData[];
   invitedUsers: UserData[];
-  isPrivate: boolean;
-  isLocked: boolean;
+  mode: string;
   password: string;
 }

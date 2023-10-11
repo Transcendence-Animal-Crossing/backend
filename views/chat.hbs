@@ -7,24 +7,36 @@
           integrity="sha512-zoJXRvW2gC8Z0Xo3lBbao5+AS3g6YWr5ztKqaicua11xHo+AvE1b0lT9ODgrHTmNUxeCw0Ry4BGRYZfXu70weg=="
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <link href='css/chat.css' rel='stylesheet' />
-  <script src="js/chat.js"></script>
+<!--  <script src="js/chat_onefile.js"></script>-->
+  <script type='module' src="js/chat.js"></script>
   <title>Chat</title>
 </head>
 <body>
+<span id='blockIds' style="display:none;">[{{ user.blockIds }}]</span>
 <div id="main-container">
   <section id="lobby">
-    <h1>Lobby (UserId: {{ userId }})</h1>
+    <h1>[Lobby] (UserId: <span id='userId'>{{ user.id }}</span>) 새로고침 금지!!</h1>
     <ul id="roomList"></ul>
     <div class="input-group">
+      <input type="radio" id="public" name="room_type" value="public" checked>
+      <label for="public">Public</label>
+      <input type="radio" id="private" name="room_type" value="private">
+      <label for="private">Private</label>
+      <input type="radio" id="protected" name="room_type" value="protected">
+      <label for="protected">Protected</label>
+      <input id="input_password" type="password" placeholder="Password" />
+      <br><br>
       <input id="input_title" type="text" placeholder="Room Name" />
       <button onclick="createRoom()">방만들기</button>
     </div>
   </section>
 
   <section id="room">
-    <h1>In Room</h1>
-    <h2>RoomId: <span id="roomId"></span></h2>
-    <h2>RoomTitle: <span id="roomTitle"></span></h2>
+    <h1>[In Room]</h1>
+    <h3>RoomId: <span id="roomId"></span></h3>
+    <h3>RoomTitle: <span id="roomTitle"></span></h3>
+    <input id="input_inviteId" type="text" placeholder="UserID" />
+    <button onclick="inviteUser()">초대하기</button>
     <ul id="participants"></ul>
     <ul id="roomMessages"></ul>
     <div class="input-group">
@@ -33,8 +45,13 @@
     </div>
   </section>
 
+  <section id='users'>
+    <h1>[Connected Users]</h1>
+    <ul id="connected-users"></ul>
+  </section>
+
   <section id="dm">
-    <h1>DM</h1>
+    <h1>[DM]</h1>
     <ul id="directMessages"></ul>
     <div class="input-group">
       <input id="receiver" type="text" placeholder="Receiver ID" />

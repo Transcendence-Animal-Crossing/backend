@@ -32,6 +32,9 @@ export class User {
   @Column('text', { array: true, nullable: true })
   achievements: string[];
 
+  @Column('int', { array: true, nullable: true })
+  blockIds: number[];
+
   @CreateDateColumn()
   createdAt: Date;
 
@@ -47,6 +50,8 @@ export class User {
     user.avatar = '';
     user.rankScore = 1000;
     user.two_factor_auth = false;
+    user.achievements = [];
+    user.blockIds = [];
     return user;
   }
 }

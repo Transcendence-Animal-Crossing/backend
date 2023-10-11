@@ -1,32 +1,28 @@
-import { Room } from "./data/room.data";
-import { Injectable } from "@nestjs/common";
-import { User } from '../user/entities/user.entity';
-import { UserData } from './data/user.data';
-import { ParticipantData } from './data/participant.data';
+import { Inject, Injectable } from '@nestjs/common';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+import { Room } from './data/room.data';
 
 @Injectable()
 export class RoomRepository {
-  private rooms: Room[];
-  constructor() {
-    this.rooms = [];
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  async findAll() {
+    const roomIds = (await this.cacheManager.get<string[]>('room-ids')) || [];
+    return await Promise.all(roomIds.map((id) => this.find(id)));
   }
-  findAll() {
-    return this.rooms;
+  async save(room) {
+    await this.cacheManager.set('room-' + room.id, room);
+    const roomIds = (await this.cacheManager.get<string[]>('room-ids')) || [];
+    roomIds.push(room.id);
+    await this.cacheManager.set('room-ids', roomIds);
   }
-  save(room) {
-    this.rooms.push(room);
-    console.log(this.rooms);
+  async find(id): Promise<Room> | undefined {
+    return this.cacheManager.get('room-' + id);
   }
-  find(id) {
-    return this.rooms.find((room) => room.id === id);
-  }
-  update(room) {
-    this.rooms = this.rooms.map((r) => (r.id === room.id ? room : r));
+  async update(room) {
+    await this.cacheManager.set('room-' + room.id, room);
   }
   delete(id) {
-    this.rooms = this.rooms.filter((room) => room.id !== id);
-  }
-  joinRoom(user: User, room: Room) {
-    room.participants.push(new ParticipantData(user, 0));
+    this.cacheManager.del('room-' + id);
   }
 }
