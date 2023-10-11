@@ -1,4 +1,4 @@
-import { ForbiddenException, UseFilters } from '@nestjs/common';
+import { ForbiddenException, Logger, UseFilters } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -28,6 +28,7 @@ import { LoadMessageDto } from './dto/load-message.dto';
 import { SimpleRoomDto } from '../room/dto/simple.room.dto';
 import { ActionDto } from './dto/action.dto';
 import { Room } from '../room/data/room.data';
+import { ClientRepository } from './client.repository';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -35,22 +36,20 @@ import { Room } from '../room/data/room.data';
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server;
-
-  clientUserMap: Map<string, number> = new Map();
-  userClientMap: Map<number, string> = new Map();
+  private readonly logger: Logger = new Logger('ChatGateway');
 
   constructor(
     private readonly userService: UserService,
     private readonly authService: AuthService,
     private readonly roomService: RoomService,
     private readonly messageService: MessageService,
+    private readonly clientRepository: ClientRepository,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    console.log('connected: ' + client.id);
+    this.logger.log('WebSocket Connected: ' + client.id);
     let payload;
     try {
-      console.log('client.handshake.auth.token: ', client.handshake.auth.token);
       const token = client.handshake.auth.token;
       payload = this.authService.verifyJwt(token);
     } catch (error) {
@@ -67,9 +66,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.disconnect(true);
       return;
     }
-
-    this.clientUserMap.set(client.id, user.id);
-    this.userClientMap.set(user.id, client.id);
+    await this.clientRepository.connect(client.id, user.id);
 
     client.emit('user-list', await this.getConnectedUsersData());
     for (const blockId of user.blockIds) {
@@ -83,10 +80,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleDisconnect(client: Socket) {
-    const userId = this.clientUserMap.get(client.id);
-    this.clientUserMap.delete(client.id);
-    this.userClientMap.delete(userId);
-    console.log('disconnected: ' + client.id + ' ' + userId);
+    const userId = await this.clientRepository.findUserId(client.id);
+    await this.clientRepository.connect(client.id, userId);
+    this.logger.log('Websocket Disconnected: ' + client.id + ' ' + userId);
   }
 
   @SubscribeMessage('room-list')
@@ -102,7 +98,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-create')
   async createRoom(client: Socket, dto: CreateRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.roomService.create(dto, userId);
 
     client.join(room.id);
@@ -114,7 +110,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-join')
   async onRoomJoin(client: Socket, dto: JoinRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     const user = await this.userService.findOne(userId);
     const room: Room = await this.roomService.findById(dto.roomId);
 
@@ -127,7 +123,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-leave')
   async onRoomLeave(client: Socket, dto: LeaveRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     const user = await this.userService.findOne(userId);
     const room = await this.roomService.findById(dto.roomId);
 
@@ -141,7 +137,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-invite')
   async onRoomInvite(client: Socket, dto: ActionRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.roomService.invite(userId, dto);
     const invitedClient = this.getClientByUserId(dto.targetId);
     invitedClient.emit('room-invite', new SimpleRoomDto(room));
@@ -149,7 +145,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-mute')
   async onRoomMute(client: Socket, dto: ActionRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.mute(userId, dto);
     this.server.to(dto.roomId).emit('room-mute', dto);
@@ -157,7 +153,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-unmute')
   async onRoomUnMute(client: Socket, dto: ActionRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.unmute(userId, dto);
     this.server.to(dto.roomId).emit('room-unmute', dto);
@@ -165,7 +161,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-kick')
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.kick(userId, dto);
     this.server.to(dto.roomId).emit('room-kick', dto);
@@ -176,7 +172,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-ban')
   async onRoomBan(client: Socket, dto: ActionRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.ban(userId, dto);
     this.server.to(dto.roomId).emit('room-ban', dto);
@@ -187,7 +183,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('add-admin')
   async addAdmin(client: Socket, dto: ActionRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.addAdmin(userId, dto);
     this.server.to(dto.roomId).emit('add-admin', dto);
@@ -195,7 +191,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('remove-admin')
   async removeAdmin(client: Socket, dto: ActionRoomDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.removeAdmin(userId, dto);
     this.server.to(dto.roomId).emit('remove-admin', dto);
@@ -203,7 +199,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-message')
   async onRoomMessage(client: Socket, roomMessageDto: RoomMessageDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     roomMessageDto.senderId = userId;
 
     const room = await this.roomService.findById(roomMessageDto.roomId);
@@ -219,10 +215,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('direct-message')
   async onDirectMessage(client: Socket, dto: DirectMessageDto) {
-    dto.senderId = this.clientUserMap.get(client.id);
-
+    dto.senderId = await this.clientRepository.findUserId(client.id);
+    const receiver = await this.clientRepository.findClientId(dto.receiverId);
     client
-      .to(this.userClientMap.get(Number(dto.receiverId)))
+      .to(receiver)
       .except('block-' + dto.senderId)
       .emit('direct-message', dto);
     client.emit('direct-message', dto);
@@ -231,7 +227,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('message-load')
   async onMessageLoad(client: Socket, loadMessageDto: LoadMessageDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     const messages = await this.messageService.loadMessage(
       userId,
       loadMessageDto,
@@ -241,8 +237,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('user-list')
   async onUserList(client: Socket) {
-    const userId = this.clientUserMap.get(client.id);
-    const ids = Array.from(this.userClientMap.keys()).filter((id) => {
+    const userId = await this.clientRepository.findUserId(client.id);
+    const connectedUsers = await this.clientRepository.connectedUserIds();
+    const ids = Array.from(connectedUsers).filter((id) => {
       return id !== userId;
     });
     const users = await this.userService.getUserDataByIds(ids);
@@ -251,7 +248,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('user-block')
   async onUserBlock(client: Socket, dto: ActionDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     const user = await this.userService.findOne(userId);
     // 친구라면 친구를 끊는 로직이 추가되어야 함
     await this.userService.block(user, dto.targetId);
@@ -261,7 +258,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('user-unblock')
   async onUserUnblock(client: Socket, dto: ActionDto) {
-    const userId = this.clientUserMap.get(client.id);
+    const userId = await this.clientRepository.findUserId(client.id);
     const user = await this.userService.findOne(userId);
 
     await this.userService.unblock(user, dto.targetId);
@@ -270,12 +267,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   private async getConnectedUsersData() {
-    const ids = Array.from(this.userClientMap.keys());
+    const ids = await this.clientRepository.connectedUserIds();
     return await this.userService.getUserDataByIds(ids);
   }
 
   private getClientByUserId(userId: number): Socket | null {
-    const clientId = this.userClientMap.get(userId);
+    const clientId = this.clientRepository.findClientId(userId);
     if (!clientId) return null;
 
     return this.server.sockets.sockets.get(clientId);
