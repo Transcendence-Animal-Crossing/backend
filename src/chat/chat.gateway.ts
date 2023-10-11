@@ -27,6 +27,7 @@ import { MessageService } from './message.service';
 import { LoadMessageDto } from './dto/load-message.dto';
 import { SimpleRoomDto } from '../room/dto/simple.room.dto';
 import { ActionDto } from './dto/action.dto';
+import { Room } from '../room/data/room.data';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -95,7 +96,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-detail')
   async getRoomDetail(client: Socket, roomId: string) {
-    const room = await this.roomService.findById(roomId);
+    const room: Room = await this.roomService.findById(roomId);
     client.emit('room-detail', new DetailRoomDto(room));
   }
 
@@ -115,7 +116,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomJoin(client: Socket, dto: JoinRoomDto) {
     const userId = this.clientUserMap.get(client.id);
     const user = await this.userService.findOne(userId);
-    const room = this.roomService.findById(dto.roomId);
+    const room: Room = await this.roomService.findById(dto.roomId);
 
     await this.roomService.joinRoom(userId, room, dto.password);
 
@@ -128,9 +129,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomLeave(client: Socket, dto: LeaveRoomDto) {
     const userId = this.clientUserMap.get(client.id);
     const user = await this.userService.findOne(userId);
-    const room = this.roomService.findById(dto.roomId);
+    const room = await this.roomService.findById(dto.roomId);
 
-    this.roomService.leave(userId, room);
+    await this.roomService.leave(userId, room);
     client.leave(dto.roomId);
 
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
@@ -150,7 +151,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomMute(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
 
-    this.roomService.mute(userId, dto);
+    await this.roomService.mute(userId, dto);
     this.server.to(dto.roomId).emit('room-mute', dto);
   }
 
@@ -158,7 +159,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomUnMute(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
 
-    this.roomService.unmute(userId, dto);
+    await this.roomService.unmute(userId, dto);
     this.server.to(dto.roomId).emit('room-unmute', dto);
   }
 
@@ -166,7 +167,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
 
-    this.roomService.kick(userId, dto);
+    await this.roomService.kick(userId, dto);
     this.server.to(dto.roomId).emit('room-kick', dto);
 
     const kickedClient = this.getClientByUserId(dto.targetId);
@@ -177,7 +178,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomBan(client: Socket, dto: ActionRoomDto) {
     const userId = this.clientUserMap.get(client.id);
 
-    this.roomService.ban(userId, dto);
+    await this.roomService.ban(userId, dto);
     this.server.to(dto.roomId).emit('room-ban', dto);
 
     const bannedClient = this.getClientByUserId(dto.targetId);
@@ -205,7 +206,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = this.clientUserMap.get(client.id);
     roomMessageDto.senderId = userId;
 
-    const room = this.roomService.findById(roomMessageDto.roomId);
+    const room = await this.roomService.findById(roomMessageDto.roomId);
     if (!this.roomService.isParticipant(userId, room))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
 
