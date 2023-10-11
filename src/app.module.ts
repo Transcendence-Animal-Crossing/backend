@@ -16,7 +16,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 @Module({
   imports: [
     CacheModule.register({
-      ttl: 5000,
+      ttl: null,
       max: 1000,
       isGlobal: true,
     }),
