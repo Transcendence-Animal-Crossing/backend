@@ -9,7 +9,6 @@ import axios from 'axios';
 import { User } from '../user/entities/user.entity';
 import * as bcrypt from 'bcryptjs';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { hasSubscribers } from 'diagnostics_channel';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
 @Injectable()
