@@ -18,6 +18,7 @@ import { User } from '../user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -173,21 +174,22 @@ export class AuthController {
   @Public()
   @Post('/signIn')
   async singIn(
-    @Body('id') id: number,
-    @Body('password') password: string,
+    @Body() userDto: LoginUserDto,
     @Res({ passthrough: true }) res: Response,
   ) {
-    console.log('id: ' + id);
-    console.log('password: ' + password);
-    const user = await this.userService.findOne(id);
+    const tokens = await this.authService.signIn(userDto);
+    if (!tokens) {
+      throw new HttpException('token failed', HttpStatus.BAD_REQUEST);
+    }
 
-    if (!user || user.password !== password)
-      throw new HttpException('Invalid id or password', 400);
-    const token = await this.authService.signJwt(id);
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    res.json(tokens);
 
-    res.cookie('jwt', token);
-
-    res.redirect('http://localhost:8080/chat?token=' + token);
+    return;
   }
 
   @Post('/tokenUpdate')
