@@ -66,7 +66,7 @@ export class AuthController {
   }
 
   @Public()
-  @Post('/loginCallBack')
+  @Post('/login')
   async loginCallBack(
     @Body('accessToken') accessToken: string,
     @Res({ passthrough: true }) res: Response,
