@@ -64,6 +64,40 @@ export class AuthController {
     return tokens;
   }
 
+  @Public()
+  @Post('/loginCallBack')
+  async loginCallBack(
+    @Body('accessToken') accessToken: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    let tokens: any;
+    try {
+      const userPublicData: any =
+        await this.authService.getProfile(accessToken);
+      const existingUser = await this.userService.findByName(
+        userPublicData.intraName,
+      );
+      let user: User;
+      if (!existingUser) {
+        user = await this.userService.createOrUpdateUser(userPublicData);
+        //console.log('new user', user);
+      } else {
+        user = existingUser;
+        //console.log('already existed', user);
+      }
+      tokens = await this.authService.generateTokens(user.id.toString());
+    } catch (AxiosError) {
+      throw new HttpException('Invalid or Already Used code', 400);
+    }
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    res.json(tokens);
+    return tokens;
+  }
+
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
   // 42 oauth2 로그인 페이지에서 로그인을 하면 42 oauth2 콜백 페이지로 리다이렉트
   // 고로 아래 /login 은 클라이언트에서 해줄 것이므로 나중에는 지워질 운명
