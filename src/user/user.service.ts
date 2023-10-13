@@ -55,7 +55,7 @@ export class UserService {
   }
 
   async createOrUpdateUser(userPublicData: any): Promise<User> {
-    console.log('create', userPublicData.nickName);
+    console.log('create', userPublicData.login);
     return this.userRepository.save(User.create(userPublicData));
   }
 

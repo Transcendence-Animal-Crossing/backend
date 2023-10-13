@@ -60,7 +60,7 @@ export class AuthController {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-    // res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     res.json(tokens);
     return tokens;
   }
@@ -76,9 +76,10 @@ export class AuthController {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
       const existingUser = await this.userService.findByName(
-        userPublicData.intraName,
+        userPublicData.login,
       );
       let user: User;
+
       if (!existingUser) {
         user = await this.userService.createOrUpdateUser(userPublicData);
         //console.log('new user', user);
@@ -95,8 +96,8 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.json(tokens);
-    return tokens;
+    //res.json(tokens);
+    return 'success';
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
@@ -141,9 +142,9 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.json(tokens);
+    //res.json(tokens);
 
-    return tokens;
+    return 'success';
   }
 
   @Public()
@@ -207,9 +208,8 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.json(tokens);
-
-    return;
+    console.log('token', tokens);
+    return 'success';
   }
 
   @Post('/tokenUpdate')
