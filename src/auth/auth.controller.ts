@@ -134,7 +134,7 @@ export class AuthController {
   ) {
     const tokens = await this.authService.signUp(userDto);
     if (!tokens) {
-      throw new HttpException('you must log in at 42', HttpStatus.BAD_REQUEST);
+      throw new HttpException('you must login at 42', HttpStatus.BAD_REQUEST);
     }
 
     res.cookie('refreshToken', tokens.refreshToken, {
