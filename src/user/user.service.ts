@@ -1,4 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
@@ -6,6 +11,8 @@ import { UserData } from '../room/data/user.data';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { ResponseUserDto, toResponseUserDto } from './dto/response-user.dto';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class UserService {
@@ -88,5 +95,32 @@ export class UserService {
   async unblock(user: User, targetId: number) {
     user.blockIds = user.blockIds.filter((id) => id !== targetId);
     await this.userRepository.save(user);
+  }
+
+  async saveProfileImage(id: number, nickName: string, filename: string) {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+    await this.userRepository.update(id, {
+      avatar: 'uploads/' + filename,
+      nickName: nickName,
+    });
+  }
+  async saveUrlImage(id: number, nickName: string, avatar: string) {
+    const user = await this.userRepository.findOneBy({ id: id });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const avatarPath = join(__dirname, '..', '..', 'original', avatar);
+    console.log('avatar', avatarPath);
+    if (!existsSync(avatarPath)) {
+      throw new HttpException('Avatar file not found', HttpStatus.NOT_FOUND);
+    }
+    await this.userRepository.update(id, {
+      avatar: 'original' + avatar,
+      nickName: nickName,
+    });
   }
 }
