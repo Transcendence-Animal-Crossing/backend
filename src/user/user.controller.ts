@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Param,
   Post,
   Put,
@@ -41,10 +43,10 @@ export class UserController {
     @Param('id') id: number,
     @Body('nickName') nickName: string,
   ) {
+    await this.userService.checkNickName(nickName);
     await this.userService.saveProfileImage(id, nickName, file.filename);
     return { filepath: 'uploads/' + file.filename };
   }
-
   @Public()
   @Put('signUpWithUrl/:id')
   async urlSignUp(
@@ -52,7 +54,14 @@ export class UserController {
     @Body('nickName') nickName: string,
     @Body('avatar') avatar: string,
   ) {
+    await this.userService.checkNickName(nickName);
     await this.userService.saveUrlImage(id, nickName, avatar);
     return { filepath: 'original/' + avatar };
+  }
+
+  @Get('nicknames/:nickName')
+  async checkNickName(@Param('nickName') nickName: string) {
+    await this.userService.checkNickName(nickName);
+    return 'success';
   }
 }
