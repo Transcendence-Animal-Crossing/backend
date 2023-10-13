@@ -62,6 +62,6 @@ export class UserController {
   @Get('nicknames/:nickName')
   async checkNickName(@Param('nickName') nickName: string) {
     await this.userService.checkNickName(nickName);
-    return 'success';
+    return 'you can use this nick name';
   }
 }
