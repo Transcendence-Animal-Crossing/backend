@@ -123,4 +123,9 @@ export class UserService {
       nickName: nickName,
     });
   }
+
+  async checkNickName(nickName: string) {
+    const user = await this.userRepository.findOneBy({ nickName: nickName });
+    if (user) throw new HttpException('already existed', HttpStatus.CONFLICT);
+  }
 }
