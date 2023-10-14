@@ -2,12 +2,9 @@ import {
   Body,
   Controller,
   Get,
-  HttpException,
-  HttpStatus,
   Param,
-  Post,
+  Patch,
   Put,
-  Res,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -18,13 +15,13 @@ import { Public } from 'src/auth/guards/public';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
+import { UpdateUserDto } from './dto/update-user.dto';
 
 @Controller('user')
-//@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private userService: UserService) {}
 
-  @Public()
   @Get('all')
   findAll() {
     return this.userService.findAll();
@@ -36,7 +33,7 @@ export class UserController {
   }
 
   @Public()
-  @Put('signUp/:id')
+  @Patch('signUp/:id')
   @UseInterceptors(FileInterceptor('avatar', multerOptions))
   async firstSignUp(
     @UploadedFile() file,
@@ -48,7 +45,7 @@ export class UserController {
     return { filepath: 'uploads/' + file.filename };
   }
   @Public()
-  @Put('signUpWithUrl/:id')
+  @Patch('signUpWithUrl/:id')
   async urlSignUp(
     @Param('id') id: number,
     @Body('nickName') nickName: string,
@@ -59,9 +56,16 @@ export class UserController {
     return { filepath: 'original/' + avatar };
   }
 
+  @Public()
   @Get('nicknames/:nickName')
   async checkNickName(@Param('nickName') nickName: string) {
     await this.userService.checkNickName(nickName);
     return 'you can use this nickname';
+  }
+
+  @Patch('password')
+  async setPassword(@Body() userDto: UpdateUserDto) {
+    await this.userService.updatePassword(userDto);
+    return 'success';
   }
 }
