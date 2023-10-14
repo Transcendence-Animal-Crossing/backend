@@ -4,7 +4,6 @@ import {
   Get,
   Param,
   Patch,
-  Put,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -64,8 +63,16 @@ export class UserController {
   }
 
   @Patch('password')
-  async setPassword(@Body() userDto: UpdateUserDto) {
+  async updatePassword(@Body() userDto: UpdateUserDto) {
     await this.userService.updatePassword(userDto);
+    return 'success';
+  }
+  @Patch('achievement')
+  async updateAchievements(
+    @Body('intraName') intraName: string,
+    @Body('achievement') achievement: string,
+  ) {
+    await this.userService.updateAchievements(intraName, achievement);
     return 'success';
   }
 }
