@@ -16,7 +16,6 @@ import { UserService } from '../user/user.service';
 import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
@@ -72,6 +71,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     let tokens: any;
+    let returnstring: string;
     try {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
@@ -79,13 +79,12 @@ export class AuthController {
         userPublicData.login,
       );
       let user: User;
-
       if (!existingUser) {
         user = await this.userService.createOrUpdateUser(userPublicData);
-        //console.log('new user', user);
+        returnstring = 'fail';
       } else {
         user = existingUser;
-        //console.log('already existed', user);
+        returnstring = 'success';
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -97,7 +96,7 @@ export class AuthController {
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     //res.json(tokens);
-    return 'success';
+    return returnstring;
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
@@ -124,27 +123,6 @@ export class AuthController {
     console.log(password);
     user.password = password;
     await this.userRepository.save(user);
-  }
-
-  @Public()
-  @Post('/signUp')
-  async singUp(
-    @Body() userDto: CreateUserDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const tokens = await this.authService.signUp(userDto);
-    if (!tokens) {
-      throw new HttpException('you must login at 42', HttpStatus.BAD_REQUEST);
-    }
-
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    //res.json(tokens);
-
-    return 'success';
   }
 
   @Public()

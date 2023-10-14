@@ -8,8 +8,6 @@ import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
 import { User } from '../user/entities/user.entity';
 import * as bcrypt from 'bcryptjs';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { hasSubscribers } from 'diagnostics_channel';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
 @Injectable()
@@ -30,15 +28,6 @@ export class AuthService {
     };
     const response = await axios.post(getTokenUrl, request);
     return response.data.access_token;
-  }
-
-  async signUp(userDto: CreateUserDto) {
-    const userId = await this.userService.updateUser(userDto);
-    if (!userId) {
-      return null;
-    }
-    const tokens = await this.generateTokens(userId.toString());
-    return tokens;
   }
 
   async signIn(userDto: LoginUserDto) {
