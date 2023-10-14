@@ -69,7 +69,7 @@ export class UserService {
   async updatePassword(userDto: UpdateUserDto) {
     const user = await this.findByName(userDto.intraName);
     if (!user) {
-      return null;
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
     const hashedPassword = await bcrypt.hash(userDto.password, 7);
     await this.userRepository.update(user.id, { password: hashedPassword });
@@ -115,7 +115,7 @@ export class UserService {
       throw new HttpException('Avatar file not found', HttpStatus.NOT_FOUND);
     }
     await this.userRepository.update(id, {
-      avatar: 'original' + avatar,
+      avatar: 'original/' + avatar,
       nickName: nickName,
     });
   }
@@ -123,5 +123,19 @@ export class UserService {
   async checkNickName(nickName: string) {
     const user = await this.userRepository.findOneBy({ nickName: nickName });
     if (user) throw new HttpException('already existed', HttpStatus.CONFLICT);
+  }
+  async updateAchievements(intraName: string, achievement: string) {
+    const user = await this.findOneByIntraName(intraName);
+    if (!user) throw new HttpException('invalid user', HttpStatus.BAD_REQUEST);
+    if (user.achievements && user.achievements.includes(achievement)) {
+      throw new HttpException(
+        'Achievement already exists in array',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    user.achievements = [...(user.achievements || []), achievement];
+    await this.userRepository.update(user.id, {
+      achievements: user.achievements,
+    });
   }
 }
