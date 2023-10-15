@@ -41,7 +41,7 @@ export class AuthController {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
       const existingUser = await this.userService.findByName(
-        userPublicData.intraName,
+        userPublicData.login,
       );
       let user: User;
       if (!existingUser) {
