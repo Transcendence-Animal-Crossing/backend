@@ -2,7 +2,6 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { In, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
-import { UserData } from '../room/data/user.data';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from 'bcryptjs';
 import { ResponseUserDto, toResponseUserDto } from './dto/response-user.dto';
@@ -46,7 +45,7 @@ export class UserService {
     return this.userRepository.findBy({ id: In(ids) });
   }
 
-  async getUserDataByIds(ids: number[]): Promise<UserData[]> {
+  async getUserDataByIds(ids: number[]): Promise<any> {
     return await this.userRepository
       .createQueryBuilder('user')
       .select(['user.id', 'user.nickName', 'user.intraName', 'user.avatar'])
