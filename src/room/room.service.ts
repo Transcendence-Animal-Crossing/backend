@@ -153,22 +153,15 @@ export class RoomService {
   async leave(userId: number, room: Room) {
     if (!this.isParticipant(userId, room))
       throw new BadRequestException('방 안에 있지 않습니다.');
+    if (room.participants.length === 1)
+      return await this.roomRepository.delete(room.id);
     if (this.getGrade(userId, room) === Grade.OWNER)
-      this.ownerLeave(userId, room);
-    // if (this.ownerLeave(userId, room) === undefined) return;
+      room.participants[1].grade = Grade.OWNER;
 
     room.participants = room.participants.filter(
       (participant) => participant.id !== userId,
     );
     await this.roomRepository.update(room);
-  }
-
-  ownerLeave(userId: number, room: Room) {
-    if (room.participants.length === 1) {
-      this.roomRepository.delete(room.id);
-      room = undefined;
-    } else room.participants[1].grade = Grade.OWNER;
-    return room;
   }
 
   isParticipant(userId: number, room: Room) {
