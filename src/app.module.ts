@@ -1,5 +1,5 @@
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { Module } from '@nestjs/common';
+import { Module, OnApplicationBootstrap } from '@nestjs/common';
 
 import { UserModule } from './user/user.module';
 import { AuthModule } from './auth/auth.module';
@@ -44,4 +44,9 @@ import { CacheModule } from '@nestjs/cache-manager';
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }, AppService],
   controllers: [AppController],
 })
-export class AppModule {}
+export class AppModule implements OnApplicationBootstrap {
+  constructor(private readonly appService: AppService) {}
+  onApplicationBootstrap() {
+    this.appService.init();
+  }
+}
