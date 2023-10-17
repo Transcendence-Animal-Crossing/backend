@@ -47,10 +47,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    this.logger.log('WebSocket Connected: ' + client.id);
+    this.logger.log('WebSocket Connected, clientId: ' + client.id);
     let payload;
     try {
       const token = client.handshake.auth.token;
+      this.logger.log('WebSocket Connected, Token: ' + token);
       payload = this.authService.verifyJwt(token);
     } catch (error) {
       client.emit('exception', {
@@ -58,12 +59,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         message: 'Invalid or Expired Token.',
       });
       client.disconnect(true);
+      this.logger.error('error' + error);
+      this.logger.error('error.message' + error.message);
+      this.logger.log('Invalid or Expired Token: ' + client.id);
       return;
     }
     const user: User = payload && (await this.userService.findOne(payload.id));
     if (!user) {
       client.emit('exception', { status: 401, message: 'Invalid User.' });
       client.disconnect(true);
+      this.logger.log('Invalid User: ' + client.id);
       return;
     }
     await this.clientRepository.connect(client.id, user.id);

@@ -58,7 +58,7 @@ export class AuthService {
 
   verifyJwt(token: string) {
     return this.jwtService.verify(token, {
-      ignoreExpiration: false,
+      ignoreExpiration: true,
     });
   }
 
