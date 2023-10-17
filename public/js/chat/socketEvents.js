@@ -15,6 +15,7 @@ import {
   handleDirectMessageLoad,
   handleReceiveDirectMessage,
   handleException,
+  handleRoomInvited,
 } from './eventHandlers.js';
 
 export function initializeSocketEvents(socket) {
@@ -50,6 +51,11 @@ export function initializeSocketEvents(socket) {
 
   socket.on('room-ban', ({ roomId, targetId }) => {
     handleRoomBan(roomId, targetId);
+  });
+
+  socket.on('room-invite', (simpleRoomDto) => {
+    console.log('room-invite: ', simpleRoomDto);
+    handleRoomInvited(simpleRoomDto);
   });
 
   socket.on('add-admin', ({ roomId, targetId }) => {
