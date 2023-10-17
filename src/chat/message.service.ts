@@ -42,15 +42,15 @@ export class MessageService {
         '(sender.id = :userId AND receiver.id = :targetId) OR (sender.id = :targetId AND receiver.id = :userId)',
         { userId: user.id, targetId: target.id },
       )
-      .orderBy('message.created_at', 'DESC')
+      .orderBy('messageId', 'ASC')
       .take(20)
       .getRawMany();
     return messageData.map((data) => ({
-      date: data.date,
-      text: data.text,
+      messageId: data.messageid,
       senderId: data.senderid,
       receiverId: data.receiverid,
-      messageId: data.messageid,
+      date: data.date,
+      text: data.text,
     }));
   }
 }
