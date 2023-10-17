@@ -95,6 +95,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('room-list', await this.roomService.findNotPrivateRooms());
   }
 
+  // 없어질 함수
   @SubscribeMessage('room-detail')
   async getRoomDetail(client: Socket, roomId: string) {
     const room: Room = await this.roomService.findById(roomId);
@@ -144,7 +145,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomInvite(client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.roomService.invite(userId, dto);
-    const invitedClient = this.getClientByUserId(dto.targetId);
+    const invitedClient = await this.getClientByUserId(dto.targetId);
     invitedClient.emit('room-invite', new SimpleRoomDto(room));
   }
 
@@ -171,7 +172,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.roomService.kick(userId, dto);
     this.server.to(dto.roomId).emit('room-kick', dto);
 
-    const kickedClient = this.getClientByUserId(dto.targetId);
+    const kickedClient = await this.getClientByUserId(dto.targetId);
     kickedClient.leave(dto.roomId);
   }
 
@@ -182,7 +183,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.roomService.ban(userId, dto);
     this.server.to(dto.roomId).emit('room-ban', dto);
 
-    const bannedClient = this.getClientByUserId(dto.targetId);
+    const bannedClient = await this.getClientByUserId(dto.targetId);
     bannedClient.leave(dto.roomId);
   }
 
@@ -240,6 +241,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.emit('message-load', messages);
   }
 
+  // 없어질 함수
   @SubscribeMessage('user-list')
   async onUserList(client: Socket) {
     const userId = await this.clientRepository.findUserId(client.id);
@@ -273,13 +275,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   private async getConnectedUsersData() {
     const ids = await this.clientRepository.connectedUserIds();
-    return await this.userService.getUserDataByIds(ids);
+    const connectedUsers = await this.userService.getUserDataByIds(ids);
+    connectedUsers.map((user) => {
+      user.status = 'ONLINE';
+    });
+    return connectedUsers;
   }
 
-  private getClientByUserId(userId: number): Socket | null {
-    const clientId = this.clientRepository.findClientId(userId);
+  private async getClientByUserId(userId: number) {
+    const clientId = await this.clientRepository.findClientId(userId);
     if (!clientId) return null;
-
     return this.server.sockets.sockets.get(clientId);
   }
 }
