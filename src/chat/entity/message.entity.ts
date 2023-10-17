@@ -2,14 +2,15 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn, ManyToOne
+  CreateDateColumn,
+  ManyToOne,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
 @Entity()
 export class Message {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn('increment')
+  id: number;
 
   @Column({ length: 250 })
   text: string;
