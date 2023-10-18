@@ -15,7 +15,6 @@ import { User } from '../user/entities/user.entity';
     UserModule,
     PassportModule,
     JwtModule.register({
-      secret: process.env.JWT_ACCESS_SECRET,
       signOptions: { expiresIn: process.env.JWT_REFRESH_EXPIRE },
     }),
   ],
