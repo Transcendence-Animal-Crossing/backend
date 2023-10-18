@@ -47,7 +47,7 @@ export class User {
     user.password = '';
     user.nickName = data.login;
     user.intraName = data.login;
-    user.avatar = '';
+    user.avatar = 'original/profile2.png';
     user.rankScore = 1000;
     user.two_factor_auth = false;
     user.achievements = [];
