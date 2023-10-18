@@ -81,6 +81,7 @@ export class UserController {
     return 'success';
   }
 
+  //todo : achievement update 고쳐야함
   @Patch('achievement')
   async updateAchievements(
     @Body('intraName') intraName: string,

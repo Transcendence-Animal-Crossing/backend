@@ -41,7 +41,9 @@ export class GameService {
         'game.playTime',
         'game.updatedAt',
         'winner.nickName',
-        'loser.nickName'
+        'winner.intraName',
+        'loser.nickName',
+        'loser.intraName'
       ])
       .where('winner.id = :id AND game.isRank=:isRank', {
         id, isRank
@@ -63,7 +65,9 @@ export class GameService {
       'game.playTime',
       'game.updatedAt',
       'winner.nickName',
-      'loser.nickName'
+      'winner.intraName',
+      'loser.nickName',
+      'loser.intraName'
     ])
     .where('loser.id = :id AND game.isRank=:isRank', {
       id, isRank
