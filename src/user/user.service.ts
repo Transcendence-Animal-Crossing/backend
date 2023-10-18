@@ -13,6 +13,7 @@ import { ResponseUserDto, toResponseUserDto } from './dto/response-user.dto';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { DetailResponseUserDto, toDetailResponseUserDto } from './dto/detailResponse-user.dto';
 
 @Injectable()
 export class UserService {
@@ -66,20 +67,20 @@ export class UserService {
     return this.userRepository.save(User.create(userPublicData));
   }
 
-  async updatePassword(userDto: UpdateUserDto) {
-    const user = await this.findByName(userDto.intraName);
+  async updatePassword(id: number, password: string) {
+    const user = await this.userRepository.findOneBy({ id: id })
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
-    const hashedPassword = await bcrypt.hash(userDto.password, 7);
-    await this.userRepository.update(user.id, { password: hashedPassword });
+    const hashedPassword = await bcrypt.hash(password, 7);
+    await this.userRepository.update(id, { password: hashedPassword });
   }
 
-  async findOneById(id: number): Promise<ResponseUserDto> {
+  async findOneById(id: number,detailed: boolean = false): Promise<ResponseUserDto | DetailResponseUserDto> {
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
 
-    return toResponseUserDto(user);
+    return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
   }
 
   async block(user: User, targetId: number) {
@@ -120,10 +121,19 @@ export class UserService {
     });
   }
 
-  async checkNickName(nickName: string) {
+  async checkNickName(id: number, nickName: string) {
     const user = await this.userRepository.findOneBy({ nickName: nickName });
-    if (user) throw new HttpException('already existed', HttpStatus.CONFLICT);
+    if (user) 
+    {
+      if (user.id===id)
+      {
+        console.log("aaa");
+        return;
+      }
+        throw new HttpException('already existed', HttpStatus.CONFLICT);
+    }
   }
+
   async updateAchievements(intraName: string, achievement: string) {
     const user = await this.findOneByIntraName(intraName);
     if (!user) throw new HttpException('invalid user', HttpStatus.BAD_REQUEST);

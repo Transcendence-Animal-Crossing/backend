@@ -1,19 +1,17 @@
 import { User } from '../entities/user.entity';
 
 export class ResponseUserDto {
+  id: number;
   nickName: string;
   intraName: string;
-  achievements: string[];
   avatar: string;
-  rankScore: number;
 }
 
 export function toResponseUserDto(user: User): ResponseUserDto {
   return {
+    id: user.id,
     nickName: user.nickName,
     intraName: user.intraName,
-    achievements: user.achievements,
     avatar: user.avatar,
-    rankScore: user.rankScore,
   };
 }
