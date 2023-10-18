@@ -51,7 +51,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     let payload;
     try {
       const token = client.handshake.auth.token;
-      payload = this.authService.verifyJwt(token);
+      payload = this.authService.verifyAccessToken(token);
     } catch (error) {
       client.emit('exception', {
         status: 401,
