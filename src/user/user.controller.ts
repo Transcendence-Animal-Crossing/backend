@@ -25,16 +25,20 @@ export class UserController {
   constructor(private userService: UserService) {}
   private readonly logger: Logger = new Logger('UserController');
 
-  @Get('/user')
+  @Get('user')
   findOnyById(@Query('id') id: number){
     return this.userService.findOneById(id);
   }
 
   @Get('detail')
-  findMe(@Query('id') id:number){
+  findMeDetail(@Query('id') id:number){
     return this.userService.findOneById(id, true);
   }
 
+  @Get('me')
+  findMe(@Req() req){
+    return this.userService.findOneById(req.user.id);
+  }
 
   @Get('all')
   findAll() {
