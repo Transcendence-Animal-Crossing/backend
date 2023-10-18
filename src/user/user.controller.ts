@@ -2,8 +2,11 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Patch,
+  Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -14,59 +17,66 @@ import { Public } from 'src/auth/guards/public';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { DetailResponseUserDto } from './dto/detailResponse-user.dto';
 
-@Controller('user')
+@Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(private userService: UserService) {}
+  private readonly logger: Logger = new Logger('UserController');
+
+  @Get('/user')
+  findOnyById(@Query('id') id: number){
+    return this.userService.findOneById(id);
+  }
+
+  @Get('detail')
+  findMe(@Query('id') id:number){
+    return this.userService.findOneById(id, true);
+  }
+
 
   @Get('all')
   findAll() {
     return this.userService.findAll();
   }
 
-  @Get(':id')
-  findOnyById(@Param('id') id: number): Promise<ResponseUserDto> {
-    return this.userService.findOneById(id);
-  }
 
-  @Public()
-  @Patch('signUp/:id')
+  @Patch('profile')
   @UseInterceptors(FileInterceptor('avatar', multerOptions))
   async firstSignUp(
     @UploadedFile() file,
-    @Param('id') id: number,
     @Body('nickName') nickName: string,
+    @Req() req
   ) {
-    await this.userService.checkNickName(nickName);
-    await this.userService.saveProfileImage(id, nickName, file.filename);
+    await this.userService.checkNickName(req.user.id, nickName);
+    await this.userService.saveProfileImage(req.user.id, nickName, file.filename);
     return { filepath: 'uploads/' + file.filename };
   }
-  @Public()
-  @Patch('signUpWithUrl/:id')
-  async urlSignUp(
-    @Param('id') id: number,
+
+  @Patch('profileWithUrl')
+  async profileWithUrl(
     @Body('nickName') nickName: string,
     @Body('avatar') avatar: string,
+    @Req() req
   ) {
-    await this.userService.checkNickName(nickName);
-    await this.userService.saveUrlImage(id, nickName, avatar);
+    await this.userService.checkNickName(req.user.id, nickName);
+    await this.userService.saveUrlImage(req.user.id, nickName, avatar);
     return { filepath: 'original/' + avatar };
   }
 
-  @Public()
   @Get('nicknames/:nickName')
-  async checkNickName(@Param('nickName') nickName: string) {
-    await this.userService.checkNickName(nickName);
+  async checkNickName(@Param('nickName') nickName: string, @Req() req) {
+    await this.userService.checkNickName(req.user.id, nickName);
     return 'you can use this nickname';
   }
 
   @Patch('password')
-  async updatePassword(@Body() userDto: UpdateUserDto) {
-    await this.userService.updatePassword(userDto);
+  async updatePassword(@Body('password')password:string, @Req() req) {
+    await this.userService.updatePassword(req.user.id, password);
     return 'success';
   }
+
   @Patch('achievement')
   async updateAchievements(
     @Body('intraName') intraName: string,
