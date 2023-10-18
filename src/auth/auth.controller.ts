@@ -9,6 +9,7 @@ import {
   Post,
   Body,
   HttpStatus,
+  Headers,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './guards/public';
@@ -199,5 +200,14 @@ export class AuthController {
     }
 
     return accessToken;
+  }
+
+  //verifyaccesstoken 테스트 지워야함
+  @Get('test')
+  test(@Headers('authorization') authHeader: string){
+    const token = authHeader && authHeader.split(' ')[1];
+
+    const payload = this.authService.verifyAccessToken(token);
+    console.log("payload",payload);
   }
 }
