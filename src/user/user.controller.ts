@@ -48,7 +48,7 @@ export class UserController {
 
   @Patch('profile')
   @UseInterceptors(FileInterceptor('avatar', multerOptions))
-  async firstSignUp(
+  async updateProfile(
     @UploadedFile() file,
     @Body('nickName') nickName: string,
     @Req() req
@@ -59,7 +59,7 @@ export class UserController {
   }
 
   @Patch('profileWithUrl')
-  async profileWithUrl(
+  async updateProfileWithUrl(
     @Body('nickName') nickName: string,
     @Body('avatar') avatar: string,
     @Req() req
