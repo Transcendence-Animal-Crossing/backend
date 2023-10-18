@@ -29,33 +29,55 @@ export class GameService {
     }
   }
 
-  async findWinGamesById(id: number): Promise<Game[]> {
+  async findWinGamesById(id: number, isRank:boolean): Promise<Game[]> {
     const games = await this.gameRepository
       .createQueryBuilder('game')
       .leftJoinAndSelect('game.winner', 'winner')
-      .where('winner.id = :id', {
-        id,
-      })
-      .getMany();
-
-    return games;
-  }
-
-  async findLoseGamesById(id: number): Promise<Game[]> {
-    const games = await this.gameRepository
-      .createQueryBuilder('game')
       .leftJoinAndSelect('game.loser', 'loser')
-      .where('loser.id = :id', {
-        id,
+      .select([
+        'game.id',
+        'game.winnerScore',
+        'game.loserScore',
+        'game.playTime',
+        'game.updatedAt',
+        'winner.nickName',
+        'loser.nickName'
+      ])
+      .where('winner.id = :id AND game.isRank=:isRank', {
+        id, isRank
       })
       .getMany();
 
     return games;
   }
-  async getAllGamesById(id: number) {
-    const winGames = await this.findWinGamesById(id);
-    const loseGames = await this.findLoseGamesById(id);
 
+  async findLoseGamesById(id: number, isRank:boolean): Promise<Game[]> {
+    const games = await this.gameRepository
+    .createQueryBuilder('game')
+    .leftJoinAndSelect('game.loser', 'loser')
+    .leftJoinAndSelect('game.winner', 'winner')
+    .select([
+      'game.id',
+      'game.winnerScore',
+      'game.loserScore',
+      'game.playTime',
+      'game.updatedAt',
+      'winner.nickName',
+      'loser.nickName'
+    ])
+    .where('loser.id = :id AND game.isRank=:isRank', {
+      id, isRank
+    })
+    .getMany();
+
+    return games;
+  }
+  async getAllGamesById(id: number, isRank:boolean) {
+    const winGames = await this.findWinGamesById(id, isRank);
+    const loseGames = await this.findLoseGamesById(id, isRank);
+
+    console.log("wingame",winGames);
+    console.log("loseGame",loseGames);
     const allGames = [...winGames, ...loseGames].sort((a, b) => {
       return b.updatedAt.getTime() - a.updatedAt.getTime();
     });

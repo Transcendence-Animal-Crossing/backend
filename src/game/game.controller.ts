@@ -7,9 +7,14 @@ import { CreateGameDto } from './dto/create-game.dto';
 @UseGuards(JwtAuthGuard)
 export class GameController {
   constructor(private gameService: GameService) {}
-  @Get(':id')
-  async getAllGames(@Param('id') id: number) {
-    return this.gameService.getAllGamesById(id);
+  @Get('rank/:id')
+  async getAllRankGames(@Param('id') id: number) {
+    return this.gameService.getAllGamesById(id, true);
+  }
+
+  @Get('normal/:id')
+  async getAllNormalGames(@Param('id') id: number){
+    return this.gameService.getAllGamesById(id, false);
   }
 
   @Post('game')
