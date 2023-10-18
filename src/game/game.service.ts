@@ -76,8 +76,6 @@ export class GameService {
     const winGames = await this.findWinGamesById(id, isRank);
     const loseGames = await this.findLoseGamesById(id, isRank);
 
-    console.log("wingame",winGames);
-    console.log("loseGame",loseGames);
     const allGames = [...winGames, ...loseGames].sort((a, b) => {
       return b.updatedAt.getTime() - a.updatedAt.getTime();
     });
