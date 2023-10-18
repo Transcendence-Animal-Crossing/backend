@@ -56,12 +56,6 @@ export class AuthService {
     return response.data;
   }
 
-  verifyJwt(token: string) {
-    return this.jwtService.verify(token, {
-      ignoreExpiration: true,
-    });
-  }
-
   async signJwt(userId: number): Promise<string> {
     const payload = { id: userId };
     return this.jwtService.sign(payload);

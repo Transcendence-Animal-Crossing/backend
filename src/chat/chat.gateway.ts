@@ -52,7 +52,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const token = client.handshake.auth.token;
       this.logger.log('WebSocket Connected, Token: ' + token);
-      payload = this.authService.verifyJwt(token);
+      payload = this.authService.verifyAccessToken(token);
     } catch (error) {
       client.emit('exception', {
         status: 401,
