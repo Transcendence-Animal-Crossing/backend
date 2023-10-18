@@ -39,7 +39,7 @@ export class AppController {
   @Get('/chat')
   @Render('chat')
   async chat(@Query('token') token: string) {
-    const userId = this.authService.verifyJwt(token).id;
+    const userId = this.authService.verifyAccessToken(token).id;
     const user = await this.userService.findOne(userId);
     return { user: user, token: token };
   }
@@ -47,7 +47,7 @@ export class AppController {
   @Public()
   @Get('/me')
   async me(@Req() req) {
-    const userId = this.authService.verifyJwt(req.cookies.jwt).id;
+    const userId = this.authService.verifyAccessToken(req.cookies.jwt).id;
     return await this.userService.findOne(userId);
   }
 }
