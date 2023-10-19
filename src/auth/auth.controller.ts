@@ -54,7 +54,7 @@ export class AuthController {
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
-      throw new HttpException('Invalid or Already Used code', 400);
+      throw new HttpException('Invalid or Already Used code', HttpStatus.UNAUTHORIZED);
     }
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
@@ -89,7 +89,7 @@ export class AuthController {
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
-      throw new HttpException('Invalid or Already Used code', 400);
+      throw new HttpException('Invalid or Already Used code', HttpStatus.UNAUTHORIZED);
     }
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
@@ -162,7 +162,7 @@ export class AuthController {
     const user = await this.userService.findOne(id);
 
     if (!user || user.password !== password)
-      throw new HttpException('Invalid id or password', 400);
+      throw new HttpException('Invalid id or password', HttpStatus.UNAUTHORIZED);
     const token = await this.authService.signJwt(id);
 
     res.cookie('jwt', token);
@@ -187,7 +187,8 @@ export class AuthController {
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     console.log('token', tokens);
-    return 'success';
+    res.status(HttpStatus.OK);
+    res.send();
   }
 
   @Post('/tokenUpdate')
