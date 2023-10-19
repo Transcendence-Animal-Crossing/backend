@@ -72,20 +72,20 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     let tokens: any;
-    let returnstring: string;
     try {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
+        console.log("userPublicData",userPublicData);
       const existingUser = await this.userService.findByName(
         userPublicData.login,
       );
       let user: User;
       if (!existingUser) {
         user = await this.userService.createOrUpdateUser(userPublicData);
-        returnstring = 'fail';
+        res.status(201);
       } else {
         user = existingUser;
-        returnstring = 'success';
+        res.status(200);
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -96,8 +96,7 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    //res.json(tokens);
-    return returnstring;
+    res.send();
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
