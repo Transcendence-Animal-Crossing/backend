@@ -29,67 +29,37 @@ export class GameService {
     }
   }
 
-  async findWinGamesById(id: number, isRank:boolean): Promise<Game[]> {
-    const games = await this.gameRepository
-      .createQueryBuilder('game')
-      .leftJoinAndSelect('game.winner', 'winner')
-      .leftJoinAndSelect('game.loser', 'loser')
-      .select([
-        'game.id',
-        'game.winnerScore',
-        'game.loserScore',
-        'game.playTime',
-        'game.updatedAt',
-        'winner.nickName',
-        'winner.intraName',
-        'loser.nickName',
-        'loser.intraName'
-      ])
-      .where('winner.id = :id AND game.isRank=:isRank', {
-        id, isRank
-      })
-      .getMany();
-
-    return games;
-  }
-
-  async findLoseGamesById(id: number, isRank:boolean): Promise<Game[]> {
+  async getAllGamesById(id: number, isRank:boolean) {
     const games = await this.gameRepository
     .createQueryBuilder('game')
     .leftJoinAndSelect('game.loser', 'loser')
     .leftJoinAndSelect('game.winner', 'winner')
     .select([
-      'game.id',
-      'game.winnerScore',
-      'game.loserScore',
-      'game.playTime',
-      'game.updatedAt',
-      'winner.nickName',
-      'winner.intraName',
-      'loser.nickName',
-      'loser.intraName'
+        'game.id',
+        'game.winnerScore',
+        'game.loserScore',
+        'game.playTime',
+        'game.updatedAt',
+        'winner.id',
+        'winner.nickName',
+        'winner.intraName',
+        'loser.id',
+        'loser.nickName',
+        'loser.intraName'
     ])
-    .where('loser.id = :id AND game.isRank=:isRank', {
-      id, isRank
+    .where('(loser.id = :id OR winner.id = :id) AND game.isRank = :isRank', {
+        id, isRank
     })
+    .orderBy('game.updatedAt', 'DESC')
     .getMany();
 
-    return games;
-  }
-  async getAllGamesById(id: number, isRank:boolean) {
-    const winGames = await this.findWinGamesById(id, isRank);
-    const loseGames = await this.findLoseGamesById(id, isRank);
-
-    const allGames = [...winGames, ...loseGames].sort((a, b) => {
-      return b.updatedAt.getTime() - a.updatedAt.getTime();
-    });
-
-    const totalGames = allGames.length;
-    const totalWins = winGames.length;
+    const totalWins = games.filter(game => game.winner.id === id).length;
+    
+    const totalGames = games.length;
     const winRate = totalGames === 0 ? 0 : (totalWins / totalGames) * 100;
 
     return {
-      allGames,
+      games,
       stats: {
         totalGames,
         totalWins,
