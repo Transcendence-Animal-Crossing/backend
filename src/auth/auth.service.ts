@@ -86,9 +86,8 @@ export class AuthService {
   }
   verifyRefreshToken(refreshToken: string) {
     const payload = this.jwtService.verify(refreshToken, {
-      secret: process.env.JWT_ACCESS_SECRET,
+      secret: process.env.JWT_REFRESH_SECRET,
     });
-
     return payload;
   }
 
@@ -109,10 +108,8 @@ export class AuthService {
 
   async updateAccessToken(refreshToken: string) {
     try {
-      const userId = this.verifyRefreshToken(refreshToken);
-
-      const tokens = await this.generateTokens(userId);
-
+      const user = this.verifyRefreshToken(refreshToken);
+      const tokens = await this.generateTokens(user.id.toString());
       return tokens.accessToken;
     } catch (e) {
       return null;
