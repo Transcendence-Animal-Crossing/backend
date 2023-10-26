@@ -126,11 +126,8 @@ export class UserService {
     if (user) 
     {
       if (user.id===id)
-      {
-        console.log("aaa");
         return;
-      }
-        throw new HttpException('already existed', HttpStatus.CONFLICT);
+      throw new HttpException('already existed', HttpStatus.CONFLICT);
     }
   }
 
