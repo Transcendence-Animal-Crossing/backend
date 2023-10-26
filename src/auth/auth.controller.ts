@@ -191,15 +191,17 @@ export class AuthController {
     res.send();
   }
 
-  @Post('/tokenUpdate')
-  async updateTokens(@Req() req: Request) {
+
+  @Get('/token')
+  async updateTokens(@Req() req: Request,@Res({ passthrough: true }) res: Response) {
     const { refreshToken } = req.cookies;
     const accessToken = await this.authService.updateAccessToken(refreshToken);
     if (!accessToken) {
       throw new HttpException('token update failed', HttpStatus.UNAUTHORIZED);
     }
-
-    return accessToken;
+    res.setHeader('Authorization', 'Bearer ' + accessToken);
+    res.status(HttpStatus.OK);
+    res.send();
   }
 
   //verifyaccesstoken 테스트 지워야함
