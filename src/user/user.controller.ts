@@ -5,6 +5,7 @@ import {
   Logger,
   Param,
   Patch,
+  Post,
   Query,
   Req,
   UploadedFile,
@@ -26,17 +27,17 @@ export class UserController {
   private readonly logger: Logger = new Logger('UserController');
 
   @Get('user')
-  findOnyById(@Query('id') id: number){
+  findOnyById(@Query('id') id: number) {
     return this.userService.findOneById(id);
   }
 
   @Get('detail')
-  findMeDetail(@Query('id') id:number){
+  findMeDetail(@Query('id') id: number) {
     return this.userService.findOneById(id, true);
   }
 
   @Get('me')
-  findMe(@Req() req){
+  findMe(@Req() req) {
     return this.userService.findOneById(req.user.id);
   }
 
@@ -45,16 +46,19 @@ export class UserController {
     return this.userService.findAll();
   }
 
-
   @Patch('profile')
   @UseInterceptors(FileInterceptor('avatar', multerOptions))
   async updateProfile(
     @UploadedFile() file,
     @Body('nickName') nickName: string,
-    @Req() req
+    @Req() req,
   ) {
     await this.userService.checkNickName(req.user.id, nickName);
-    await this.userService.saveProfileImage(req.user.id, nickName, file.filename);
+    await this.userService.saveProfileImage(
+      req.user.id,
+      nickName,
+      file.filename,
+    );
     return { filepath: 'uploads/' + file.filename };
   }
 
@@ -62,21 +66,21 @@ export class UserController {
   async updateProfileWithUrl(
     @Body('nickName') nickName: string,
     @Body('avatar') avatar: string,
-    @Req() req
+    @Req() req,
   ) {
     await this.userService.checkNickName(req.user.id, nickName);
     await this.userService.saveUrlImage(req.user.id, nickName, avatar);
     return { filepath: 'original/' + avatar };
   }
 
-  @Get('nicknames/:nickName')
-  async checkNickName(@Param('nickName') nickName: string, @Req() req) {
+  @Post('nickname')
+  async checkNickName(@Body('nickName') nickName: string, @Req() req) {
     await this.userService.checkNickName(req.user.id, nickName);
     return 'you can use this nickname';
   }
 
   @Patch('password')
-  async updatePassword(@Body('password')password:string, @Req() req) {
+  async updatePassword(@Body('password') password: string, @Req() req) {
     await this.userService.updatePassword(req.user.id, password);
     return 'success';
   }
