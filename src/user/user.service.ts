@@ -12,8 +12,10 @@ import * as bcrypt from 'bcryptjs';
 import { ResponseUserDto, toResponseUserDto } from './dto/response-user.dto';
 import { existsSync } from 'fs';
 import { join } from 'path';
-import { UpdateUserDto } from './dto/update-user.dto';
-import { DetailResponseUserDto, toDetailResponseUserDto } from './dto/detailResponse-user.dto';
+import {
+  DetailResponseUserDto,
+  toDetailResponseUserDto,
+} from './dto/detailResponse-user.dto';
 
 @Injectable()
 export class UserService {
@@ -68,7 +70,7 @@ export class UserService {
   }
 
   async updatePassword(id: number, password: string) {
-    const user = await this.userRepository.findOneBy({ id: id })
+    const user = await this.userRepository.findOneBy({ id: id });
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
@@ -76,7 +78,10 @@ export class UserService {
     await this.userRepository.update(id, { password: hashedPassword });
   }
 
-  async findOneById(id: number,detailed: boolean = false): Promise<ResponseUserDto | DetailResponseUserDto> {
+  async findOneById(
+    id: number,
+    detailed: boolean = false,
+  ): Promise<ResponseUserDto | DetailResponseUserDto> {
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
 
@@ -123,10 +128,8 @@ export class UserService {
 
   async checkNickName(id: number, nickName: string) {
     const user = await this.userRepository.findOneBy({ nickName: nickName });
-    if (user) 
-    {
-      if (user.id===id)
-        return;
+    if (user) {
+      if (user.id === id) return;
       throw new HttpException('already existed', HttpStatus.CONFLICT);
     }
   }
