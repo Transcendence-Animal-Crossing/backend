@@ -3,7 +3,6 @@ import {
   Controller,
   Get,
   Logger,
-  Param,
   Patch,
   Post,
   Query,
@@ -13,12 +12,9 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { ResponseUserDto } from './dto/response-user.dto';
-import { Public } from 'src/auth/guards/public';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
-import { DetailResponseUserDto } from './dto/detailResponse-user.dto';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -93,5 +89,11 @@ export class UserController {
   ) {
     await this.userService.updateAchievements(intraName, achievement);
     return 'success';
+  }
+
+  @Post('search')
+  async searchUser(@Body('name') name: string) {
+    const users = await this.userService.searchUser(name);
+    return users;
   }
 }
