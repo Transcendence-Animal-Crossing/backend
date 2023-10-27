@@ -148,4 +148,14 @@ export class UserService {
       achievements: user.achievements,
     });
   }
+
+  async searchUser(name: string): Promise<ResponseUserDto[]> {
+    const users = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.intraName LIKE :name', { name: `%${name}%` })
+      .orWhere('user.nickName LIKE :name', { name: `%${name}%` })
+      .getMany();
+    const responseUsers = users.map((user) => toResponseUserDto(user));
+    return responseUsers;
+  }
 }

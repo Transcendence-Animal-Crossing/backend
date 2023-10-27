@@ -29,12 +29,12 @@ export class GameService {
     }
   }
 
-  async getAllGamesById(id: number, isRank:boolean) {
+  async getAllGamesById(id: number, isRank: boolean) {
     const games = await this.gameRepository
-    .createQueryBuilder('game')
-    .leftJoinAndSelect('game.loser', 'loser')
-    .leftJoinAndSelect('game.winner', 'winner')
-    .select([
+      .createQueryBuilder('game')
+      .leftJoinAndSelect('game.loser', 'loser')
+      .leftJoinAndSelect('game.winner', 'winner')
+      .select([
         'game.id',
         'game.winnerScore',
         'game.loserScore',
@@ -45,16 +45,17 @@ export class GameService {
         'winner.intraName',
         'loser.id',
         'loser.nickName',
-        'loser.intraName'
-    ])
-    .where('(loser.id = :id OR winner.id = :id) AND game.isRank = :isRank', {
-        id, isRank
-    })
-    .orderBy('game.updatedAt', 'DESC')
-    .getMany();
+        'loser.intraName',
+      ])
+      .where('(loser.id = :id OR winner.id = :id) AND game.isRank = :isRank', {
+        id,
+        isRank,
+      })
+      .orderBy('game.updatedAt', 'DESC')
+      .getMany();
 
-    const totalWins = games.filter(game => game.winner.id === id).length;
-    
+    const totalWins = games.filter((game) => game.winner.id === id).length;
+
     const totalGames = games.length;
     const winRate = totalGames === 0 ? 0 : (totalWins / totalGames) * 100;
 
