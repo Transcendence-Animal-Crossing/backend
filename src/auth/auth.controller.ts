@@ -54,7 +54,10 @@ export class AuthController {
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
-      throw new HttpException('Invalid or Already Used code', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'Invalid or Already Used code',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
@@ -75,7 +78,7 @@ export class AuthController {
     try {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
-        console.log("userPublicData",userPublicData);
+      console.log('userPublicData', userPublicData);
       const existingUser = await this.userService.findByName(
         userPublicData.login,
       );
@@ -89,7 +92,10 @@ export class AuthController {
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
-      throw new HttpException('Invalid or Already Used code', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'Invalid or Already Used code',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
@@ -162,7 +168,10 @@ export class AuthController {
     const user = await this.userService.findOne(id);
 
     if (!user || user.password !== password)
-      throw new HttpException('Invalid id or password', HttpStatus.UNAUTHORIZED);
+      throw new HttpException(
+        'Invalid id or password',
+        HttpStatus.UNAUTHORIZED,
+      );
     const token = await this.authService.signJwt(id);
 
     res.cookie('jwt', token);
@@ -191,9 +200,11 @@ export class AuthController {
     res.send();
   }
 
-
   @Get('/token')
-  async updateTokens(@Req() req: Request,@Res({ passthrough: true }) res: Response) {
+  async updateTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { refreshToken } = req.cookies;
     const accessToken = await this.authService.updateAccessToken(refreshToken);
     if (!accessToken) {
@@ -206,10 +217,10 @@ export class AuthController {
 
   //verifyaccesstoken 테스트 지워야함
   @Get('test')
-  test(@Headers('authorization') authHeader: string){
+  test(@Headers('authorization') authHeader: string) {
     const token = authHeader && authHeader.split(' ')[1];
 
     const payload = this.authService.verifyAccessToken(token);
-    console.log("payload",payload);
+    console.log('payload', payload);
   }
 }
