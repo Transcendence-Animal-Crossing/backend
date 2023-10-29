@@ -7,11 +7,13 @@ import { User } from './entities/user.entity';
 import { UserController } from './user.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
+import { FollowModule } from 'src/folllow/follow.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     MulterModule.register(multerOptions),
+    FollowModule,
   ],
   providers: [UserService],
   controllers: [UserController],
