@@ -158,4 +158,14 @@ export class UserService {
     const responseUsers = users.map((user) => toResponseUserDto(user));
     return responseUsers;
   }
+
+  async blockUser(id: number, blockId: number) {
+    const user = await this.findOne(id);
+    this.block(user, blockId);
+  }
+
+  async unblockUser(id: number, unblockId: number) {
+    const user = await this.findOne(id);
+    this.unblock(user, unblockId);
+  }
 }

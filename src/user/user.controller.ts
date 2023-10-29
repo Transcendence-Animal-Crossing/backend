@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Logger,
   Patch,
   Post,
@@ -15,11 +17,15 @@ import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
+import { FollowService } from 'src/folllow/follow.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
 export class UserController {
-  constructor(private userService: UserService) {}
+  constructor(
+    private userService: UserService,
+    private readonly followService: FollowService,
+  ) {}
   private readonly logger: Logger = new Logger('UserController');
 
   @Get('user')
@@ -95,5 +101,30 @@ export class UserController {
   async searchUser(@Body('name') name: string) {
     const users = await this.userService.searchUser(name);
     return users;
+  }
+
+  @Patch('block')
+  async blockUser(@Body('id') id: number, @Req() req) {
+    if (req.user.id != id) {
+      await this.userService.blockUser(req.user.id, id);
+      const follow = await this.followService.isFollowed(req.user.id, id);
+      if (follow && !follow.deletedAt) {
+        await this.followService.deleteFollow(req.user.id, id);
+      }
+    } else {
+      throw new HttpException('자기 자신은 차단 불가 ', HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Patch('unblock')
+  async unblockUser(@Body('id') id: number, @Req() req) {
+    if (req.user.id != id) {
+      await this.userService.unblockUser(req.user.id, id);
+    } else {
+      throw new HttpException(
+        '자기 자신은 차단 해제 불가 ',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 }
