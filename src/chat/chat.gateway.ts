@@ -105,11 +105,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   // 없어질 함수
-  // @SubscribeMessage('room-detail')
-  // async getRoomDetail(client: Socket, roomId: string) {
-  //   const room: Room = await this.roomService.findById(roomId);
-  //   client.emit('room-detail', new DetailRoomDto(room));
-  // }
+  @SubscribeMessage('room-detail')
+  async getRoomDetail(client: Socket, roomId: string) {
+    const room: Room = await this.roomService.findById(roomId);
+    client.emit('room-detail', new DetailRoomDto(room));
+  }
 
   @SubscribeMessage('room-create')
   async createRoom(client: Socket, dto: CreateRoomDto) {
