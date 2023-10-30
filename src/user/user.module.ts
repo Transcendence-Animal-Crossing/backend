@@ -8,10 +8,11 @@ import { UserController } from './user.controller';
 import { MulterModule } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
 import { FollowModule } from 'src/folllow/follow.module';
+import { Game } from 'src/game/entities/game.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Game]),
     MulterModule.register(multerOptions),
     FollowModule,
   ],

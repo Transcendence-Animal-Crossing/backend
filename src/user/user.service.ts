@@ -16,11 +16,13 @@ import {
   DetailResponseUserDto,
   toDetailResponseUserDto,
 } from './dto/detailResponse-user.dto';
+import { Game } from 'src/game/entities/game.entity';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -167,5 +169,33 @@ export class UserService {
   async unblockUser(id: number, unblockId: number) {
     const user = await this.findOne(id);
     this.unblock(user, unblockId);
+  }
+
+  async getRankedUsers() {
+    const users = await this.userRepository.find({
+      order: {
+        rankScore: 'DESC',
+      },
+      select: ['id', 'nickName', 'rankScore', 'intraName'],
+    });
+    const usersWithGameCount = [];
+
+    for (const user of users) {
+      const [winGamesCount, loseGamesCount] = await Promise.all([
+        this.gameRepository.count({ where: { winnerId: user.id } }),
+        this.gameRepository.count({ where: { loserId: user.id } }),
+      ]);
+
+      const totalGames = winGamesCount + loseGamesCount;
+
+      usersWithGameCount.push({
+        nickName: user.nickName,
+        intraName: user.intraName,
+        rankScore: user.rankScore,
+        gameCount: totalGames,
+      });
+    }
+
+    return usersWithGameCount;
   }
 }

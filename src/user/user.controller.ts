@@ -127,4 +127,9 @@ export class UserController {
       );
     }
   }
+  @Get('/rank')
+  async getRankedUsers() {
+    const ranks = this.userService.getRankedUsers();
+    return ranks;
+  }
 }
