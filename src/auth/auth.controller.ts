@@ -199,7 +199,7 @@ export class AuthController {
     res.status(HttpStatus.OK);
     res.send();
   }
-
+  @Public()
   @Get('/token')
   async updateTokens(
     @Req() req: Request,
