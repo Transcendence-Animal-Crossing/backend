@@ -5,7 +5,7 @@ export class SimpleRoomDto {
   constructor(room: Room) {
     this.id = room.id;
     this.title = room.title;
-    this.owner = room.participants[0];
+    this.owner = UserData.compressParticipant(room.participants[0]);
     this.headCount = room.participants.length;
     this.mode = room.mode;
   }
