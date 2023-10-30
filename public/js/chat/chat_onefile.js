@@ -80,26 +80,30 @@ socket.on('direct-message', (message) => {
 // HTML 로드되면 서버에 room-list 이벤트를 보내서 방 목록을 요청
 document.addEventListener('DOMContentLoaded', function () {
   socket.emit('room-list');
-  if (current_roomId !== null) socket.emit('room-detail', current_roomId);
+  if (current_roomId !== null) {
+    const roomDetail = socket.emitWithAck('room-detail', current_roomId);
+    console.log('roomDetail', roomDetail);
+    handleRoomDetail(roomDetail);
+  }
 });
 
 // 방 생성 버튼 클릭 시
-function createRoom() {
-  const input_title = document.getElementById('input_title');
-  const radio_public = document.getElementById('public');
-  const radio_private = document.getElementById('private');
-  const input_password = document.getElementById('input_password');
-
-  const title = input_title.value;
-  const mode = radio_public.checked
-    ? 'PUBLIC'
-    : radio_private.checked
-    ? 'PRIVATE'
-    : 'PROTECTED';
-  const password = input_password.value;
-
-  socket.emit('room-create', { title: title, mode: mode, password: password });
-}
+// function createRoom() {
+//   const input_title = document.getElementById('input_title');
+//   const radio_public = document.getElementById('public');
+//   const radio_private = document.getElementById('private');
+//   const input_password = document.getElementById('input_password');
+//
+//   const title = input_title.value;
+//   const mode = radio_public.checked
+//     ? 'PUBLIC'
+//     : radio_private.checked
+//     ? 'PRIVATE'
+//     : 'PROTECTED';
+//   const password = input_password.value;
+//
+//   socket.emit('room-create', { title: title, mode: mode, password: password });
+// }
 
 function inviteUser() {
   const input_inviteId = document.getElementById('input_inviteId');
