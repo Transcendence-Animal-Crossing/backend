@@ -1,4 +1,4 @@
 export class LoadMessageDto {
   targetId: number;
-  // page: number;
+  cursorId: number;
 }
