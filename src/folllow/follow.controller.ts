@@ -42,7 +42,7 @@ export class FollowController {
     await this.followService.deleteRequest(req.user.id, id);
   }
 
-  @Delete('follow')
+  @Delete()
   @HttpCode(HttpStatus.OK)
   async deleteFollow(@Body('sendTo') id: number, @Req() req) {
     console.log('send byid', req.user.id);
