@@ -194,6 +194,7 @@ export class UserService {
       const totalGames = winGamesCount + loseGamesCount;
 
       usersWithGameCount.push({
+        id: user.id,
         nickName: user.nickName,
         intraName: user.intraName,
         rankScore: user.rankScore,
