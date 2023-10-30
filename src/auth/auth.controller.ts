@@ -17,7 +17,6 @@ import { UserService } from '../user/user.service';
 import { Request, Response } from 'express';
 import { User } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
@@ -43,7 +42,7 @@ export class AuthController {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
       const existingUser = await this.userService.findByName(
-        userPublicData.intraName,
+        userPublicData.login,
       );
       let user: User;
       if (!existingUser) {
@@ -55,13 +54,16 @@ export class AuthController {
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
-      throw new HttpException('Invalid or Already Used code', 400);
+      throw new HttpException(
+        'Invalid or Already Used code',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
-    // res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     res.json(tokens);
     return tokens;
   }
@@ -76,28 +78,31 @@ export class AuthController {
     try {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
+      console.log('userPublicData', userPublicData);
       const existingUser = await this.userService.findByName(
-        userPublicData.intraName,
+        userPublicData.login,
       );
       let user: User;
       if (!existingUser) {
         user = await this.userService.createOrUpdateUser(userPublicData);
-        //console.log('new user', user);
+        res.status(201);
       } else {
         user = existingUser;
-        //console.log('already existed', user);
+        res.status(200);
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
-      throw new HttpException('Invalid or Already Used code', 400);
+      throw new HttpException(
+        'Invalid or Already Used code',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.json(tokens);
-    return tokens;
+    res.send();
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
@@ -124,27 +129,6 @@ export class AuthController {
     console.log(password);
     user.password = password;
     await this.userRepository.save(user);
-  }
-
-  @Public()
-  @Post('/signUp')
-  async singUp(
-    @Body() userDto: CreateUserDto,
-    @Res({ passthrough: true }) res: Response,
-  ) {
-    const tokens = await this.authService.signUp(userDto);
-    if (!tokens) {
-      throw new HttpException('you must log in at 42', HttpStatus.BAD_REQUEST);
-    }
-
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.json(tokens);
-
-    return tokens;
   }
 
   @Public()
@@ -184,7 +168,10 @@ export class AuthController {
     const user = await this.userService.findOne(id);
 
     if (!user || user.password !== password)
-      throw new HttpException('Invalid id or password', 400);
+      throw new HttpException(
+        'Invalid id or password',
+        HttpStatus.UNAUTHORIZED,
+      );
     const token = await this.authService.signJwt(id);
 
     res.cookie('jwt', token);
@@ -208,28 +195,32 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.json(tokens);
-
-    return;
+    console.log('token', tokens);
+    res.status(HttpStatus.OK);
+    res.send();
   }
-
-  @Post('/tokenUpdate')
-  async updateTokens(@Req() req: Request) {
+  @Public()
+  @Get('/token')
+  async updateTokens(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const { refreshToken } = req.cookies;
     const accessToken = await this.authService.updateAccessToken(refreshToken);
     if (!accessToken) {
       throw new HttpException('token update failed', HttpStatus.UNAUTHORIZED);
     }
-
-    return accessToken;
+    res.setHeader('Authorization', 'Bearer ' + accessToken);
+    res.status(HttpStatus.OK);
+    res.send();
   }
 
   //verifyaccesstoken 테스트 지워야함
   @Get('test')
-  test(@Headers('authorization') authHeader: string){
+  test(@Headers('authorization') authHeader: string) {
     const token = authHeader && authHeader.split(' ')[1];
 
     const payload = this.authService.verifyAccessToken(token);
-    console.log("payload",payload);
+    console.log('payload', payload);
   }
 }

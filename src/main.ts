@@ -36,7 +36,12 @@ async function bootstrap() {
   app.useStaticAssets(join(__dirname, '..', 'public'));
   app.setBaseViewsDir(join(__dirname, '..', 'views'));
   app.setViewEngine('hbs');
-
+  app.useStaticAssets(join(__dirname, '..', 'uploads'), {
+    prefix: '/uploads/',
+  });
+  app.useStaticAssets(join(__dirname, '..', 'original'), {
+    prefix: '/original/',
+  });
   await app.listen(8080);
 }
 bootstrap();
