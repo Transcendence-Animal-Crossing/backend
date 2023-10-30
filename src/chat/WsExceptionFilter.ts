@@ -12,11 +12,9 @@ export class WsExceptionFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToWs();
     const client: Socket = ctx.getClient();
+    const ackCallback = host.getArgByIndex(2);
+    ackCallback({ status: exception.getStatus(), body: exception.message });
 
-    client.emit('exception', {
-      status: exception.getStatus(),
-      message: exception.message,
-    });
     if (exception instanceof UnauthorizedException) {
       client.disconnect(true);
     }
