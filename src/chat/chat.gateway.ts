@@ -51,7 +51,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     let payload;
     try {
       const token = client.handshake.auth.token;
-      this.logger.log('WebSocket Connected, Token: ' + token);
+      this.logger.log('Trying to connect WebSocket... (Token: ' + token + ')');
       payload = this.authService.verifyAccessToken(token);
     } catch (error) {
       client.emit('exception', {
@@ -72,7 +72,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return;
     }
     await this.clientRepository.connect(client.id, user.id);
-
     client.emit('user-list', await this.getConnectedUsersData());
     for (const blockId of user.blockIds) {
       client.join('block-' + blockId);
@@ -82,6 +81,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //   client.join('follow-' + follow.id);
     // }
     // client.to('follow-' + user.id).emit('follow', new UserData(user));
+    this.logger.log('WebSocket Connected!: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
@@ -91,16 +91,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room-list')
-  async getRoomList(client: Socket) {
-    client.emit('room-list', await this.roomService.findNotPrivateRooms());
+  async getRoomList() {
+    const roomList = await this.roomService.findNotPrivateRooms();
+    return { status: 200, body: roomList };
   }
 
   // 없어질 함수
-  @SubscribeMessage('room-detail')
-  async getRoomDetail(client: Socket, roomId: string) {
-    const room: Room = await this.roomService.findById(roomId);
-    client.emit('room-detail', new DetailRoomDto(room));
-  }
+  // @SubscribeMessage('room-detail')
+  // async getRoomDetail(client: Socket, roomId: string) {
+  //   const room: Room = await this.roomService.findById(roomId);
+  //   client.emit('room-detail', new DetailRoomDto(room));
+  // }
 
   @SubscribeMessage('room-create')
   async createRoom(client: Socket, dto: CreateRoomDto) {
@@ -108,10 +109,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = await this.roomService.create(dto, userId);
 
     client.join(room.id);
-    client.emit('room-detail', new DetailRoomDto(room));
     this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
     // 나중에 아래처럼 변경해야 할까?
     // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
+    return { status: 200, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-join')
@@ -123,8 +124,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.roomService.joinRoom(userId, room, dto.password);
 
     client.join(dto.roomId);
-    client.emit('room-detail', new DetailRoomDto(room));
     this.server.to(dto.roomId).emit('room-join', new ParticipantData(user, 0));
+    return { status: 200, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-leave')
@@ -137,8 +138,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.leave(dto.roomId);
 
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
-    this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
-    return;
+    const roomList = await this.roomService.findNotPrivateRooms();
+    return { status: 200, body: roomList };
   }
 
   @SubscribeMessage('room-invite')
@@ -147,6 +148,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = await this.roomService.invite(userId, dto);
     const invitedClient = await this.getClientByUserId(dto.targetId);
     invitedClient.emit('room-invite', new SimpleRoomDto(room));
+    return { status: 200 };
   }
 
   @SubscribeMessage('room-mute')
@@ -155,6 +157,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.mute(userId, dto);
     this.server.to(dto.roomId).emit('room-mute', dto);
+    return { status: 200 };
   }
 
   @SubscribeMessage('room-unmute')
@@ -163,6 +166,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.unmute(userId, dto);
     this.server.to(dto.roomId).emit('room-unmute', dto);
+    return { status: 200 };
   }
 
   @SubscribeMessage('room-kick')
@@ -174,6 +178,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const kickedClient = await this.getClientByUserId(dto.targetId);
     kickedClient.leave(dto.roomId);
+    return { status: 200 };
   }
 
   @SubscribeMessage('room-ban')
@@ -185,6 +190,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const bannedClient = await this.getClientByUserId(dto.targetId);
     bannedClient.leave(dto.roomId);
+    return { status: 200 };
   }
 
   @SubscribeMessage('add-admin')
@@ -193,6 +199,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.addAdmin(userId, dto);
     this.server.to(dto.roomId).emit('add-admin', dto);
+    return { status: 200 };
   }
 
   @SubscribeMessage('remove-admin')
@@ -201,6 +208,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.removeAdmin(userId, dto);
     this.server.to(dto.roomId).emit('remove-admin', dto);
+    return { status: 200 };
   }
 
   @SubscribeMessage('room-message')
@@ -217,6 +225,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .except('block-' + userId)
       .emit('room-message', roomMessageDto);
     client.emit('room-message', roomMessageDto);
+    return { status: 200 };
   }
 
   @SubscribeMessage('direct-message')
@@ -228,7 +237,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .except('block-' + dto.senderId)
       .emit('direct-message', dto);
     client.emit('direct-message', dto);
-    await this.messageService.createAndSave(dto);
+    // const viewed: boolean = await client.emitWithAck('direct-message', dto);
+    // await this.messageService.createAndSave(dto, viewed);
+
+    await this.messageService.createAndSave(dto, false);
+    return { status: 200 };
   }
 
   @SubscribeMessage('message-load')
@@ -238,7 +251,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       loadMessageDto,
     );
-    client.emit('message-load', messages);
+    console.log(messages);
+    return { status: 200, body: messages };
   }
 
   // 없어질 함수
@@ -250,7 +264,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return id !== userId;
     });
     const users = await this.userService.getUserDataByIds(ids);
-    client.emit('user-list', users);
+    return { status: 200, body: users };
   }
 
   @SubscribeMessage('user-block')
@@ -259,8 +273,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
     // 친구라면 친구를 끊는 로직이 추가되어야 함
     await this.userService.block(user, dto.targetId);
-    client.emit('user-block', dto);
     client.join('block-' + dto.targetId);
+    return { status: 200 };
   }
 
   @SubscribeMessage('user-unblock')
@@ -269,8 +283,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
 
     await this.userService.unblock(user, dto.targetId);
-    client.emit('user-unblock', dto);
     client.leave('block-' + dto.targetId);
+    return { status: 200 };
   }
 
   private async getConnectedUsersData() {
