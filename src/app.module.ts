@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { RoomModule } from './room/room.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { FollowModule } from './folllow/follow.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     AuthModule,
     GameModule,
     RoomModule,
+    FollowModule,
   ],
   providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }, AppService],
   controllers: [AppController],

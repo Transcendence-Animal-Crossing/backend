@@ -8,8 +8,6 @@ import { JwtService } from '@nestjs/jwt';
 import axios from 'axios';
 import { User } from '../user/entities/user.entity';
 import * as bcrypt from 'bcryptjs';
-import { CreateUserDto } from 'src/user/dto/create-user.dto';
-import { hasSubscribers } from 'diagnostics_channel';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 
 @Injectable()
@@ -30,15 +28,6 @@ export class AuthService {
     };
     const response = await axios.post(getTokenUrl, request);
     return response.data.access_token;
-  }
-
-  async signUp(userDto: CreateUserDto) {
-    const userId = await this.userService.updateUser(userDto);
-    if (!userId) {
-      return null;
-    }
-    const tokens = await this.generateTokens(userId.toString());
-    return tokens;
   }
 
   async signIn(userDto: LoginUserDto) {
@@ -91,9 +80,8 @@ export class AuthService {
   }
   verifyRefreshToken(refreshToken: string) {
     const payload = this.jwtService.verify(refreshToken, {
-      secret: process.env.JWT_ACCESS_SECRET,
+      secret: process.env.JWT_REFRESH_SECRET,
     });
-
     return payload;
   }
 
@@ -114,10 +102,8 @@ export class AuthService {
 
   async updateAccessToken(refreshToken: string) {
     try {
-      const userId = this.verifyRefreshToken(refreshToken);
-
-      const tokens = await this.generateTokens(userId);
-
+      const user = this.verifyRefreshToken(refreshToken);
+      const tokens = await this.generateTokens(user.id.toString());
       return tokens.accessToken;
     } catch (e) {
       return null;
