@@ -13,7 +13,7 @@ export class GameController {
   }
 
   @Get('general/:id')
-  async getAllGeneralGames(@Param('id') id: number){
+  async getAllGeneralGames(@Param('id') id: number) {
     return this.gameService.getAllGamesById(id, false);
   }
 
