@@ -113,8 +113,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // 없어질 함수
   @SubscribeMessage('room-detail')
-  async getRoomDetail(client: Socket, roomId: string) {
-    const room: Room = await this.roomService.findById(roomId);
+  async getRoomDetail(client: Socket, dto: ActionRoomDto) {
+    const room: Room = await this.roomService.findById(dto.roomId);
     return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
@@ -153,8 +153,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.leave(dto.roomId);
 
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
-    const roomList = await this.roomService.findNotPrivateRooms();
-    return { status: HttpStatus.OK, body: roomList };
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('room-invite')
