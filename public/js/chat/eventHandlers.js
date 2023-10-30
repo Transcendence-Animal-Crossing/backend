@@ -33,7 +33,7 @@ export function handleRoomList(rooms) {
 
     const joinButton = document.createElement('button');
     joinButton.innerText = 'Join Room';
-    joinButton.onclick = function () {
+    joinButton.onclick = async function () {
       if (current_roomId !== null) {
         alert('다른 방에 참여하려면 먼저 방을 나가주세요.');
         return;
@@ -42,18 +42,26 @@ export function handleRoomList(rooms) {
         const input_password = document.getElementById(
           'input_password' + room.id,
         );
-        socket.emit('room-join', {
+        const roomDetail = await socket.emitWithAck('room-join', {
           roomId: room.id,
           password: input_password.value,
         });
+        console.log('roomDetail', roomDetail);
+        handleRoomDetail(roomDetail.body);
         input_password.value = '';
-      } else socket.emit('room-join', { roomId: room.id });
+      } else {
+        const roomDetail = await socket.emitWithAck('room-join', {
+          roomId: room.id,
+        });
+        console.log('roomDetail', roomDetail);
+        handleRoomDetail(roomDetail.body);
+      }
     };
 
     const leaveButton = document.createElement('button');
     leaveButton.innerText = 'Leave Room';
     leaveButton.onclick = function () {
-      socket.emit('room-leave', { roomId: room.id });
+      socket.emitWithAck('room-leave', { roomId: room.id });
       current_roomId = null;
       const span_roomId = document.getElementById('roomId');
       span_roomId.innerText = current_roomId;
@@ -68,6 +76,14 @@ export function handleRoomList(rooms) {
     roomElement.appendChild(leaveButton);
     roomList.appendChild(roomElement);
   });
+}
+
+export async function submitRoomDetail() {
+  const roomDetailDto = await socket.emitWithAck('room-detail', {
+    roomId: current_roomId,
+  });
+  console.log('roomDetail', roomDetailDto);
+  handleRoomDetail(roomDetailDto.body);
 }
 
 // room-join 이벤트를 받으면
@@ -187,7 +203,7 @@ export function handleRoomKick(roomId, targetId) {
   }
 }
 
-export function handleRoomInvited(simpleRoomDto) {
+export async function handleRoomInvited(simpleRoomDto) {
   if (current_roomId !== null) {
     alert('초대장이 도착했지만, 방에 입장해 있어 무시됩니다.');
     return;
@@ -202,7 +218,13 @@ export function handleRoomInvited(simpleRoomDto) {
     '참여인원: : ' +
     simpleRoomDto.headCount;
   const acceptTF = confirm(message);
-  if (acceptTF) socket.emit('room-join', { roomId: simpleRoomDto.id });
+  if (acceptTF) {
+    const roomDetail = await socket.emitWithAck('room-join', {
+      roomId: simpleRoomDto.id,
+    });
+    console.log('roomDetail', roomDetail);
+    handleRoomDetail(roomDetail.body);
+  }
 }
 
 export function handleRoomBan(roomId, targetId) {
