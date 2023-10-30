@@ -1,4 +1,6 @@
 // 방 생성 버튼 클릭 시
+import { handleDirectMessageLoad } from './eventHandlers.js';
+
 function createRoom() {
   const input_title = document.getElementById('input_title');
   const radio_public = document.getElementById('public');
@@ -61,10 +63,12 @@ export function buildConnectedUser(connectedUser) {
   li.appendChild(document.createTextNode(connectedUser.nickName));
   const dmButton = document.createElement('button');
   dmButton.appendChild(document.createTextNode('DM 불러오기'));
-  dmButton.onclick = () => {
-    socket.emit('message-load', {
+  dmButton.onclick = async () => {
+    const loadedMessageDto = await socket.emitWithAck('message-load', {
       targetId: connectedUser.id,
     });
+    handleDirectMessageLoad(loadedMessageDto.body);
+    console.log(loadedMessageDto.body);
   };
   const blockButton = document.createElement('button');
   blockButton.appendChild(document.createTextNode('Block'));
