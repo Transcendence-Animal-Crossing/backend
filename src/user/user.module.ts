@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { UserService } from './user.service';
@@ -14,7 +14,7 @@ import { Game } from 'src/game/entities/game.entity';
   imports: [
     TypeOrmModule.forFeature([User, Game]),
     MulterModule.register(multerOptions),
-    FollowModule,
+    forwardRef(() => FollowModule),
   ],
   providers: [UserService],
   controllers: [UserController],
