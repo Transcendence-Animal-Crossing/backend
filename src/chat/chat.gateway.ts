@@ -108,7 +108,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-detail')
   async getRoomDetail(client: Socket, roomId: string) {
     const room: Room = await this.roomService.findById(roomId);
-    client.emit('room-detail', new DetailRoomDto(room));
+    return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-create')
