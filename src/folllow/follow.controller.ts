@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  HttpCode,
   HttpException,
   HttpStatus,
   Post,
@@ -17,6 +18,7 @@ export class FollowController {
   constructor(private followService: FollowService) {}
 
   @Post('request')
+  @HttpCode(HttpStatus.CREATED)
   async createRequest(@Body('sendTo') id: number, @Req() req) {
     const isFollowed = await this.followService.isFollowed(req.user.id, id); //이미 친구이면 exception
     if (isFollowed && !isFollowed.deletedAt) {
@@ -26,15 +28,15 @@ export class FollowController {
   }
 
   @Delete('request')
+  @HttpCode(HttpStatus.OK)
   async deleteRequest(@Body('sendTo') id: number, @Req() req) {
     await this.followService.deleteRequest(req.user.id, id);
-    return 'success';
   }
 
   @Delete('follow')
+  @HttpCode(HttpStatus.OK)
   async deleteFollow(@Body('sendTo') id: number, @Req() req) {
     console.log('send byid', req.user.id);
     await this.followService.deleteFollow(req.user.id, id);
-    return 'delete success';
   }
 }
