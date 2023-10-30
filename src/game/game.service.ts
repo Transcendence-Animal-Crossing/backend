@@ -18,7 +18,7 @@ export class GameService {
     return this.gameRepository.findOneBy({ id: id });
   }
 
-  async create(createGameDto: CreateGameDto) {
+  async createGame(createGameDto: CreateGameDto) {
     try {
       await this.gameRepository.save(createGameDto);
     } catch (error) {
