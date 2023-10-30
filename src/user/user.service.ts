@@ -90,8 +90,13 @@ export class UserService {
     return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
   }
 
+  async isBlocked(userId: number, targetId: number) {
+    const user = await this.findOne(userId);
+    if (user.blockIds.includes(targetId)) return user;
+    return null;
+  }
+
   async block(user: User, targetId: number) {
-    if (user.blockIds.includes(targetId)) return;
     user.blockIds.push(targetId);
     await this.userRepository.save(user);
   }
@@ -162,13 +167,13 @@ export class UserService {
   }
 
   async blockUser(id: number, blockId: number) {
-    const user = await this.findOne(id);
-    this.block(user, blockId);
+    const user = await this.isBlocked(id, blockId);
+    if (!user) this.block(user, blockId);
   }
 
   async unblockUser(id: number, unblockId: number) {
-    const user = await this.findOne(id);
-    this.unblock(user, unblockId);
+    const user = await this.isBlocked(id, unblockId);
+    if (user) this.unblock(user, unblockId);
   }
 
   async getRankedUsers() {

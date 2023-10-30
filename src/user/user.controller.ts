@@ -24,7 +24,7 @@ import { FollowService } from 'src/folllow/follow.service';
 @UseGuards(JwtAuthGuard)
 export class UserController {
   constructor(
-    private userService: UserService,
+    private readonly userService: UserService,
     private readonly followService: FollowService,
   ) {}
   private readonly logger: Logger = new Logger('UserController');

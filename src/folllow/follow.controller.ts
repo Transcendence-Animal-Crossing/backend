@@ -11,15 +11,24 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FollowService } from './follow.service';
+import { UserService } from 'src/user/user.service';
 
 @Controller('follow')
 @UseGuards(JwtAuthGuard)
 export class FollowController {
-  constructor(private followService: FollowService) {}
+  constructor(
+    private followService: FollowService,
+    private readonly userService: UserService,
+  ) {}
 
   @Post('request')
   @HttpCode(HttpStatus.CREATED)
   async createRequest(@Body('sendTo') id: number, @Req() req) {
+    if (this.userService.isBlocked(req.user.id, id))
+      throw new HttpException(
+        '차단한 사람은 친구추가 불가',
+        HttpStatus.CONFLICT,
+      );
     const isFollowed = await this.followService.isFollowed(req.user.id, id); //이미 친구이면 exception
     if (isFollowed && !isFollowed.deletedAt) {
       throw new HttpException('already friend', HttpStatus.BAD_REQUEST);
