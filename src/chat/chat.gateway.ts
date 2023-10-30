@@ -1,4 +1,9 @@
-import { ForbiddenException, Logger, UseFilters } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpStatus,
+  Logger,
+  UseFilters,
+} from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -47,27 +52,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    this.logger.log('WebSocket Connected: ' + client.id);
+    this.logger.log('WebSocket Connected, clientId: ' + client.id);
     let payload;
     try {
       const token = client.handshake.auth.token;
+      this.logger.log('Trying to connect WebSocket... (Token: ' + token + ')');
       payload = this.authService.verifyAccessToken(token);
     } catch (error) {
       client.emit('exception', {
-        status: 401,
+        status: HttpStatus.UNAUTHORIZED,
         message: 'Invalid or Expired Token.',
       });
       client.disconnect(true);
+      this.logger.error('error' + error);
+      this.logger.error('error.message' + error.message);
+      this.logger.log('Invalid or Expired Token: ' + client.id);
       return;
     }
     const user: User = payload && (await this.userService.findOne(payload.id));
     if (!user) {
-      client.emit('exception', { status: 401, message: 'Invalid User.' });
+      client.emit('exception', {
+        status: HttpStatus.UNAUTHORIZED,
+        message: 'Invalid User.',
+      });
       client.disconnect(true);
+      this.logger.log('Invalid User: ' + client.id);
       return;
     }
     await this.clientRepository.connect(client.id, user.id);
-
     client.emit('user-list', await this.getConnectedUsersData());
     for (const blockId of user.blockIds) {
       client.join('block-' + blockId);
@@ -77,6 +89,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //   client.join('follow-' + follow.id);
     // }
     // client.to('follow-' + user.id).emit('follow', new UserData(user));
+    this.logger.log('WebSocket Connected!: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
@@ -86,14 +99,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('room-list')
-  async getRoomList(client: Socket) {
-    client.emit('room-list', await this.roomService.findNotPrivateRooms());
+  async getRoomList() {
+    const roomList = await this.roomService.findNotPrivateRooms();
+    return { status: HttpStatus.OK, body: roomList };
   }
 
+  // 없어질 함수
   @SubscribeMessage('room-detail')
   async getRoomDetail(client: Socket, roomId: string) {
     const room: Room = await this.roomService.findById(roomId);
-    client.emit('room-detail', new DetailRoomDto(room));
+    return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-create')
@@ -102,10 +117,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = await this.roomService.create(dto, userId);
 
     client.join(room.id);
-    client.emit('room-detail', new DetailRoomDto(room));
     this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
     // 나중에 아래처럼 변경해야 할까?
     // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
+    return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-join')
@@ -117,8 +132,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.roomService.joinRoom(userId, room, dto.password);
 
     client.join(dto.roomId);
-    client.emit('room-detail', new DetailRoomDto(room));
     this.server.to(dto.roomId).emit('room-join', new ParticipantData(user, 0));
+    return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-leave')
@@ -131,16 +146,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     client.leave(dto.roomId);
 
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
-    this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
-    return;
+    const roomList = await this.roomService.findNotPrivateRooms();
+    return { status: HttpStatus.OK, body: roomList };
   }
 
   @SubscribeMessage('room-invite')
   async onRoomInvite(client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.roomService.invite(userId, dto);
-    const invitedClient = this.getClientByUserId(dto.targetId);
+    const invitedClient = await this.getClientByUserId(dto.targetId);
     invitedClient.emit('room-invite', new SimpleRoomDto(room));
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('room-mute')
@@ -149,6 +165,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.mute(userId, dto);
     this.server.to(dto.roomId).emit('room-mute', dto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('room-unmute')
@@ -157,6 +174,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.unmute(userId, dto);
     this.server.to(dto.roomId).emit('room-unmute', dto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('room-kick')
@@ -166,8 +184,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.roomService.kick(userId, dto);
     this.server.to(dto.roomId).emit('room-kick', dto);
 
-    const kickedClient = this.getClientByUserId(dto.targetId);
+    const kickedClient = await this.getClientByUserId(dto.targetId);
     kickedClient.leave(dto.roomId);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('room-ban')
@@ -177,8 +196,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     await this.roomService.ban(userId, dto);
     this.server.to(dto.roomId).emit('room-ban', dto);
 
-    const bannedClient = this.getClientByUserId(dto.targetId);
+    const bannedClient = await this.getClientByUserId(dto.targetId);
     bannedClient.leave(dto.roomId);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('add-admin')
@@ -187,6 +207,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.addAdmin(userId, dto);
     this.server.to(dto.roomId).emit('add-admin', dto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('remove-admin')
@@ -195,6 +216,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.removeAdmin(userId, dto);
     this.server.to(dto.roomId).emit('remove-admin', dto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('room-message')
@@ -211,6 +233,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .except('block-' + userId)
       .emit('room-message', roomMessageDto);
     client.emit('room-message', roomMessageDto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('direct-message')
@@ -222,7 +245,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       .except('block-' + dto.senderId)
       .emit('direct-message', dto);
     client.emit('direct-message', dto);
-    await this.messageService.createAndSave(dto);
+    // const viewed: boolean = await client.emitWithAck('direct-message', dto);
+    // await this.messageService.createAndSave(dto, viewed);
+
+    await this.messageService.createAndSave(dto, false);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('message-load')
@@ -232,9 +259,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       loadMessageDto,
     );
-    client.emit('message-load', messages);
+    console.log(messages);
+    return { status: HttpStatus.OK, body: messages };
   }
 
+  // 없어질 함수
   @SubscribeMessage('user-list')
   async onUserList(client: Socket) {
     const userId = await this.clientRepository.findUserId(client.id);
@@ -243,7 +272,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return id !== userId;
     });
     const users = await this.userService.getUserDataByIds(ids);
-    client.emit('user-list', users);
+    return { status: HttpStatus.OK, body: users };
   }
 
   @SubscribeMessage('user-block')
@@ -252,8 +281,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
     // 친구라면 친구를 끊는 로직이 추가되어야 함
     await this.userService.block(user, dto.targetId);
-    client.emit('user-block', dto);
     client.join('block-' + dto.targetId);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('user-unblock')
@@ -262,19 +291,22 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
 
     await this.userService.unblock(user, dto.targetId);
-    client.emit('user-unblock', dto);
     client.leave('block-' + dto.targetId);
+    return { status: HttpStatus.OK };
   }
 
   private async getConnectedUsersData() {
     const ids = await this.clientRepository.connectedUserIds();
-    return await this.userService.getUserDataByIds(ids);
+    const connectedUsers = await this.userService.getUserDataByIds(ids);
+    connectedUsers.map((user) => {
+      user.status = 'ONLINE';
+    });
+    return connectedUsers;
   }
 
-  private getClientByUserId(userId: number): Socket | null {
-    const clientId = this.clientRepository.findClientId(userId);
+  private async getClientByUserId(userId: number) {
+    const clientId = await this.clientRepository.findClientId(userId);
     if (!clientId) return null;
-
     return this.server.sockets.sockets.get(clientId);
   }
 }

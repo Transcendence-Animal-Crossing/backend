@@ -22,7 +22,10 @@ export class RoomRepository {
   async update(room) {
     await this.cacheManager.set('room-' + room.id, room);
   }
-  delete(id) {
-    this.cacheManager.del('room-' + id);
+  async delete(id) {
+    await this.cacheManager.del('room-' + id);
+    const roomIds = (await this.cacheManager.get<string[]>('room-ids')) || [];
+    roomIds.splice(roomIds.indexOf(id), 1);
+    await this.cacheManager.set('room-ids', roomIds);
   }
 }

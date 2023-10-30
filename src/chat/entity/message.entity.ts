@@ -2,17 +2,21 @@ import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
-  CreateDateColumn, ManyToOne
+  CreateDateColumn,
+  ManyToOne,
 } from 'typeorm';
 import { User } from '../../user/entities/user.entity';
 
 @Entity()
 export class Message {
-  @PrimaryGeneratedColumn('uuid')
-  id: string;
+  @PrimaryGeneratedColumn('increment')
+  id: number;
 
   @Column({ length: 250 })
   text: string;
+
+  @Column()
+  viewed: boolean;
 
   @CreateDateColumn()
   created_at: Date;
@@ -23,9 +27,15 @@ export class Message {
   @ManyToOne(() => User)
   receiver: User;
 
-  static create(text: string, sender: User, receiver: User): Message {
+  static create(
+    text: string,
+    viewed: boolean,
+    sender: User,
+    receiver: User,
+  ): Message {
     const message = new Message();
     message.text = text;
+    message.viewed = viewed;
     message.sender = sender;
     message.receiver = receiver;
     return message;

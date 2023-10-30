@@ -1,4 +1,5 @@
 import { initializeSocketEvents } from './socketEvents.js';
+import { handleRoomList } from './eventHandlers.js';
 
 let current_roomId = null;
 let current_participants = null;
@@ -19,8 +20,9 @@ const socket = io('http://localhost:8080', {
 initializeSocketEvents(socket);
 
 // HTML 로드되면 서버에 room-list 이벤트를 보내서 방 목록을 요청
-document.addEventListener('DOMContentLoaded', function () {
-  socket.emit('room-list');
+document.addEventListener('DOMContentLoaded', async function () {
+  const rooms = await socket.emitWithAck('room-list');
+  handleRoomList(rooms);
   if (current_roomId !== null) socket.emit('room-detail', current_roomId);
 });
 
