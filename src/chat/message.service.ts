@@ -14,11 +14,11 @@ export class MessageService {
     private readonly userService: UserService,
   ) {}
 
-  async createAndSave(dto: DirectMessageDto) {
+  async createAndSave(dto: DirectMessageDto, viewed: boolean) {
     const sender = await this.userService.findOne(dto.senderId);
     const receiver = await this.userService.findOne(dto.receiverId);
     const message = this.messageRepository.create(
-      Message.create(dto.text, sender, receiver),
+      Message.create(dto.text, viewed, sender, receiver),
     );
     return await this.messageRepository.save(message);
   }
@@ -26,6 +26,12 @@ export class MessageService {
   async loadMessage(userId: number, loadMessageDto: LoadMessageDto) {
     const user = await this.userService.findOne(userId);
     const target = await this.userService.findOne(loadMessageDto.targetId);
+
+    let whereCondition =
+      '((sender.id = :userId AND receiver.id = :targetId) ' +
+      'OR ' +
+      '(sender.id = :targetId AND receiver.id = :userId)) ';
+    if (loadMessageDto.cursorId) whereCondition += 'AND message.id < :cursorId';
 
     const messageData = await this.messageRepository
       .createQueryBuilder('message')
@@ -38,10 +44,11 @@ export class MessageService {
       ])
       .innerJoin('message.sender', 'sender')
       .innerJoin('message.receiver', 'receiver')
-      .where(
-        '(sender.id = :userId AND receiver.id = :targetId) OR (sender.id = :targetId AND receiver.id = :userId)',
-        { userId: user.id, targetId: target.id },
-      )
+      .where(whereCondition, {
+        userId: user.id,
+        targetId: target.id,
+        cursorId: loadMessageDto.cursorId,
+      })
       .orderBy('messageId', 'ASC')
       .take(20)
       .getRawMany();
