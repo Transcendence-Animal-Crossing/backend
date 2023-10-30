@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { GameService } from './game.service';
 import { CreateGameDto } from './dto/create-game.dto';
@@ -18,8 +27,8 @@ export class GameController {
   }
 
   @Post('game')
+  @HttpCode(HttpStatus.CREATED)
   async createGame(@Body() createGameDto: CreateGameDto) {
-    await this.gameService.create(createGameDto);
-    return 'success';
+    await this.gameService.createGame(createGameDto);
   }
 }

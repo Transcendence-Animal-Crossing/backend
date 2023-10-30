@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpException,
   HttpStatus,
   Logger,
@@ -76,15 +77,17 @@ export class UserController {
   }
 
   @Post('nickname')
+  @HttpCode(HttpStatus.OK)
   async checkNickName(@Body('nickName') nickName: string, @Req() req) {
     await this.userService.checkNickName(req.user.id, nickName);
-    return 'you can use this nickname';
+    return '닉네임 사용 가능';
   }
 
   @Patch('password')
+  @HttpCode(HttpStatus.OK)
   async updatePassword(@Body('password') password: string, @Req() req) {
     await this.userService.updatePassword(req.user.id, password);
-    return 'success';
+    return '패스워드 설정 햇뜸';
   }
 
   //todo : achievement update 고쳐야함
@@ -98,12 +101,14 @@ export class UserController {
   }
 
   @Post('search')
+  @HttpCode(HttpStatus.OK)
   async searchUser(@Body('name') name: string) {
     const users = await this.userService.searchUser(name);
     return users;
   }
 
   @Patch('block')
+  @HttpCode(HttpStatus.OK)
   async blockUser(@Body('id') id: number, @Req() req) {
     if (req.user.id != id) {
       await this.userService.blockUser(req.user.id, id);
@@ -117,6 +122,7 @@ export class UserController {
   }
 
   @Patch('unblock')
+  @HttpCode(HttpStatus.OK)
   async unblockUser(@Body('id') id: number, @Req() req) {
     if (req.user.id != id) {
       await this.userService.unblockUser(req.user.id, id);
@@ -128,6 +134,7 @@ export class UserController {
     }
   }
   @Get('/rank')
+  @HttpCode(HttpStatus.OK)
   async getRankedUsers() {
     const ranks = this.userService.getRankedUsers();
     return ranks;
