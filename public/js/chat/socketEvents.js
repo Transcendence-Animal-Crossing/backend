@@ -74,7 +74,7 @@ export function initializeSocketEvents(socket) {
     handleConnectedUsers(connectedUsers);
   });
 
-  socket.on('message-load', (messages) => {
+  socket.on('load-message', (messages) => {
     handleDirectMessageLoad(messages);
   });
 

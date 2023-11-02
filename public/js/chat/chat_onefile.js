@@ -58,7 +58,7 @@ socket.on('room-message', (message) => {
 socket.on('user-list', (connectedUsers) => {
   handleConnectedUsers(connectedUsers);
 });
-socket.on('message-load', (messages) => {
+socket.on('load-message', (messages) => {
   handleDirectMessageLoad(messages);
 });
 socket.on('exception', ({ status, message }) => {
@@ -442,7 +442,7 @@ function buildConnectedUser(connectedUser) {
   const dmButton = document.createElement('button');
   dmButton.appendChild(document.createTextNode('DM'));
   dmButton.onclick = () => {
-    socket.emit('message-load', {
+    socket.emit('load-message', {
       targetId: connectedUser.id,
     });
   };

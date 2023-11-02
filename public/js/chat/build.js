@@ -71,7 +71,7 @@ export function buildConnectedUser(connectedUser) {
   const dmButton = document.createElement('button');
   dmButton.appendChild(document.createTextNode('DM 불러오기'));
   dmButton.onclick = async () => {
-    const loadedMessageDto = await socket.emitWithAck('message-load', {
+    const loadedMessageDto = await socket.emitWithAck('load-message', {
       targetId: connectedUser.id,
     });
     handleDirectMessageLoad(loadedMessageDto.body);
