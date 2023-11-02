@@ -94,7 +94,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket) {
     const userId = await this.clientRepository.findUserId(client.id);
-    await this.clientRepository.connect(client.id, userId);
+    await this.clientRepository.disconnect(client.id);
+
+    const room = await this.roomService.getJoinedRoom(client);
+    if (room) {
+      await this.roomService.leave(userId, room);
+      const user = await this.userService.findOne(userId);
+      this.server.to(room.id).emit('room-leave', new UserData(user));
+    }
     this.logger.log('Websocket Disconnected: ' + client.id + ' ' + userId);
   }
 

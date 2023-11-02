@@ -22,13 +22,15 @@ import { Grade } from './data/user.grade';
 import { SimpleRoomDto } from './dto/simple.room.dto';
 import { UserData } from './data/user.data';
 import { ParticipantData } from './data/participant.data';
+import { Socket } from 'socket.io';
+import { ClientRepository } from '../chat/client.repository';
 
 @Injectable()
 export class RoomService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
-
+    private readonly clientRepository: ClientRepository,
     private readonly userService: UserService,
   ) {}
 
@@ -49,6 +51,14 @@ export class RoomService {
     const room = await this.roomRepository.find(id);
     if (!room) throw new NotFoundException(`There is no room under id ${id}`);
     return room;
+  }
+
+  async getJoinedRoom(client: Socket) {
+    const roomIds = Object.keys(client.rooms).filter((roomId) => {
+      roomId.startsWith('room-');
+    });
+    if (roomIds) return await this.findById(roomIds[0]);
+    return null;
   }
 
   async joinRoom(userId: number, room: Room, password: string) {
@@ -240,6 +250,28 @@ export class RoomService {
     await this.roomRepository.save(room);
 
     return room;
+  }
+
+  async changeUserProfile(user: User, nickName: string, image: string) {
+    const clientId = await this.clientRepository.findClientId(user.id);
+    // 없으면 findClientId가 에러를 던지고 .catch로 잡는건 어떨까?
+    const client = this.server.sockets.sockets[clientId];
+    const room = await this.getJoinedRoom(client);
+
+    if (!room) return;
+    for (const participant of room.participants) {
+      if (participant.id === user.id) {
+        participant.nickName = nickName;
+        participant.avatar = image;
+        break;
+      }
+    }
+    this.server.emit('user-update', {
+      id: user.id,
+      nickName: nickName,
+      image: image,
+    });
+    await this.roomRepository.update(room);
   }
 
   sortParticipants(room: Room) {
