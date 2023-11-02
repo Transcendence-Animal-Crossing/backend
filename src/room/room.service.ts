@@ -155,8 +155,12 @@ export class RoomService {
       throw new BadRequestException('방 안에 있지 않습니다.');
     if (room.participants.length === 1)
       return await this.roomRepository.delete(room.id);
-    if (this.getGrade(userId, room) === Grade.OWNER)
+    if (this.getGrade(userId, room) === Grade.OWNER) {
       room.participants[1].grade = Grade.OWNER;
+      this.server.emit('change-owner', {
+        id: room.participants[1].id,
+      });
+    }
 
     room.participants = room.participants.filter(
       (participant) => participant.id !== userId,
