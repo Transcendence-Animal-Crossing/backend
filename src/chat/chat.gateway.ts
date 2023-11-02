@@ -252,7 +252,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK };
   }
 
-  @SubscribeMessage('message-load')
+  @SubscribeMessage('load-message')
   async onMessageLoad(client: Socket, loadMessageDto: LoadMessageDto) {
     const userId = await this.clientRepository.findUserId(client.id);
     const messages = await this.messageService.loadMessage(
