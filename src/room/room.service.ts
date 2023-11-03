@@ -55,9 +55,9 @@ export class RoomService {
 
   async getJoinedRoom(client: Socket) {
     const roomIds = Object.keys(client.rooms).filter((roomId) => {
-      roomId.startsWith('room-');
+      !roomId.startsWith('room-');
     });
-    if (roomIds) return await this.findById(roomIds[0]);
+    if (roomIds.length) return await this.findById(roomIds[0]);
     return null;
   }
 
