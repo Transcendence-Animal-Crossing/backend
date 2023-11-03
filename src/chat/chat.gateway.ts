@@ -24,16 +24,16 @@ import { RoomService } from '../room/room.service';
 import { ActionRoomDto } from './dto/action-room.dto';
 import { CreateRoomDto } from '../room/dto/create-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
-import { WsExceptionFilter } from './WsExceptionFilter';
+import { WsExceptionFilter } from '../ws/filter/WsExceptionFilter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
 import { ParticipantData } from '../room/data/participant.data';
 import { UserData } from '../room/data/user.data';
-import { MessageService } from './message.service';
+import { ChatService } from './chat.service';
 import { LoadMessageDto } from './dto/load-message.dto';
 import { SimpleRoomDto } from '../room/dto/simple.room.dto';
 import { ActionDto } from './dto/action.dto';
 import { Room } from '../room/data/room.data';
-import { ClientRepository } from './client.repository';
+import { ClientRepository } from '../ws/client.repository';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -47,12 +47,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly userService: UserService,
     private readonly authService: AuthService,
     private readonly roomService: RoomService,
-    private readonly messageService: MessageService,
+    private readonly messageService: ChatService,
     private readonly clientRepository: ClientRepository,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    this.logger.log('WebSocket Connected, clientId: ' + client.id);
     let payload;
     try {
       const token = client.handshake.auth.token;
@@ -89,7 +88,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     //   client.join('follow-' + follow.id);
     // }
     // client.to('follow-' + user.id).emit('follow', new UserData(user));
-    this.logger.log('WebSocket Connected!: ' + user.nickName);
+    this.logger.log(
+      '[WebSocket Connected!] userId: ' +
+        user.id +
+        ' nickName: ' +
+        user.nickName,
+    );
   }
 
   async handleDisconnect(client: Socket) {
@@ -102,7 +106,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const user = await this.userService.findOne(userId);
       this.server.to(room.id).emit('room-leave', new UserData(user));
     }
-    this.logger.log('Websocket Disconnected: ' + client.id + ' ' + userId);
+    const reason = client.handshake.query.reason;
+    this.logger.log(
+      '[Websocket Disconnected!] socket-id:' +
+        client.id +
+        ', user-id: ' +
+        userId +
+        ', reason: ' +
+        reason,
+    );
   }
 
   @SubscribeMessage('room-list')

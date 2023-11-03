@@ -23,7 +23,7 @@ import { SimpleRoomDto } from './dto/simple.room.dto';
 import { UserData } from './data/user.data';
 import { ParticipantData } from './data/participant.data';
 import { Socket } from 'socket.io';
-import { ClientRepository } from '../chat/client.repository';
+import { ClientRepository } from '../ws/client.repository';
 
 @Injectable()
 export class RoomService {

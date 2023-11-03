@@ -4,10 +4,10 @@ import { ChatGateway } from './chat.gateway';
 import { AuthModule } from 'src/auth/auth.module';
 import { UserModule } from '../user/user.module';
 import { RoomModule } from '../room/room.module';
-import { MessageService } from './message.service';
+import { ChatService } from './chat.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from './entity/message.entity';
-import { ClientRepository } from './client.repository';
+import { ClientRepository } from '../ws/client.repository';
 
 @Module({
   imports: [
@@ -16,7 +16,7 @@ import { ClientRepository } from './client.repository';
     UserModule,
     RoomModule,
   ],
-  providers: [ChatGateway, MessageService, ClientRepository],
+  providers: [ChatGateway, ChatService, ClientRepository],
   exports: [ChatGateway],
 })
 export class ChatModule {}
