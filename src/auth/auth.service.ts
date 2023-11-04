@@ -47,7 +47,11 @@ export class AuthService {
 
   async signJwt(userId: number): Promise<string> {
     const payload = { id: userId };
-    return this.jwtService.sign(payload);
+    // return this.jwtService.sign(payload);
+    return this.jwtService.sign(payload, {
+      secret: process.env.JWT_ACCESS_SECRET,
+      expiresIn: process.env.JWT_ACCESS_EXPIRE,
+    });
   }
 
   async validateUser(userDto: LoginUserDto): Promise<User> {

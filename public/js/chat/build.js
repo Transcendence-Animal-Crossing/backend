@@ -1,7 +1,8 @@
 // 방 생성 버튼 클릭 시
 import { handleDirectMessageLoad } from './eventHandlers.js';
+import { handleRoomDetail } from './eventHandlers.js';
 
-function createRoom() {
+async function createRoom() {
   const input_title = document.getElementById('input_title');
   const radio_public = document.getElementById('public');
   const radio_private = document.getElementById('private');
@@ -15,12 +16,18 @@ function createRoom() {
     : 'PROTECTED';
   const password = input_password.value;
 
-  socket.emit('room-create', { title: title, mode: mode, password: password });
+  const roomDetailDto = await socket.emitWithAck('room-create', {
+    title: title,
+    mode: mode,
+    password: password,
+  });
+  console.log('roomDetail', roomDetailDto);
+  handleRoomDetail(roomDetailDto.body);
 }
 
 function inviteUser() {
   const input_inviteId = document.getElementById('input_inviteId');
-  socket.emit('room-invite', {
+  socket.emitWithAck('room-invite', {
     roomId: current_roomId,
     targetId: Number(input_inviteId.value),
   });
@@ -30,7 +37,7 @@ function inviteUser() {
 // 방 안에서 메시지를 보낼 시
 function sendRoomMessage() {
   const roomMessage = document.getElementById('room-message');
-  socket.emit('room-message', {
+  socket.emitWithAck('room-message', {
     text: roomMessage.value,
     roomId: current_roomId,
   });
@@ -42,7 +49,7 @@ function sendRoomMessage() {
 function sendDirectMessage() {
   const directMessage = document.getElementById('direct-message');
   const receiver = document.getElementById('receiver');
-  socket.emit('direct-message', {
+  socket.emitWithAck('direct-message', {
     text: directMessage.value,
     receiverId: receiver.value,
   });
@@ -64,7 +71,7 @@ export function buildConnectedUser(connectedUser) {
   const dmButton = document.createElement('button');
   dmButton.appendChild(document.createTextNode('DM 불러오기'));
   dmButton.onclick = async () => {
-    const loadedMessageDto = await socket.emitWithAck('message-load', {
+    const loadedMessageDto = await socket.emitWithAck('load-message', {
       targetId: connectedUser.id,
     });
     handleDirectMessageLoad(loadedMessageDto.body);
@@ -73,7 +80,7 @@ export function buildConnectedUser(connectedUser) {
   const blockButton = document.createElement('button');
   blockButton.appendChild(document.createTextNode('Block'));
   blockButton.onclick = () => {
-    socket.emit('user-block', {
+    socket.emitWithAck('user-block', {
       targetId: connectedUser.id,
     });
     blockButton.disabled = true;
@@ -83,7 +90,7 @@ export function buildConnectedUser(connectedUser) {
   unblockButton.disabled = true;
   unblockButton.appendChild(document.createTextNode('Unblock'));
   unblockButton.onclick = () => {
-    socket.emit('user-unblock', {
+    socket.emitWithAck('user-unblock', {
       targetId: connectedUser.id,
     });
     unblockButton.disabled = true;
@@ -120,7 +127,7 @@ export function buildParticipant(participant) {
   if (participant.mute === false) {
     muteButton.appendChild(document.createTextNode('Mute'));
     muteButton.onclick = () => {
-      socket.emit('room-mute', {
+      socket.emitWithAck('room-mute', {
         roomId: current_roomId,
         targetId: participant.id,
       });
@@ -128,7 +135,7 @@ export function buildParticipant(participant) {
   } else {
     muteButton.appendChild(document.createTextNode('Unmute'));
     muteButton.onclick = () => {
-      socket.emit('room-unmute', {
+      socket.emitWithAck('room-unmute', {
         roomId: current_roomId,
         targetId: participant.id,
       });
@@ -137,7 +144,7 @@ export function buildParticipant(participant) {
   const kickButton = document.createElement('button');
   kickButton.appendChild(document.createTextNode('Kick'));
   kickButton.onclick = () => {
-    socket.emit('room-kick', {
+    socket.emitWithAck('room-kick', {
       roomId: current_roomId,
       targetId: participant.id,
     });
@@ -145,7 +152,7 @@ export function buildParticipant(participant) {
   const banButton = document.createElement('button');
   banButton.appendChild(document.createTextNode('Ban'));
   banButton.onclick = () => {
-    socket.emit('room-ban', {
+    socket.emitWithAck('room-ban', {
       roomId: current_roomId,
       targetId: participant.id,
     });
@@ -154,7 +161,7 @@ export function buildParticipant(participant) {
   if (participant.grade === 0) {
     adminButton.appendChild(document.createTextNode('Add Admin'));
     adminButton.onclick = () => {
-      socket.emit('add-admin', {
+      socket.emitWithAck('add-admin', {
         roomId: current_roomId,
         targetId: participant.id,
       });
@@ -162,7 +169,7 @@ export function buildParticipant(participant) {
   } else {
     adminButton.appendChild(document.createTextNode('Remove Admin'));
     adminButton.onclick = () => {
-      socket.emit('remove-admin', {
+      socket.emitWithAck('remove-admin', {
         roomId: current_roomId,
         targetId: participant.id,
       });
@@ -176,6 +183,15 @@ export function buildParticipant(participant) {
   return li;
 }
 
+async function submitRoomDetail() {
+  const roomDetailDto = await socket.emitWithAck('room-detail', {
+    roomId: current_roomId,
+  });
+  console.log('roomId', current_roomId);
+  console.log('roomDetail', roomDetailDto);
+  handleRoomDetail(roomDetailDto.body);
+}
+
 window.createRoom = createRoom;
 window.inviteUser = inviteUser;
 window.sendRoomMessage = sendRoomMessage;
@@ -183,3 +199,4 @@ window.sendDirectMessage = sendDirectMessage;
 window.buildNewMessage = buildNewMessage;
 window.buildConnectedUser = buildConnectedUser;
 window.buildParticipant = buildParticipant;
+window.submitRoomDetail = submitRoomDetail;

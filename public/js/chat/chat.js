@@ -21,9 +21,13 @@ initializeSocketEvents(socket);
 
 // HTML 로드되면 서버에 room-list 이벤트를 보내서 방 목록을 요청
 document.addEventListener('DOMContentLoaded', async function () {
-  const rooms = await socket.emitWithAck('room-list');
-  handleRoomList(rooms);
-  if (current_roomId !== null) socket.emit('room-detail', current_roomId);
+  const roomsDto = await socket.emitWithAck('room-list');
+  handleRoomList(roomsDto.body);
+  if (current_roomId !== null) {
+    const roomDetail = await socket.emitWithAck('room-detail', current_roomId);
+    console.log('roomDetail', roomDetail);
+    handleRoomDetail(roomDetail);
+  }
 });
 
 window.socket = socket;
