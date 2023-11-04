@@ -46,7 +46,6 @@ export class ClientService {
     const room = await this.roomService.getJoinedRoom(client);
     if (room) {
       await this.roomService.leave(user.id, room);
-      const user = await this.userService.findOne(user.id);
       this.server.to(room.id).emit('room-leave', new UserData(user));
     }
 

@@ -5,7 +5,7 @@ import { WebSocketServer } from '@nestjs/websockets';
 
 @Injectable()
 export class ClientRepository {
-  @WebSocketServer
+  @WebSocketServer()
   server;
 
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
