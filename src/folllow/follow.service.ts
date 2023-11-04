@@ -124,7 +124,6 @@ export class FollowService {
 
     return followRequests.map((fr) => ({
       sendBy: fr.sendBy.id,
-      sendTo: userId,
     }));
   }
 
