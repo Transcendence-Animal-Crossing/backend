@@ -125,7 +125,8 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async unblockUser(@Body('id') id: number, @Req() req) {
     if (req.user.id != id) {
-      await this.userService.unblockUser(req.user.id, id);
+      const user = await this.userService.findOne(req.user.id);
+      await this.userService.unblockUser(user, id);
     } else {
       throw new HttpException(
         '자기 자신은 차단 해제 불가 ',

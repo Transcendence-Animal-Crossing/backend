@@ -40,15 +40,6 @@ export class UserService {
     });
   }
 
-  async findOneWithParticipants(id: number): Promise<User> {
-    const user = this.userRepository.findOne({
-      where: { id: id },
-      relations: ['participants'],
-    });
-    if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
-    return user;
-  }
-
   async findByName(name: string): Promise<User> {
     return this.userRepository.findOneBy({ intraName: name });
   }
@@ -89,20 +80,8 @@ export class UserService {
     return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
   }
 
-  async isBlocked(userId: number, targetId: number) {
-    const user = await this.findOne(userId);
-    if (user.blockIds.includes(targetId)) return user;
-    return null;
-  }
-
-  async block(user: User, targetId: number) {
-    user.blockIds.push(targetId);
-    await this.userRepository.save(user);
-  }
-
-  async unblock(user: User, targetId: number) {
-    user.blockIds = user.blockIds.filter((id) => id !== targetId);
-    await this.userRepository.save(user);
+  isBlocked(user: User, targetId: number): boolean {
+    return user.blockIds.includes(targetId);
   }
 
   async saveProfileImage(id: number, nickName: string, filename: string) {
@@ -165,14 +144,18 @@ export class UserService {
     return responseUsers;
   }
 
-  async blockUser(id: number, blockId: number) {
-    const user = await this.isBlocked(id, blockId);
-    if (!user) this.block(user, blockId);
+  async blockUser(user: User, blockId: number) {
+    if (!this.isBlocked(user, blockId)) {
+      user.blockIds.push(blockId);
+      await this.userRepository.update(user.id, { blockIds: user.blockIds });
+    }
   }
 
-  async unblockUser(id: number, unblockId: number) {
-    const user = await this.isBlocked(id, unblockId);
-    if (user) this.unblock(user, unblockId);
+  async unblockUser(user: User, unblockId: number) {
+    if (this.isBlocked(user, unblockId)) {
+      user.blockIds = user.blockIds.filter((id) => id !== unblockId);
+      await this.userRepository.update(user.id, { blockIds: user.blockIds });
+    }
   }
 
   async getRankedUsers() {
