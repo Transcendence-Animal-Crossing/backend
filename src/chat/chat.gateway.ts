@@ -80,7 +80,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
     // 나중에 아래처럼 변경해야 할까?
     // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
-    return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
+    return { status: HttpStatus.OK, body: { id: room.id } };
   }
 
   @SubscribeMessage('room-join')
