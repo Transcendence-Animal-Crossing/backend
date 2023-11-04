@@ -19,6 +19,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
 import { FollowService } from 'src/folllow/follow.service';
+import { Public } from 'src/auth/guards/public';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -44,6 +45,7 @@ export class UserController {
     return this.userService.findOneById(req.user.id);
   }
 
+  @Public()
   @Get('all')
   findAll() {
     return this.userService.findAll();
@@ -133,7 +135,7 @@ export class UserController {
       );
     }
   }
-  @Get('/rank')
+  @Get('rank')
   @HttpCode(HttpStatus.OK)
   async getRankedUsers() {
     const ranks = this.userService.getRankedUsers();
