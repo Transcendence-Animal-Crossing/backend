@@ -55,4 +55,10 @@ export class FollowController {
   async getRequest(@Req() req) {
     return await this.followService.findAllSentTo(req.user.id);
   }
+
+  @Get()
+  @HttpCode(HttpStatus.OK)
+  async getFollow(@Req() req) {
+    return await this.followService.findAllFriends(req.user.id);
+  }
 }
