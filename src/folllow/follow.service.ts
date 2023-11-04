@@ -133,14 +133,18 @@ export class FollowService {
   async findAllFriends(userId: number) {
     const friends = await this.followRepository
       .createQueryBuilder('follow')
+      .leftJoinAndSelect('follow.following', 'following')
       .where('follow.follower = :userId', { userId })
-      .leftJoin('follow.follower', 'follower')
-      .leftJoin('follow.following', 'following')
-      .select(['follow.id', 'follower.id', 'following.id'])
+      .select('follow.id')
+      .addSelect('following.id')
+      .addSelect('following.nickName')
+      .addSelect('following.avatar')
       .getMany();
+
     return friends.map((fr) => ({
-      me: fr.follower.id,
       friendId: fr.following.id,
+      freindNickName: fr.following.nickName,
+      freindProfile: fr.following.avatar,
     }));
   }
 }
