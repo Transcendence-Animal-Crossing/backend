@@ -119,14 +119,12 @@ export class FollowService {
       .createQueryBuilder('followRequest')
       .where('followRequest.sendTo = :userId', { userId })
       .leftJoin('followRequest.sendBy', 'sendBy')
-      .leftJoin('followRequest.sendTo', 'sendTo')
-      .select(['followRequest.id', 'sendBy.id', 'sendTo.id'])
+      .select(['followRequest.id', 'sendBy.id'])
       .getMany();
 
     return followRequests.map((fr) => ({
-      id: fr.id,
       sendBy: fr.sendBy.id,
-      sendTo: fr.sendTo.id,
+      sendTo: userId,
     }));
   }
 
