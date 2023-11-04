@@ -20,6 +20,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
 import { FollowService } from 'src/folllow/follow.service';
 import { Public } from 'src/auth/guards/public';
+import { RoomService } from 'src/room/room.service';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -27,6 +28,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly followService: FollowService,
+    private readonly roomService: RoomService,
   ) {}
   private readonly logger: Logger = new Logger('UserController');
 
@@ -75,6 +77,7 @@ export class UserController {
   ) {
     await this.userService.checkNickName(req.user.id, nickName);
     await this.userService.saveUrlImage(req.user.id, nickName, avatar);
+    await this.roomService.changeUserProfile(req.user.id, nickName, avatar);
     return { filepath: 'original/' + avatar };
   }
 
