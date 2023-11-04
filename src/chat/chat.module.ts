@@ -7,7 +7,7 @@ import { RoomModule } from '../room/room.module';
 import { ChatService } from './chat.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from './entity/message.entity';
-import { ClientRepository } from '../ws/client.repository';
+import { WebSocketModule } from '../ws/ws.module';
 
 @Module({
   imports: [
@@ -15,8 +15,9 @@ import { ClientRepository } from '../ws/client.repository';
     AuthModule,
     UserModule,
     RoomModule,
+    WebSocketModule,
   ],
-  providers: [ChatGateway, ChatService, ClientRepository],
-  exports: [ChatGateway],
+  providers: [ChatGateway, ChatService],
+  exports: [],
 })
 export class ChatModule {}
