@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   HttpCode,
   HttpException,
   HttpStatus,
@@ -24,7 +25,7 @@ export class FollowController {
   @Post('request')
   @HttpCode(HttpStatus.CREATED)
   async createRequest(@Body('sendTo') id: number, @Req() req) {
-    if (this.userService.isBlocked(req.user.id, id))
+    if (await this.userService.isBlocked(req.user.id, id))
       throw new HttpException(
         '차단한 사람은 친구추가 불가',
         HttpStatus.CONFLICT,
@@ -47,5 +48,11 @@ export class FollowController {
   async deleteFollow(@Body('sendTo') id: number, @Req() req) {
     console.log('send byid', req.user.id);
     await this.followService.deleteFollow(req.user.id, id);
+  }
+
+  @Get('request')
+  @HttpCode(HttpStatus.OK)
+  async getRequest(@Req() req) {
+    return await this.followService.findAllSentTo(req.user.id);
   }
 }

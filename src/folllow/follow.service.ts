@@ -114,4 +114,19 @@ export class FollowService {
     }
     throw new HttpException('delete failed', HttpStatus.CONFLICT);
   }
+  async findAllSentTo(userId: number) {
+    const followRequests = await this.followRequestRepository
+      .createQueryBuilder('followRequest')
+      .where('followRequest.sendTo = :userId', { userId })
+      .leftJoin('followRequest.sendBy', 'sendBy')
+      .leftJoin('followRequest.sendTo', 'sendTo')
+      .select(['followRequest.id', 'sendBy.id', 'sendTo.id'])
+      .getMany();
+
+    return followRequests.map((fr) => ({
+      id: fr.id,
+      sendBy: fr.sendBy.id,
+      sendTo: fr.sendTo.id,
+    }));
+  }
 }
