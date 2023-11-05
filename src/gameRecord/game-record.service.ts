@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { GameRecord } from './entities/game-record';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
+import { PAGINATION_LIMIT } from 'src/common/constants';
 
 @Injectable()
 export class GameRecordService {
@@ -11,24 +12,30 @@ export class GameRecordService {
     private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
-  async getRanking() {
+  async getRanking(offset: number) {
     const rankingData = await this.gameRecordRepository
       .createQueryBuilder('gameRecord')
-      .innerJoinAndSelect('gameRecord.userId', 'user')
+      .innerJoinAndSelect('gameRecord.user', 'user')
       .select([
         'user.id',
         'user.nickName',
         'user.intraName',
         'gameRecord.rankScore',
+        'user.avatar',
+        'gameRecord.rankTotalCount',
       ])
       .orderBy('gameRecord.rankScore', 'DESC')
+      .offset(offset)
+      .limit(PAGINATION_LIMIT)
       .getMany();
-    console.log('rankingdata', rankingData);
-    const ranking = rankingData.map((record) => ({
-      id: record.userId.id,
-      nickName: record.userId.nickName,
-      intraName: record.userId.intraName,
+    const ranking = rankingData.map((record, index) => ({
+      id: record.user.id,
+      nickName: record.user.nickName,
+      intraName: record.user.intraName,
       rankScore: record.rankScore,
+      avatar: record.user.avatar,
+      rankGameTotalCount: record.rankTotalCount,
+      ranking: offset + index + 1,
     }));
     return ranking;
   }
@@ -40,13 +47,13 @@ export class GameRecordService {
   async updateGameRecord(winnerId: number, loserId: number, isRank: boolean) {
     const winnerGameRecord = await this.gameRecordRepository.findOne({
       where: {
-        userId: { id: winnerId },
+        user: { id: winnerId },
       },
     });
 
     const loserGameRecord = await this.gameRecordRepository.findOne({
       where: {
-        userId: { id: loserId },
+        user: { id: loserId },
       },
     });
 
@@ -86,23 +93,37 @@ export class GameRecordService {
   async findRecord(id: number, isRank: boolean) {
     const gameRecord = await this.gameRecordRepository.findOne({
       where: {
-        userId: { id: id },
+        user: { id: id },
       },
     });
+    let winRate;
 
     if (isRank) {
-      return (
-        gameRecord.rankTotalCount,
-        gameRecord.rankWinCount,
-        Math.round((gameRecord.rankWinCount / gameRecord.rankTotalCount) * 100)
-      );
+      winRate =
+        gameRecord.rankTotalCount > 0
+          ? Math.round(
+              (gameRecord.rankWinCount / gameRecord.rankTotalCount) * 100,
+            )
+          : 0;
+
+      return {
+        totalCount: gameRecord.rankTotalCount,
+        winCount: gameRecord.rankWinCount,
+        winRate: winRate,
+      };
+    } else {
+      winRate =
+        gameRecord.generalTotalCount > 0
+          ? Math.round(
+              (gameRecord.generalWinCount / gameRecord.generalTotalCount) * 100,
+            )
+          : 0;
+
+      return {
+        totalCount: gameRecord.generalTotalCount,
+        winCount: gameRecord.generalWinCount,
+        winRate: winRate,
+      };
     }
-    return (
-      gameRecord.generalTotalCount,
-      gameRecord.generalWinCount,
-      Math.round(
-        (gameRecord.generalWinCount / gameRecord.generalTotalCount) * 100,
-      )
-    );
   }
 }

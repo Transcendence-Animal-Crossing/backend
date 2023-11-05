@@ -3,6 +3,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -15,14 +16,18 @@ export class GameRecordController {
 
   @Get('rank')
   @HttpCode(HttpStatus.OK)
-  async getRankedUsers() {
-    const ranks = await this.gameRecordService.getRanking();
+  async getRankedUsers(@Query('offset') offset: number) {
+    const ranks = await this.gameRecordService.getRanking(offset);
     return ranks;
   }
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  async getRecordById(id: number, isRank: boolean) {
-    return await this.gameRecordService.findRecord(id, isRank);
+  async getRecordById(
+    @Query('id') id: number,
+    @Query('isRank') isRank: boolean,
+  ) {
+    const record = await this.gameRecordService.findRecord(id, isRank);
+    return record;
   }
 }
