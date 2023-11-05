@@ -4,7 +4,6 @@ import {
   Get,
   HttpCode,
   HttpStatus,
-  Param,
   Post,
   Query,
   UseGuards,
@@ -21,13 +20,19 @@ export class GameController {
     private readonly gameService: GameService,
     private readonly gameRecordService: GameRecordService,
   ) {}
-  @Get('rank/:id')
-  async getAllRankGames(@Param('id') id: number, @Query('offset') offset) {
+  @Get('rank')
+  async getAllRankGames(
+    @Query('id') id: number,
+    @Query('offset') offset: number,
+  ) {
     return this.gameService.getAllGamesById(id, true, offset);
   }
 
-  @Get('general/:id')
-  async getAllGeneralGames(@Param('id') id: number, @Query('offset') offset) {
+  @Get('general')
+  async getAllGeneralGames(
+    @Query('id') id: number,
+    @Query('offset') offset: number,
+  ) {
     return this.gameService.getAllGamesById(id, false, offset);
   }
 

@@ -22,7 +22,7 @@ export class GameRecord {
   rankScore: number;
 
   @ManyToOne(() => User)
-  userId: User;
+  user: User;
 
   static create(user: User): GameRecord {
     const gameRecord = new GameRecord();
@@ -31,7 +31,7 @@ export class GameRecord {
     gameRecord.generalWinCount = 0;
     gameRecord.rankTotalCount = 0;
     gameRecord.rankWinCount = 0;
-    gameRecord.userId = user;
+    gameRecord.user = user;
     return gameRecord;
   }
 }
