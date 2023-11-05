@@ -139,10 +139,4 @@ export class UserController {
       );
     }
   }
-  @Get('rank')
-  @HttpCode(HttpStatus.OK)
-  async getRankedUsers() {
-    const ranks = this.userService.getRankedUsers();
-    return ranks;
-  }
 }
