@@ -8,12 +8,14 @@ import { LocalStrategy } from './strategies/local.strategy';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
+import { GameRecordModule } from 'src/gameRecord/game-record.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
     UserModule,
     PassportModule,
+    GameRecordModule,
     JwtModule.register({
       signOptions: { expiresIn: process.env.JWT_REFRESH_EXPIRE },
     }),
