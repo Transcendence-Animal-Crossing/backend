@@ -56,9 +56,9 @@ export class UserService {
       .getMany();
   }
 
-  async createOrUpdateUser(userPublicData: any): Promise<User> {
+  async createUser(userPublicData: any): Promise<User> {
     console.log('create', userPublicData.login);
-    return this.userRepository.save(User.create(userPublicData));
+    return await this.userRepository.save(User.create(userPublicData));
   }
 
   async updatePassword(id: number, password: string) {
@@ -156,34 +156,5 @@ export class UserService {
       user.blockIds = user.blockIds.filter((id) => id !== unblockId);
       await this.userRepository.update(user.id, { blockIds: user.blockIds });
     }
-  }
-
-  async getRankedUsers() {
-    const users = await this.userRepository.find({
-      order: {
-        rankScore: 'DESC',
-      },
-      select: ['id', 'nickName', 'rankScore', 'intraName'],
-    });
-    const usersWithGameCount = [];
-
-    for (const user of users) {
-      const [winGamesCount, loseGamesCount] = await Promise.all([
-        this.gameRepository.count({ where: { winnerId: user.id } }),
-        this.gameRepository.count({ where: { loserId: user.id } }),
-      ]);
-
-      const totalGames = winGamesCount + loseGamesCount;
-
-      usersWithGameCount.push({
-        id: user.id,
-        nickName: user.nickName,
-        intraName: user.intraName,
-        rankScore: user.rankScore,
-        gameCount: totalGames,
-      });
-    }
-
-    return usersWithGameCount;
   }
 }

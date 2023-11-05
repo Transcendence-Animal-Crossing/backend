@@ -46,7 +46,7 @@ export class AuthController {
       );
       let user: User;
       if (!existingUser) {
-        user = await this.userService.createOrUpdateUser(userPublicData);
+        user = await this.userService.createUser(userPublicData);
         //console.log('new user', user);
       } else {
         user = existingUser;
@@ -84,7 +84,7 @@ export class AuthController {
       );
       let user: User;
       if (!existingUser) {
-        user = await this.userService.createOrUpdateUser(userPublicData);
+        user = await this.userService.createUser(userPublicData);
         res.status(201);
       } else {
         user = existingUser;
@@ -144,7 +144,6 @@ export class AuthController {
       nickName: 'tester' + id,
       intraName: 'tester' + id,
       avatar: '',
-      rankScore: 1000,
       two_factor_auth: false,
       achievements: [],
       blockIds: [],
