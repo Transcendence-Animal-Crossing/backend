@@ -9,12 +9,15 @@ import { MulterModule } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
 import { FollowModule } from 'src/folllow/follow.module';
 import { Game } from 'src/game/entities/game.entity';
+import { Room } from 'src/room/data/room.data';
+import { RoomModule } from 'src/room/room.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Game]),
+    TypeOrmModule.forFeature([User, Game, Room]),
     MulterModule.register(multerOptions),
     forwardRef(() => FollowModule),
+    forwardRef(() => RoomModule),
   ],
   providers: [UserService],
   controllers: [UserController],

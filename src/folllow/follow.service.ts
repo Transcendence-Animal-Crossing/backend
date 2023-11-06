@@ -114,4 +114,41 @@ export class FollowService {
     }
     throw new HttpException('delete failed', HttpStatus.CONFLICT);
   }
+  async findAllSentTo(userId: number) {
+    const followRequests = await this.followRequestRepository
+      .createQueryBuilder('followRequest')
+      .where('followRequest.sendTo = :userId', { userId })
+      .leftJoin('followRequest.sendBy', 'sendBy')
+      .select([
+        'followRequest.id',
+        'sendBy.id',
+        'sendBy.nickName',
+        'sendBy.intraName',
+      ])
+      .getMany();
+
+    return followRequests.map((fr) => ({
+      sendBy: fr.sendBy.id,
+      nickName: fr.sendBy.nickName,
+      intraName: fr.sendBy.intraName,
+    }));
+  }
+
+  async findAllFriends(userId: number) {
+    const friends = await this.followRepository
+      .createQueryBuilder('follow')
+      .leftJoinAndSelect('follow.following', 'following')
+      .where('follow.follower = :userId', { userId })
+      .select('follow.id')
+      .addSelect('following.id')
+      .addSelect('following.nickName')
+      .addSelect('following.avatar')
+      .getMany();
+
+    return friends.map((fr) => ({
+      friendId: fr.following.id,
+      freindNickName: fr.following.nickName,
+      freindProfile: fr.following.avatar,
+    }));
+  }
 }
