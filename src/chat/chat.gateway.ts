@@ -2,6 +2,7 @@ import {
   ForbiddenException,
   HttpStatus,
   Logger,
+  NotFoundException,
   UseFilters,
 } from '@nestjs/common';
 import {
@@ -25,7 +26,6 @@ import { CreateRoomDto } from '../room/dto/create-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { WsExceptionFilter } from '../ws/filter/WsExceptionFilter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
-import { ParticipantData } from '../room/data/participant.data';
 import { UserData } from '../room/data/user.data';
 import { ChatService } from './chat.service';
 import { LoadMessageDto } from './dto/load-message.dto';
@@ -33,6 +33,7 @@ import { SimpleRoomDto } from '../room/dto/simple.room.dto';
 import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
+import { ParticipantData } from '../room/data/participant.data';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -61,49 +62,55 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-list')
   async getRoomList() {
+    this.logger.debug('Client Send Event <room-list>');
     const roomList = await this.roomService.findNotPrivateRooms();
     return { status: HttpStatus.OK, body: roomList };
   }
 
   @SubscribeMessage('room-detail')
   async getRoomDetail(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <room-detail>');
     const room: Room = await this.roomService.findById(dto.roomId);
+    if (!room)
+      throw new NotFoundException(`There is no room under id ${dto.roomId}`);
     return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-create')
   async createRoom(client: Socket, dto: CreateRoomDto) {
-    const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.roomService.create(dto, userId);
-
-    client.join(room.id);
+    this.logger.debug('Client Send Event <room-create>');
+    const room = await this.roomService.create(client, dto);
     this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
-    // 나중에 아래처럼 변경해야 할까?
-    // this.server.to('lobby').emit('room-list', await this.roomService.findAll());
+
     return { status: HttpStatus.OK, body: { id: room.id } };
   }
 
   @SubscribeMessage('room-join')
   async onRoomJoin(client: Socket, dto: JoinRoomDto) {
-    const userId = await this.clientRepository.findUserId(client.id);
-    const user = await this.userService.findOne(userId);
-    const room: Room = await this.roomService.findById(dto.roomId);
-
-    await this.roomService.joinRoom(userId, room, dto.password);
-
-    client.join(dto.roomId);
+    this.logger.debug('Client Send Event <room-join>');
+    const { room, user } = await this.roomService.joinRoom(client, dto);
     this.server.to(dto.roomId).emit('room-join', new ParticipantData(user, 0));
+
     return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
   @SubscribeMessage('room-leave')
   async onRoomLeave(client: Socket, dto: LeaveRoomDto) {
+    this.logger.debug('Client Send Event <room-leave>');
     const userId = await this.clientRepository.findUserId(client.id);
     const user = await this.userService.findOne(userId);
     const room = await this.roomService.findById(dto.roomId);
 
+    console.log('dto.roomId: ', dto.roomId);
+    console.log('room: ', room);
+
     await this.roomService.leave(userId, room);
     client.leave(dto.roomId);
+    // 방장(0번)이 나갔으면, 새로운 0번이 새로운 방장임
+    // but, 방장이 나간 경우에만 해당 이벤트 발생시키기
+    // this.server.emit('change-owner', {
+    //   id: room.participants[0].id,
+    // });
 
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
     return { status: HttpStatus.OK };
@@ -111,6 +118,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-invite')
   async onRoomInvite(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <room-invite>');
     const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.roomService.invite(userId, dto);
     const invitedClient = await this.clientService.getClientByUserId(
@@ -122,6 +130,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-mute')
   async onRoomMute(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <room-mute>');
     const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.mute(userId, dto);
@@ -131,6 +140,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-unmute')
   async onRoomUnMute(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <room-unmute>');
     const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.unmute(userId, dto);
@@ -140,6 +150,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-kick')
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <room-kick>');
     const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.kick(userId, dto);
@@ -154,6 +165,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-ban')
   async onRoomBan(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <room-ban>');
     const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.ban(userId, dto);
@@ -168,6 +180,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('add-admin')
   async addAdmin(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <add-admin>');
     const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.addAdmin(userId, dto);
@@ -177,6 +190,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('remove-admin')
   async removeAdmin(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <remove-admin>');
     const userId = await this.clientRepository.findUserId(client.id);
 
     await this.roomService.removeAdmin(userId, dto);
@@ -186,6 +200,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('room-message')
   async onRoomMessage(client: Socket, roomMessageDto: RoomMessageDto) {
+    this.logger.debug('Client Send Event <room-message>');
     const userId = await this.clientRepository.findUserId(client.id);
     roomMessageDto.senderId = userId;
 
@@ -203,6 +218,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('direct-message')
   async onDirectMessage(client: Socket, dto: DirectMessageDto) {
+    this.logger.debug('Client Send Event <direct-message>');
     dto.senderId = await this.clientRepository.findUserId(client.id);
     const receiver = await this.clientRepository.findClientId(dto.receiverId);
     client
@@ -219,6 +235,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('load-message')
   async onMessageLoad(client: Socket, loadMessageDto: LoadMessageDto) {
+    this.logger.debug('Client Send Event <load-message>');
     const userId = await this.clientRepository.findUserId(client.id);
     const messages = await this.messageService.loadMessage(
       userId,
@@ -231,6 +248,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // 없어질 함수
   @SubscribeMessage('user-list')
   async onUserList(client: Socket) {
+    this.logger.debug('Client Send Event <user-list>');
     const userId = await this.clientRepository.findUserId(client.id);
     const connectedUsers = await this.clientRepository.connectedUserIds();
     const ids = Array.from(connectedUsers).filter((id) => {
