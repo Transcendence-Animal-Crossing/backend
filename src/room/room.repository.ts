@@ -28,4 +28,15 @@ export class RoomRepository {
     roomIds.splice(roomIds.indexOf(id), 1);
     await this.cacheManager.set('room-ids', roomIds);
   }
+  async userJoin(roomId, userId) {
+    await this.cacheManager.set('room-user-' + userId, roomId);
+  }
+
+  async userLeave(userId) {
+    await this.cacheManager.del('room-user-' + userId);
+  }
+
+  async findRoomIdByUserId(userId): Promise<string> {
+    return this.cacheManager.get('room-user-' + userId);
+  }
 }
