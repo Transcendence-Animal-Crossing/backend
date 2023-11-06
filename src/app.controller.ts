@@ -1,4 +1,12 @@
-import { Controller, Get, Query, Render, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Patch,
+  Query,
+  Render,
+  Req,
+} from '@nestjs/common';
 import { AppService } from './app.service';
 import { RoomService } from './room/room.service';
 import { UserService } from './user/user.service';
@@ -49,5 +57,13 @@ export class AppController {
   async me(@Req() req) {
     const userId = this.authService.verifyAccessToken(req.cookies.jwt).id;
     return await this.userService.findOne(userId);
+  }
+
+  // 가짜 유저의 비밀번호 업데이트 용도
+  @Public()
+  @Patch('/password')
+  async updatePassword(@Req() req, @Body() body) {
+    console.log('body', body);
+    await this.userService.updatePassword(body.id, body.password);
   }
 }
