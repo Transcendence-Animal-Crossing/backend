@@ -1,6 +1,6 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ClientRepository } from './client.repository';
-import { WebSocketServer } from '@nestjs/websockets';
+import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { User } from '../user/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
@@ -8,6 +8,7 @@ import { UserService } from '../user/user.service';
 import { UserData } from '../room/data/user.data';
 import { RoomService } from '../room/room.service';
 
+@WebSocketGateway()
 @Injectable()
 export class ClientService {
   @WebSocketServer() server;
