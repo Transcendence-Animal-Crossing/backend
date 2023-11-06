@@ -207,6 +207,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const room = await this.roomService.findById(roomMessageDto.roomId);
     if (!this.roomService.isParticipant(userId, room))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
+    const muteDuration = await this.roomService.isMuted(userId, room);
+    if (muteDuration > 0)
+      throw new ForbiddenException(
+        `${muteDuration}초 동안 채팅이 금지되었습니다.`,
+      );
 
     client
       .to(roomMessageDto.roomId)

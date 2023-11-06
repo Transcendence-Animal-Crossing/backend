@@ -29,6 +29,7 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 @WebSocketGateway()
 export class RoomService {
   @WebSocketServer() server;
+  MUTE_DURATION = 600;
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
@@ -100,10 +101,13 @@ export class RoomService {
 
     if (userGrade <= targetGrade)
       throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
+    if (await this.isMuted(dto.targetId, room))
+      throw new ConflictException('해당 유저는 이미 채팅금지 상태입니다.');
 
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
-        participant.mute = true;
+        participant.muteStartTime = Math.floor(Date.now() / 1000);
+        participant.muteDuration = this.MUTE_DURATION;
         await this.roomRepository.update(room);
         return;
       }
@@ -121,7 +125,8 @@ export class RoomService {
 
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
-        participant.mute = false;
+        participant.muteStartTime = null;
+        participant.muteDuration = 0;
         await this.roomRepository.update(room);
         return;
       }
@@ -143,6 +148,7 @@ export class RoomService {
       );
     else throw new BadRequestException('해당 유저가 방에 없습니다.');
 
+    await this.roomRepository.userLeave(dto.targetId);
     await this.roomRepository.update(room);
   }
 
@@ -166,6 +172,7 @@ export class RoomService {
     } else throw new BadRequestException('해당 유저가 방에 없습니다.');
     room.bannedUsers.push(new UserData(target));
 
+    await this.roomRepository.userLeave(dto.targetId);
     await this.roomRepository.update(room);
   }
 
@@ -298,5 +305,21 @@ export class RoomService {
       }
     });
     console.log('Sorted participants: ', room.participants);
+  }
+
+  async isMuted(userId: number, room: Room) {
+    for (const participant of room.participants)
+      if (participant.id === userId && participant.muteStartTime != null) {
+        const now = Math.floor(Date.now() / 1000);
+        const muteEndTime = participant.muteStartTime + this.MUTE_DURATION;
+        if (now < muteEndTime) return muteEndTime - now;
+        else {
+          participant.muteStartTime = null;
+          participant.muteDuration = 0;
+          await this.roomRepository.update(room);
+          return 0;
+        }
+      }
+    throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 }
