@@ -32,8 +32,7 @@ export class AuthService {
 
   async signIn(userDto: LoginUserDto) {
     const user = await this.validateUser(userDto);
-    const tokens = await this.generateTokens(user.id.toString());
-    return tokens;
+    return await this.generateTokens(user.id.toString());
   }
 
   async getProfile(accessToken: string): Promise<any> {
@@ -73,20 +72,17 @@ export class AuthService {
 
   verifyAccessToken(accessToken: string) {
     try {
-      const payload = this.jwtService.verify(accessToken, {
+      return this.jwtService.verify(accessToken, {
         secret: process.env.JWT_ACCESS_SECRET,
       });
-
-      return payload;
     } catch (err) {
       return null;
     }
   }
   verifyRefreshToken(refreshToken: string) {
-    const payload = this.jwtService.verify(refreshToken, {
+    return this.jwtService.verify(refreshToken, {
       secret: process.env.JWT_REFRESH_SECRET,
     });
-    return payload;
   }
 
   async generateTokens(id: string) {
@@ -99,9 +95,7 @@ export class AuthService {
       secret: process.env.JWT_REFRESH_SECRET,
       expiresIn: process.env.JWT_REFRESH_EXPIRE,
     });
-    const tokens = { accessToken, refreshToken };
-
-    return tokens;
+    return { accessToken, refreshToken };
   }
 
   async updateAccessToken(refreshToken: string) {
