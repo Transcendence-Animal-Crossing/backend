@@ -19,12 +19,14 @@ import { User } from '../user/entities/user.entity';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
+import { GameRecordService } from 'src/gameRecord/game-record.service';
 
 @Controller('auth')
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
     private readonly userService: UserService,
+    private readonly gameRecordService: GameRecordService,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
@@ -46,7 +48,8 @@ export class AuthController {
       );
       let user: User;
       if (!existingUser) {
-        user = await this.userService.createOrUpdateUser(userPublicData);
+        user = await this.userService.createUser(userPublicData);
+        await this.gameRecordService.initGameRecord(user);
         //console.log('new user', user);
       } else {
         user = existingUser;
@@ -84,7 +87,8 @@ export class AuthController {
       );
       let user: User;
       if (!existingUser) {
-        user = await this.userService.createOrUpdateUser(userPublicData);
+        user = await this.userService.createUser(userPublicData);
+        await this.gameRecordService.initGameRecord(user);
         res.status(201);
       } else {
         user = existingUser;
@@ -144,7 +148,6 @@ export class AuthController {
       nickName: 'tester' + id,
       intraName: 'tester' + id,
       avatar: '',
-      rankScore: 1000,
       two_factor_auth: false,
       achievements: [],
       blockIds: [],
