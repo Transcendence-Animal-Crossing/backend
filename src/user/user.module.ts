@@ -11,10 +11,11 @@ import { FollowModule } from 'src/folllow/follow.module';
 import { Game } from 'src/game/entities/game.entity';
 import { Room } from 'src/room/data/room.data';
 import { RoomModule } from 'src/room/room.module';
+import { GameRecord } from 'src/gameRecord/entities/game-record';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Game, Room]),
+    TypeOrmModule.forFeature([User, Game, Room, GameRecord]),
     MulterModule.register(multerOptions),
     forwardRef(() => FollowModule),
     forwardRef(() => RoomModule),
