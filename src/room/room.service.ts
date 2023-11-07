@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -24,6 +25,7 @@ import { Socket } from 'socket.io';
 import { ClientRepository } from '../ws/client.repository';
 import { JoinRoomDto } from '../chat/dto/join-room.dto';
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { RoomMessageDto } from '../chat/dto/room-message.dto';
 
 @Injectable()
 @WebSocketGateway()
@@ -50,7 +52,9 @@ export class RoomService {
   }
 
   async findById(id: string): Promise<Room> {
-    return await this.roomRepository.find(id);
+    const room = await this.roomRepository.find(id);
+    if (!room) throw new NotFoundException(`There is no room under id ${id}`);
+    return room;
   }
 
   async getJoinedRoom(client: Socket) {
@@ -339,5 +343,24 @@ export class RoomService {
         return 0;
       }
     throw new BadRequestException('해당 유저가 방에 없습니다.');
+  }
+
+  async sendMessage(client: Socket, roomMessageDto: RoomMessageDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
+    roomMessageDto.senderId = userId;
+
+    const room = await this.findById(roomMessageDto.roomId);
+    if (!this.isParticipant(userId, room))
+      throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
+    const muteDuration = await this.isMuted(userId, room);
+    if (muteDuration > 0)
+      throw new ForbiddenException(
+        `${muteDuration}초 동안 채팅이 금지되었습니다.`,
+      );
+    client
+      .to(roomMessageDto.roomId)
+      .except('block-' + userId)
+      .emit('room-message', roomMessageDto);
+    client.emit('room-message', roomMessageDto);
   }
 }

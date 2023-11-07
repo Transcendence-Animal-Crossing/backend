@@ -1,10 +1,4 @@
-import {
-  ForbiddenException,
-  HttpStatus,
-  Logger,
-  NotFoundException,
-  UseFilters,
-} from '@nestjs/common';
+import { HttpStatus, Logger, UseFilters } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -71,8 +65,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async getRoomDetail(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-detail>');
     const room: Room = await this.roomService.findById(dto.roomId);
-    if (!room)
-      throw new NotFoundException(`There is no room under id ${dto.roomId}`);
     return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
   }
 
@@ -209,23 +201,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-message')
   async onRoomMessage(client: Socket, roomMessageDto: RoomMessageDto) {
     this.logger.debug('Client Send Event <room-message>');
-    const userId = await this.clientRepository.findUserId(client.id);
-    roomMessageDto.senderId = userId;
 
-    const room = await this.roomService.findById(roomMessageDto.roomId);
-    if (!this.roomService.isParticipant(userId, room))
-      throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
-    const muteDuration = await this.roomService.isMuted(userId, room);
-    if (muteDuration > 0)
-      throw new ForbiddenException(
-        `${muteDuration}초 동안 채팅이 금지되었습니다.`,
-      );
+    await this.roomService.sendMessage(client, roomMessageDto);
 
-    client
-      .to(roomMessageDto.roomId)
-      .except('block-' + userId)
-      .emit('room-message', roomMessageDto);
-    client.emit('room-message', roomMessageDto);
     return { status: HttpStatus.OK };
   }
 
