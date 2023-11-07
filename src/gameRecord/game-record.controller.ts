@@ -18,6 +18,9 @@ export class GameRecordController {
   @Get('rank')
   @HttpCode(HttpStatus.OK)
   async getRankedUsers(@Query('offset') offset: number) {
+    if (offset < 0) {
+      throw new HttpException('offset은 양수만 가능', HttpStatus.BAD_REQUEST);
+    }
     const ranks = await this.gameRecordService.getRanking(offset);
     if (ranks.length == 0)
       throw new HttpException(
