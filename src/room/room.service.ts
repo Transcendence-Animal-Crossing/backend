@@ -29,7 +29,9 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 @WebSocketGateway()
 export class RoomService {
   @WebSocketServer() server;
-  MUTE_DURATION = 600;
+  SECOND = 1000;
+  MUTE_DURATION = 600 * this.SECOND;
+
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
@@ -106,8 +108,7 @@ export class RoomService {
 
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
-        participant.muteStartTime = Math.floor(Date.now() / 1000);
-        participant.muteDuration = this.MUTE_DURATION;
+        participant.muteStartTime = new Date();
         await this.roomRepository.update(room);
         return;
       }
@@ -126,7 +127,6 @@ export class RoomService {
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
         participant.muteStartTime = null;
-        participant.muteDuration = 0;
         await this.roomRepository.update(room);
         return;
       }
@@ -327,12 +327,11 @@ export class RoomService {
     for (const participant of room.participants)
       if (participant.id === userId) {
         if (participant.muteStartTime != null) {
-          const now = Math.floor(Date.now() / 1000);
+          const now = Date.now();
           const muteEndTime = participant.muteStartTime + this.MUTE_DURATION;
-          if (now < muteEndTime) return muteEndTime - now;
+          if (now < muteEndTime) return (muteEndTime - now) / this.SECOND;
           else {
             participant.muteStartTime = null;
-            participant.muteDuration = 0;
             await this.roomRepository.update(room);
             return 0;
           }
