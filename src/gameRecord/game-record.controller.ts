@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   HttpCode,
+  HttpException,
   HttpStatus,
   Query,
   UseGuards,
@@ -18,6 +19,11 @@ export class GameRecordController {
   @HttpCode(HttpStatus.OK)
   async getRankedUsers(@Query('offset') offset: number) {
     const ranks = await this.gameRecordService.getRanking(offset);
+    if (ranks.length == 0)
+      throw new HttpException(
+        '더이상 돌려줄 데이터 없음',
+        HttpStatus.BAD_REQUEST,
+      );
     return ranks;
   }
 
