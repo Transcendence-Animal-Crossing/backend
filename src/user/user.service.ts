@@ -16,12 +16,16 @@ import {
   toDetailResponseUserDto,
 } from './dto/detailResponse-user.dto';
 import { Game } from 'src/game/entities/game.entity';
+import { GameRecord } from 'src/gameRecord/entities/game-record';
+import { PAGINATION_LIMIT } from 'src/common/constants';
 
 @Injectable()
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameRecord)
+    private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -80,8 +84,17 @@ export class UserService {
     return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
   }
 
-  isBlocked(user: User, targetId: number): boolean {
+  async isBlocked(user: User, targetId: number): boolean {
     return user.blockIds.includes(targetId);
+  }
+  async block(user: User, targetId: number) {
+    user.blockIds.push(targetId);
+    await this.userRepository.save(user);
+  }
+
+  async unblock(user: User, targetId: number) {
+    user.blockIds = user.blockIds.filter((id) => id !== targetId);
+    await this.userRepository.save(user);
   }
 
   async saveProfileImage(id: number, nickName: string, filename: string) {
@@ -134,14 +147,40 @@ export class UserService {
     });
   }
 
-  async searchUser(name: string): Promise<ResponseUserDto[]> {
-    const users = await this.userRepository
+  async searchUser(name: string, offset: number) {
+    const rankQuery = `
+    SELECT 
+      "game_record"."user_id" AS "userId", 
+      RANK() OVER (ORDER BY "game_record"."rankScore" DESC) as "rank"
+    FROM 
+      "game_record"
+  `;
+    const rawUsers = await this.userRepository
       .createQueryBuilder('user')
+      .leftJoin('user.gameRecord', 'gameRecord')
+      .leftJoinAndSelect(`(${rankQuery})`, 'rank', '"userId" = user.id')
+      .select(['user.id', 'user.nickName', 'user.intraName', 'user.avatar'])
+      .addSelect('rank.rank')
+      .addSelect('gameRecord.rankScore')
+      .addSelect('gameRecord.rankTotalCount')
       .where('user.intraName LIKE :name', { name: `%${name}%` })
       .orWhere('user.nickName LIKE :name', { name: `%${name}%` })
-      .getMany();
-    const responseUsers = users.map((user) => toResponseUserDto(user));
-    return responseUsers;
+      .orderBy('gameRecord.rankScore', 'DESC')
+      .offset(offset)
+      .limit(PAGINATION_LIMIT)
+      .getRawMany();
+    const users = rawUsers.map((rawUser) => {
+      return {
+        id: rawUser.user_id,
+        nickName: rawUser.user_nickName,
+        intraName: rawUser.user_intraName,
+        avatar: rawUser.user_avatar,
+        ranking: rawUser.rank,
+        rankScore: rawUser.gameRecord_rankScore,
+        rankGameTotalCount: rawUser.gameRecord_rankTotalCount,
+      };
+    });
+    return users;
   }
 
   async blockUser(user: User, blockId: number) {

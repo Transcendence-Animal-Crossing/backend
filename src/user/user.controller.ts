@@ -107,9 +107,8 @@ export class UserController {
 
   @Post('search')
   @HttpCode(HttpStatus.OK)
-  async searchUser(@Body('name') name: string) {
-    const users = await this.userService.searchUser(name);
-    return users;
+  async searchUser(@Body('name') name: string, @Body('offset') offset: number) {
+    return await this.userService.searchUser(name, offset);
   }
 
   @Patch('block')
