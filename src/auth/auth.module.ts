@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { PassportModule } from '@nestjs/passport';
 import { UserModule } from '../user/user.module';
@@ -12,7 +12,7 @@ import { User } from '../user/entities/user.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-    UserModule,
+    forwardRef(() => UserModule),
     PassportModule,
     JwtModule.register({
       signOptions: { expiresIn: process.env.JWT_REFRESH_EXPIRE },

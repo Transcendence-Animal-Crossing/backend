@@ -13,7 +13,7 @@ import { WSModule } from '../ws/ws.module';
   imports: [
     TypeOrmModule.forFeature([Message]),
     AuthModule,
-    UserModule,
+    forwardRef(() => UserModule),
     forwardRef(() => RoomModule),
     WSModule,
   ],

@@ -1,5 +1,4 @@
 import { forwardRef, Module } from '@nestjs/common';
-import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RoomService } from './room.service';
 import { UserModule } from '../user/user.module';

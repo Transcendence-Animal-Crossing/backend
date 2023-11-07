@@ -6,7 +6,11 @@ import { UserModule } from '../user/user.module';
 import { RoomModule } from '../room/room.module';
 
 @Module({
-  imports: [AuthModule, UserModule, forwardRef(() => RoomModule)],
+  imports: [
+    AuthModule,
+    forwardRef(() => UserModule),
+    forwardRef(() => RoomModule),
+  ],
   providers: [ClientRepository, ClientService],
   exports: [ClientRepository, ClientService],
 })
