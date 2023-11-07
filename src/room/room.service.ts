@@ -114,9 +114,17 @@ export class RoomService {
       if (participant.id === dto.targetId) {
         participant.muteStartTime = new Date();
         await this.roomRepository.update(room);
+
+        const timerId = setTimeout(() => {
+          this.server.to(dto.roomId).emit('room-unmute', {
+            id: dto.targetId,
+          });
+        });
+        await this.clientRepository.saveTimerId(dto.targetId, timerId);
         return;
       }
     }
+
     throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 
@@ -132,6 +140,9 @@ export class RoomService {
       if (participant.id === dto.targetId) {
         participant.muteStartTime = null;
         await this.roomRepository.update(room);
+
+        const timerId = await this.clientRepository.findTimerId(dto.targetId);
+        clearTimeout(timerId);
         return;
       }
     }

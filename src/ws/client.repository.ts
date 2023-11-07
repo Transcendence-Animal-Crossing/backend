@@ -44,4 +44,12 @@ export class ClientRepository {
   async getUserStatus(userId): Promise<string> {
     return await this.cacheManager.get('user-' + userId + 'status');
   }
+
+  async saveTimerId(targetId: number, timerId: NodeJS.Timeout) {
+    await this.cacheManager.set('timer-' + targetId, timerId);
+  }
+
+  async findTimerId(targetId: number): Promise<NodeJS.Timeout> {
+    return await this.cacheManager.get('timer-' + targetId);
+  }
 }
