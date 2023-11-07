@@ -66,6 +66,11 @@ export class UserController {
       nickName,
       file.filename,
     );
+    await this.roomService.changeUserProfile(
+      req.user.id,
+      nickName,
+      file.filename,
+    );
     return { filepath: 'uploads/' + file.filename };
   }
 
