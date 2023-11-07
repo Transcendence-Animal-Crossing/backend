@@ -14,6 +14,16 @@ import { RoomModule } from './room/room.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { FollowModule } from './folllow/follow.module';
 import { WSModule } from './ws/ws.module';
+import { User } from './user/entities/user.entity';
+import { UserService } from './user/user.service';
+import { GameService } from './game/game.service';
+import { Game } from './game/entities/game.entity';
+import { GameRecord } from './gameRecord/entities/game-record';
+import { GameRecordModule } from './gameRecord/game-record.module';
+import { GameRecordService } from './gameRecord/game-record.service';
+import { FollowRequest } from './folllow/entities/follow-request.entity';
+import { FollowService } from './folllow/follow.service';
+import { Follow } from './folllow/entities/follow.entity';
 
 @Module({
   imports: [
@@ -36,16 +46,26 @@ import { WSModule } from './ws/ws.module';
       database: process.env.DB_NAME,
       autoLoadEntities: true,
       synchronize: true,
+      //logging: true,
     }),
+    TypeOrmModule.forFeature([User, Game, GameRecord, Follow, FollowRequest]),
     ChatModule,
     UserModule,
     AuthModule,
-    GameModule,
     RoomModule,
     FollowModule,
     WSModule,
+    GameRecordModule,
+    GameModule,
   ],
-  providers: [{ provide: APP_GUARD, useClass: JwtAuthGuard }, AppService],
+  providers: [
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
+    AppService,
+    UserService,
+    GameRecordService,
+    GameService,
+    FollowService,
+  ],
   controllers: [AppController],
 })
 export class AppModule implements OnApplicationBootstrap {
