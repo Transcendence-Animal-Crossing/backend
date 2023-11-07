@@ -88,7 +88,7 @@ export class UserService {
     return user.blockIds.includes(targetId);
   }
   async block(user: User, targetId: number) {
-    user.blockIds.push(targetId);
+    await user.blockIds.push(targetId);
     await this.userRepository.save(user);
   }
 

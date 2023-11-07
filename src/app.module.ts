@@ -57,6 +57,8 @@ import { Follow } from './folllow/entities/follow.entity';
     WSModule,
     GameRecordModule,
     GameModule,
+    GameRecordModule,
+    GameModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
