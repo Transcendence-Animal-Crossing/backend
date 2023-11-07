@@ -101,9 +101,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const user = await this.userService.findOne(userId);
     const room = await this.roomService.findById(dto.roomId);
 
-    console.log('dto.roomId: ', dto.roomId);
-    console.log('room: ', room);
-
     await this.roomService.leave(userId, room);
     client.leave(dto.roomId);
     // 방장(0번)이 나갔으면, 새로운 0번이 새로운 방장임
@@ -175,6 +172,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       dto.targetId,
     );
     bannedClient.leave(dto.roomId);
+    return { status: HttpStatus.OK };
+  }
+
+  @SubscribeMessage('room-unban')
+  async onRoomUnban(client: Socket, dto: ActionRoomDto) {
+    this.logger.debug('Client Send Event <room-unban>');
+    const userId = await this.clientRepository.findUserId(client.id);
+
+    await this.roomService.unban(userId, dto);
+    this.server.to(dto.roomId).emit('room-unban', dto);
+
     return { status: HttpStatus.OK };
   }
 

@@ -176,6 +176,19 @@ export class RoomService {
     await this.roomRepository.update(room);
   }
 
+  async unban(userId: number, dto: ActionRoomDto) {
+    const room = await this.findById(dto.roomId);
+    const userGrade = this.getGrade(userId, room);
+
+    if (userGrade < Grade.ADMIN)
+      throw new ForbiddenException('해당 유저를 밴해제 할 권한이 없습니다.');
+
+    room.bannedUsers = room.bannedUsers.filter(
+      (bannedUser) => bannedUser.id !== dto.targetId,
+    );
+    await this.roomRepository.update(room);
+  }
+
   async leave(userId: number, room: Room) {
     if (!this.isParticipant(userId, room))
       throw new BadRequestException('방 안에 있지 않습니다.');
