@@ -121,6 +121,7 @@ export class RoomService {
           this.server.to(dto.roomId).emit('room-unmute', {
             id: dto.targetId,
           });
+          this.clientRepository.deleteTimerId(dto.targetId);
         });
         await this.clientRepository.saveTimerId(dto.targetId, timerId);
         return;
@@ -144,7 +145,7 @@ export class RoomService {
         await this.roomRepository.update(room);
 
         const timerId = await this.clientRepository.findTimerId(dto.targetId);
-        clearTimeout(timerId);
+        if (timerId) clearTimeout(timerId);
         return;
       }
     }

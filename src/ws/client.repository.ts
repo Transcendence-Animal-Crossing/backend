@@ -52,4 +52,8 @@ export class ClientRepository {
   async findTimerId(targetId: number): Promise<NodeJS.Timeout> {
     return await this.cacheManager.get('timer-' + targetId);
   }
+
+  async deleteTimerId(targetId: number) {
+    await this.cacheManager.del('timer-' + targetId);
+  }
 }
