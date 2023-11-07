@@ -1,7 +1,9 @@
+import { GameRecord } from 'src/gameRecord/entities/game-record';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToOne,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -32,6 +34,8 @@ export class User {
   @Column('int', { array: true, nullable: true })
   blockIds: number[];
 
+  @OneToOne(() => GameRecord, (gameRecord) => gameRecord.user)
+  gameRecord: GameRecord;
   @CreateDateColumn()
   createdAt: Date;
 
