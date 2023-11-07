@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -33,6 +34,7 @@ export class RoomService {
   @WebSocketServer() server;
   SECOND = 1000;
   MUTE_DURATION = 600 * this.SECOND;
+  private readonly logger: Logger = new Logger('ChatGateway');
 
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
@@ -299,7 +301,10 @@ export class RoomService {
 
   async changeUserProfile(user: User, nickName: string, image: string) {
     const clientId = await this.clientRepository.findClientId(user.id);
-    // 없으면 findClientId가 에러를 던지고 .catch로 잡는건 어떨까?
+    if (!clientId) {
+      this.logger.log('온라인이 아닌 상태에서의 프로필 변경');
+      return;
+    }
     const client = this.server.sockets.sockets[clientId];
     const room = await this.getJoinedRoom(client);
 
@@ -311,11 +316,12 @@ export class RoomService {
         break;
       }
     }
-    this.server.emit('user-update', {
+    this.server.to(room.id).emit('user-update', {
       id: user.id,
       nickName: nickName,
       image: image,
     });
+    // 유저의 친구들한테도 emit 해주어야 함
     await this.roomRepository.update(room);
   }
 
