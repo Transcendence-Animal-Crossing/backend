@@ -3,11 +3,15 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Game } from './entities/game.entity';
 import { CreateGameDto } from './dto/create-game.dto';
+import { GameRecord } from '../gameRecord/entities/game-record';
+import { PAGINATION_LIMIT } from 'src/common/constants';
 
 @Injectable()
 export class GameService {
   constructor(
     @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameRecord)
+    private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
   async findAll(): Promise<Game[]> {
@@ -29,7 +33,7 @@ export class GameService {
     }
   }
 
-  async getAllGamesById(id: number, isRank: boolean) {
+  async getAllGamesById(id: number, isRank: boolean, offset: number) {
     const games = await this.gameRepository
       .createQueryBuilder('game')
       .leftJoinAndSelect('game.loser', 'loser')
@@ -39,7 +43,6 @@ export class GameService {
         'game.winnerScore',
         'game.loserScore',
         'game.playTime',
-        'game.updatedAt',
         'winner.id',
         'winner.nickName',
         'winner.intraName',
@@ -51,21 +54,13 @@ export class GameService {
         id,
         isRank,
       })
-      .orderBy('game.updatedAt', 'DESC')
+      .orderBy('game.id', 'DESC')
+      .offset(offset)
+      .limit(PAGINATION_LIMIT)
       .getMany();
-
-    const totalWins = games.filter((game) => game.winner.id === id).length;
-
-    const totalGames = games.length;
-    const winRate = totalGames === 0 ? 0 : (totalWins / totalGames) * 100;
 
     return {
       games,
-      stats: {
-        totalGames,
-        totalWins,
-        winRate,
-      },
     };
   }
 }

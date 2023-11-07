@@ -1,7 +1,9 @@
+import { GameRecord } from 'src/gameRecord/entities/game-record';
 import {
   Column,
   CreateDateColumn,
   Entity,
+  OneToOne,
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -24,9 +26,6 @@ export class User {
   avatar: string;
 
   @Column()
-  rankScore: number;
-
-  @Column()
   two_factor_auth: boolean;
 
   @Column('text', { array: true, nullable: true })
@@ -35,6 +34,8 @@ export class User {
   @Column('int', { array: true, nullable: true })
   blockIds: number[];
 
+  @OneToOne(() => GameRecord, (gameRecord) => gameRecord.user)
+  gameRecord: GameRecord;
   @CreateDateColumn()
   createdAt: Date;
 
@@ -48,7 +49,6 @@ export class User {
     user.nickName = data.login;
     user.intraName = data.login;
     user.avatar = 'original/profile2.png';
-    user.rankScore = 1000;
     user.two_factor_auth = false;
     user.achievements = [];
     user.blockIds = [];
