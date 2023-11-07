@@ -17,25 +17,29 @@ import { User } from '../user/entities/user.entity';
 import { RoomRepository } from './room.repository';
 import { CreateRoomDto } from './dto/create-room.dto';
 import { ActionRoomDto } from '../chat/dto/action-room.dto';
-import { WebSocketServer } from '@nestjs/websockets';
 import { Grade } from './data/user.grade';
 import { SimpleRoomDto } from './dto/simple.room.dto';
 import { UserData } from './data/user.data';
 import { ParticipantData } from './data/participant.data';
 import { Socket } from 'socket.io';
-import { ClientRepository } from '../chat/client.repository';
+import { ClientRepository } from '../ws/client.repository';
+import { JoinRoomDto } from '../chat/dto/join-room.dto';
+import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { RoomMessageDto } from '../chat/dto/room-message.dto';
 
 @Injectable()
+@WebSocketGateway()
 export class RoomService {
+  @WebSocketServer() server;
+  SECOND = 1000;
+  MUTE_DURATION = 600 * this.SECOND;
+
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
     private readonly clientRepository: ClientRepository,
     private readonly userService: UserService,
   ) {}
-
-  @WebSocketServer()
-  server;
 
   async findNotPrivateRooms() {
     const rooms = await this.roomRepository.findAll();
@@ -54,31 +58,43 @@ export class RoomService {
   }
 
   async getJoinedRoom(client: Socket) {
-    const roomIds = Object.keys(client.rooms).filter((roomId) => {
-      !roomId.startsWith('room-');
-    });
-    if (roomIds.length) return await this.findById(roomIds[0]);
+    const userId = await this.clientRepository.findUserId(client.id);
+    const roomId = await this.roomRepository.findRoomIdByUserId(userId);
+    if (roomId) return await this.findById(roomId);
     return null;
   }
 
-  async joinRoom(userId: number, room: Room, password: string) {
+  async joinRoom(client: Socket, dto: JoinRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
+    const user = await this.userService.findOne(userId);
+    const room: Room = await this.findById(dto.roomId);
+
     if (this.isParticipant(userId, room))
       throw new ConflictException('해당 방에 이미 들어가 있습니다.');
     if (this.isBanned(userId, room))
       throw new ForbiddenException('해당 방으로의 입장이 금지되었습니다.');
-    if (room.mode === 'PROTECTED' && room.password !== password)
+    if (room.mode === 'PROTECTED' && room.password !== dto.password)
       throw new ForbiddenException('비밀번호가 틀렸습니다.');
     if (room.mode === 'PRIVATE' && !this.isInvited(userId, room))
       throw new UnauthorizedException('해당 방에 초대되지 않았습니다.');
 
-    const user = await this.userService.findOne(userId);
+    client.join(dto.roomId);
+    await this.roomRepository.userJoin(dto.roomId, userId);
+
     room.participants.push(new ParticipantData(user, 0));
     await this.roomRepository.update(room);
+    return { room, user };
   }
 
-  async create(dto: CreateRoomDto, ownerId: number) {
+  async create(client: Socket, dto: CreateRoomDto) {
+    const ownerId = await this.clientRepository.findUserId(client.id);
     const owner = await this.userService.findOne(ownerId);
     const room = new Room(dto.title, owner, dto.mode, dto.password);
+
+    client.join(room.id);
+    await this.roomRepository.userJoin(room.id, ownerId);
+    // 나중에 emit('lobby')로 바꾸거나
+    // refresh 버튼을 만들어서 새로고침하게 만들기 -> pagintaion이 까다롭기 때문
 
     await this.roomRepository.save(room);
     return room;
@@ -91,10 +107,12 @@ export class RoomService {
 
     if (userGrade <= targetGrade)
       throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
+    if (await this.isMuted(dto.targetId, room))
+      throw new ConflictException('해당 유저는 이미 채팅금지 상태입니다.');
 
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
-        participant.mute = true;
+        participant.muteStartTime = new Date();
         await this.roomRepository.update(room);
         return;
       }
@@ -112,7 +130,7 @@ export class RoomService {
 
     for (const participant of room.participants) {
       if (participant.id === dto.targetId) {
-        participant.mute = false;
+        participant.muteStartTime = null;
         await this.roomRepository.update(room);
         return;
       }
@@ -134,6 +152,7 @@ export class RoomService {
       );
     else throw new BadRequestException('해당 유저가 방에 없습니다.');
 
+    await this.roomRepository.userLeave(dto.targetId);
     await this.roomRepository.update(room);
   }
 
@@ -157,6 +176,20 @@ export class RoomService {
     } else throw new BadRequestException('해당 유저가 방에 없습니다.');
     room.bannedUsers.push(new UserData(target));
 
+    await this.roomRepository.userLeave(dto.targetId);
+    await this.roomRepository.update(room);
+  }
+
+  async unban(userId: number, dto: ActionRoomDto) {
+    const room = await this.findById(dto.roomId);
+    const userGrade = this.getGrade(userId, room);
+
+    if (userGrade < Grade.ADMIN)
+      throw new ForbiddenException('해당 유저를 밴해제 할 권한이 없습니다.');
+
+    room.bannedUsers = room.bannedUsers.filter(
+      (bannedUser) => bannedUser.id !== dto.targetId,
+    );
     await this.roomRepository.update(room);
   }
 
@@ -176,6 +209,7 @@ export class RoomService {
       (participant) => participant.id !== userId,
     );
     await this.roomRepository.update(room);
+    await this.roomRepository.userLeave(userId);
   }
 
   isParticipant(userId: number, room: Room) {
@@ -291,5 +325,42 @@ export class RoomService {
       }
     });
     console.log('Sorted participants: ', room.participants);
+  }
+
+  async isMuted(userId: number, room: Room) {
+    for (const participant of room.participants)
+      if (participant.id === userId) {
+        if (participant.muteStartTime != null) {
+          const now = Date.now();
+          const muteEndTime = participant.muteStartTime + this.MUTE_DURATION;
+          if (now < muteEndTime) return (muteEndTime - now) / this.SECOND;
+          else {
+            participant.muteStartTime = null;
+            await this.roomRepository.update(room);
+            return 0;
+          }
+        }
+        return 0;
+      }
+    throw new BadRequestException('해당 유저가 방에 없습니다.');
+  }
+
+  async sendMessage(client: Socket, roomMessageDto: RoomMessageDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
+    roomMessageDto.senderId = userId;
+
+    const room = await this.findById(roomMessageDto.roomId);
+    if (!this.isParticipant(userId, room))
+      throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
+    const muteDuration = await this.isMuted(userId, room);
+    if (muteDuration > 0)
+      throw new ForbiddenException(
+        `${muteDuration}초 동안 채팅이 금지되었습니다.`,
+      );
+    client
+      .to(roomMessageDto.roomId)
+      .except('block-' + userId)
+      .emit('room-message', roomMessageDto);
+    client.emit('room-message', roomMessageDto);
   }
 }

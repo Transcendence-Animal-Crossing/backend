@@ -7,7 +7,7 @@ import { UserService } from '../user/user.service';
 import { LoadMessageDto } from './dto/load-message.dto';
 
 @Injectable()
-export class MessageService {
+export class ChatService {
   constructor(
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
