@@ -254,7 +254,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
       loadMessageDto,
     );
-    console.log(messages);
     return { status: HttpStatus.OK, body: messages };
   }
 
