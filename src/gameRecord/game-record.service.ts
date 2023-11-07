@@ -107,9 +107,9 @@ export class GameRecordService {
           : 0;
 
       return {
-        totalCount: gameRecord.rankTotalCount,
-        winCount: gameRecord.rankWinCount,
-        winRate: winRate,
+        rankTotalCount: gameRecord.rankTotalCount,
+        rankWinCount: gameRecord.rankWinCount,
+        rankWinRate: winRate,
       };
     } else {
       winRate =
@@ -120,9 +120,9 @@ export class GameRecordService {
           : 0;
 
       return {
-        totalCount: gameRecord.generalTotalCount,
-        winCount: gameRecord.generalWinCount,
-        winRate: winRate,
+        generalTotalCount: gameRecord.generalTotalCount,
+        generalWinCount: gameRecord.generalWinCount,
+        generalWinRate: winRate,
       };
     }
   }
