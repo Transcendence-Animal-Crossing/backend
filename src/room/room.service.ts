@@ -196,6 +196,9 @@ export class RoomService {
       return await this.roomRepository.delete(room.id);
     if (this.getGrade(userId, room) === Grade.OWNER) {
       room.participants[1].grade = Grade.OWNER;
+      this.server.emit('change-owner', {
+        id: room.participants[1].id,
+      });
     }
 
     room.participants = room.participants.filter(
@@ -322,16 +325,19 @@ export class RoomService {
 
   async isMuted(userId: number, room: Room) {
     for (const participant of room.participants)
-      if (participant.id === userId && participant.muteStartTime != null) {
-        const now = Math.floor(Date.now() / 1000);
-        const muteEndTime = participant.muteStartTime + this.MUTE_DURATION;
-        if (now < muteEndTime) return muteEndTime - now;
-        else {
-          participant.muteStartTime = null;
-          participant.muteDuration = 0;
-          await this.roomRepository.update(room);
-          return 0;
+      if (participant.id === userId) {
+        if (participant.muteStartTime != null) {
+          const now = Math.floor(Date.now() / 1000);
+          const muteEndTime = participant.muteStartTime + this.MUTE_DURATION;
+          if (now < muteEndTime) return muteEndTime - now;
+          else {
+            participant.muteStartTime = null;
+            participant.muteDuration = 0;
+            await this.roomRepository.update(room);
+            return 0;
+          }
         }
+        return 0;
       }
     throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
