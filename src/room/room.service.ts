@@ -250,7 +250,7 @@ export class RoomService {
       }
     }
     this.sortParticipants(room);
-    await this.roomRepository.save(room);
+    await this.roomRepository.update(room);
   }
 
   async removeAdmin(userId: number, dto: ActionRoomDto) {
@@ -267,7 +267,7 @@ export class RoomService {
       }
     }
     this.sortParticipants(room);
-    await this.roomRepository.save(room);
+    await this.roomRepository.update(room);
   }
 
   async invite(userId: number, dto: ActionRoomDto) {
@@ -281,7 +281,7 @@ export class RoomService {
 
     const target = await this.userService.findOne(dto.targetId);
     room.invitedUsers.push(new UserData(target));
-    await this.roomRepository.save(room);
+    await this.roomRepository.update(room);
 
     return room;
   }
@@ -331,9 +331,12 @@ export class RoomService {
     for (const participant of room.participants)
       if (participant.id === userId) {
         if (participant.muteStartTime != null) {
-          const now = Date.now();
-          const muteEndTime = participant.muteStartTime + this.MUTE_DURATION;
-          if (now < muteEndTime) return (muteEndTime - now) / this.SECOND;
+          const now = new Date();
+          const muteEndTime = new Date(
+            participant.muteStartTime.getTime() + this.MUTE_DURATION,
+          );
+          if (now < muteEndTime)
+            return Math.ceil((muteEndTime.getTime() - now.getTime()) / 1000);
           else {
             participant.muteStartTime = null;
             await this.roomRepository.update(room);
