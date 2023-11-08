@@ -28,6 +28,7 @@ import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { ParticipantData } from '../room/data/participant.data';
+import { FollowService } from '../folllow/follow.service';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -41,9 +42,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly userService: UserService,
     private readonly authService: AuthService,
     private readonly roomService: RoomService,
-    private readonly messageService: ChatService,
+    private readonly chatService: ChatService,
     private readonly clientRepository: ClientRepository,
     private readonly clientService: ClientService,
+    private readonly followService: FollowService,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -95,11 +97,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     await this.roomService.leave(userId, room);
     client.leave(dto.roomId);
-    // 방장(0번)이 나갔으면, 새로운 0번이 새로운 방장임
-    // but, 방장이 나간 경우에만 해당 이벤트 발생시키기
-    // this.server.emit('change-owner', {
-    //   id: room.participants[0].id,
-    // });
 
     this.server.to(dto.roomId).emit('room-leave', new UserData(user));
     return { status: HttpStatus.OK };
@@ -220,7 +217,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // const viewed: boolean = await client.emitWithAck('direct-message', dto);
     // await this.messageService.createAndSave(dto, viewed);
 
-    await this.messageService.createAndSave(dto, false);
+    await this.chatService.createAndSave(dto, false);
     return { status: HttpStatus.OK };
   }
 
@@ -228,10 +225,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onMessageLoad(client: Socket, loadMessageDto: LoadMessageDto) {
     this.logger.debug('Client Send Event <load-message>');
     const userId = await this.clientRepository.findUserId(client.id);
-    const messages = await this.messageService.loadMessage(
-      userId,
-      loadMessageDto,
-    );
+    const messages = await this.chatService.loadMessage(userId, loadMessageDto);
     return { status: HttpStatus.OK, body: messages };
   }
 
@@ -248,23 +242,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK, body: users };
   }
 
-  // @SubscribeMessage('user-block')
-  // async onUserBlock(client: Socket, dto: ActionDto) {
-  //   const userId = await this.clientRepository.findUserId(client.id);
-  //   const user = await this.userService.findOne(userId);
-  //   // 친구라면 친구를 끊는 로직이 추가되어야 함
-  //   await this.userService.block(user, dto.targetId);
-  //   client.join('block-' + dto.targetId);
-  //   return { status: HttpStatus.OK };
-  // }
-  //
-  // @SubscribeMessage('user-unblock')
-  // async onUserUnblock(client: Socket, dto: ActionDto) {
-  //   const userId = await this.clientRepository.findUserId(client.id);
-  //   const user = await this.userService.findOne(userId);
-  //
-  //   await this.userService.unblock(user, dto.targetId);
-  //   client.leave('block-' + dto.targetId);
-  //   return { status: HttpStatus.OK };
-  // }
+  @SubscribeMessage('friend-list')
+  async onFriendList(client: Socket) {
+    this.logger.debug('Client Send Event <friend-list>');
+    const userId = await this.clientRepository.findUserId(client.id);
+    const friends = await this.followService.findAllFriends(userId);
+    const friendsWithStatus = [];
+    const unReadMessageData = await this.chatService.countUnReadMessage(userId);
+    for (const friend of friends) {
+      const status = await this.clientRepository.getUserStatus(friend.friendId);
+      const unReadMessageCount = unReadMessageData[friend.friendId]
+        ? unReadMessageData[friend.friendId]
+        : 0;
+      friendsWithStatus.push({
+        ...friend,
+        status,
+        unReadMessageCount: unReadMessageCount,
+      });
+    }
+    return { status: HttpStatus.OK, body: friendsWithStatus };
+  }
 }

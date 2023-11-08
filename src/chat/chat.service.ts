@@ -5,6 +5,7 @@ import { Message } from './entity/message.entity';
 import { DirectMessageDto } from './dto/direct-message.dto';
 import { UserService } from '../user/user.service';
 import { LoadMessageDto } from './dto/load-message.dto';
+import { UnreadMessageDto } from './dto/unread-message.dto';
 
 @Injectable()
 export class ChatService {
@@ -21,6 +22,24 @@ export class ChatService {
       Message.create(dto.text, viewed, sender, receiver),
     );
     return await this.messageRepository.save(message);
+  }
+
+  async countUnReadMessage(userId: number) {
+    const user = await this.userService.findOne(userId);
+    const unreadMessageData: Array<UnreadMessageDto> =
+      await this.messageRepository
+        .createQueryBuilder('message')
+        .select('message.senderId AS senderId')
+        .addSelect('COUNT(*) AS cnt')
+        .where('message.receiverId = :receiverId', { receiverId: user.id })
+        .andWhere('message.viewed = :viewed', { viewed: false })
+        .groupBy('message.senderId')
+        .getRawMany();
+    const unreadMessageCount = {};
+    for (const data of unreadMessageData) {
+      unreadMessageCount[data.getSenderId()] = data.getCount();
+    }
+    return unreadMessageCount;
   }
 
   async loadMessage(userId: number, loadMessageDto: LoadMessageDto) {
@@ -52,6 +71,18 @@ export class ChatService {
       .orderBy('messageId', 'ASC')
       .take(20)
       .getRawMany();
+    // update viewed
+    // await this.messageRepository
+    //   .createQueryBuilder('message')
+    //   .update()
+    //   .set({ viewed: true })
+    //   .where('message.receiverId = :receiverId', { receiverId: user.id })
+    //   .andWhere('message.senderId = :senderId', { senderId: target.id })
+    //   .andWhere('message.id <= :cursorId', {
+    //     cursorId: loadMessageDto.cursorId,
+    //   })
+    //   .execute();
+
     return messageData.map((data) => ({
       messageId: data.messageid,
       senderId: data.senderid,

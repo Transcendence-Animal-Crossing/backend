@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpStatus,
   Patch,
   Query,
   Render,
@@ -12,6 +13,8 @@ import { RoomService } from './room/room.service';
 import { UserService } from './user/user.service';
 import { Public } from './auth/guards/public';
 import { AuthService } from './auth/auth.service';
+import { FollowService } from './folllow/follow.service';
+import { ChatService } from './chat/chat.service';
 
 @Controller()
 export class AppController {
@@ -20,6 +23,8 @@ export class AppController {
     private readonly roomService: RoomService,
     private readonly userService: UserService,
     private readonly authService: AuthService,
+    private readonly followService: FollowService,
+    private readonly chatService: ChatService,
   ) {}
 
   /*
@@ -65,5 +70,24 @@ export class AppController {
   async updatePassword(@Req() req, @Body() body) {
     console.log('body', body);
     await this.userService.updatePassword(body.id, body.password);
+  }
+
+  @Public()
+  @Get('/friends')
+  async getFriends(@Query('id') id: number) {
+    const friends = await this.followService.findAllFriends(id);
+    const friendsWithStatus = [];
+    const unReadMessageData = await this.chatService.countUnReadMessage(id);
+    for (const friend of friends) {
+      const unReadMessageCount = unReadMessageData[friend.friendId]
+        ? unReadMessageData[friend.friendId]
+        : 0;
+      friendsWithStatus.push({
+        ...friend,
+        unReadMessageCount: unReadMessageCount,
+      });
+    }
+    console.log('friendsWithStatus', friendsWithStatus);
+    return { status: HttpStatus.OK, body: friendsWithStatus };
   }
 }

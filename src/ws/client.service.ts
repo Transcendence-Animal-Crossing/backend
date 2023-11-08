@@ -7,17 +7,20 @@ import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
 import { UserData } from '../room/data/user.data';
 import { RoomService } from '../room/room.service';
+import { FollowService } from '../folllow/follow.service';
 
 @WebSocketGateway()
 @Injectable()
 export class ClientService {
   @WebSocketServer() server;
   private readonly logger: Logger = new Logger('ClientService');
+
   constructor(
     private readonly clientRepository: ClientRepository,
     private readonly authService: AuthService,
     private readonly userService: UserService,
     private readonly roomService: RoomService,
+    private readonly followService: FollowService,
   ) {}
 
   async connect(client: Socket) {
@@ -31,8 +34,8 @@ export class ClientService {
     user.blockIds.map((id) => {
       this.ignoreUser(client, id);
     });
-    // this.listenFriendsStatus(client, user);
-    // this.sendStatusToFriends(client, user);
+    await this.listenFriendsStatus(client, user);
+    await this.sendStatusToFriends(client, user);
 
     this.logger.log('[WebSocket Connected!] nickName: ' + user.nickName);
   }
@@ -78,15 +81,6 @@ export class ClientService {
     client.disconnect(true);
   }
 
-  async getConnectedUsersData() {
-    const ids = await this.clientRepository.connectedUserIds();
-    const connectedUsers = await this.userService.getUserDataByIds(ids);
-    connectedUsers.map((user) => {
-      user.status = 'ONLINE';
-    });
-    return connectedUsers;
-  }
-
   async getClientByUserId(userId: number): Promise<Socket> {
     const clientId = await this.clientRepository.findClientId(userId);
     if (!clientId) return null;
@@ -97,18 +91,17 @@ export class ClientService {
     client.join('block-' + userId);
   }
 
-  // listenFriendsStatus(client: Socket, user: User) {
-  //   const friends = user.friends;
-  //   for (const friend of friends) {
-  //     client.join('friend-' + friend.id);
-  //   }
-  //   client.on('disconnect', () => {
-  //     for (const friend of friends) {
-  //       client.leave('friend-' + friend.id);
-  //     }
-  //   });
-  // }
-  // sendStatusToFriends(client: Socket, user: User) {
-  // client.to('follow-' + user.id).emit('follow', new UserData(user));
-  // }
+  async listenFriendsStatus(client: Socket, user: User) {
+    const friends = await this.followService.findAllFriends(user.id);
+    for (const friend of friends) {
+      client.join('friend-' + friend.friendId);
+    }
+  }
+
+  sendStatusToFriends(client: Socket, user: User) {
+    client.to('friend-' + user.id).emit('friend-status', {
+      id: user.id,
+      status: 'ONLINE',
+    });
+  }
 }
