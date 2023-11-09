@@ -16,7 +16,7 @@ import { JoinRoomDto } from './dto/join-room.dto';
 import { DirectMessageDto } from './dto/direct-message.dto';
 import { RoomService } from '../room/room.service';
 import { ActionRoomDto } from './dto/action-room.dto';
-import { CreateRoomDto } from '../room/dto/create-room.dto';
+import { ConfigRoomDto } from '../room/dto/config-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
 import { WsExceptionFilter } from '../ws/filter/WsExceptionFilter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
@@ -59,7 +59,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-list')
   async getRoomList() {
     this.logger.debug('Client Send Event <room-list>');
-    const roomList = await this.roomService.findNotPrivateRooms();
+    const roomList = await this.roomService.joinLobby();
     return { status: HttpStatus.OK, body: roomList };
   }
 
@@ -67,16 +67,24 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async getRoomDetail(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-detail>');
     const room: Room = await this.roomService.findById(dto.roomId);
-    return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
+    return { status: HttpStatus.OK, body: DetailRoomDto.from(room) };
   }
 
   @SubscribeMessage('room-create')
-  async createRoom(client: Socket, dto: CreateRoomDto) {
+  async createRoom(client: Socket, dto: ConfigRoomDto) {
     this.logger.debug('Client Send Event <room-create>');
     const room = await this.roomService.create(client, dto);
-    this.server.emit('room-list', await this.roomService.findNotPrivateRooms());
+    this.server.emit('room-list', await this.roomService.joinLobby());
 
     return { status: HttpStatus.OK, body: { id: room.id } };
+  }
+
+  @SubscribeMessage('room-mode')
+  async changeRoomMode(client: Socket, dto: ConfigRoomDto) {
+    this.logger.debug('Client Send Event <room-mode>');
+    await this.roomService.changeMode(client, dto.mode, dto.password);
+
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('room-join')
@@ -85,7 +93,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const { room, user } = await this.roomService.joinRoom(client, dto);
     this.server.to(dto.roomId).emit('room-join', new ParticipantData(user, 0));
 
-    return { status: HttpStatus.OK, body: new DetailRoomDto(room) };
+    return { status: HttpStatus.OK, body: DetailRoomDto.from(room) };
   }
 
   @SubscribeMessage('room-leave')

@@ -16,7 +16,7 @@ import { UserService } from 'src/user/user.service';
 import { Room } from './data/room.data';
 import { User } from '../user/entities/user.entity';
 import { RoomRepository } from './room.repository';
-import { CreateRoomDto } from './dto/create-room.dto';
+import { ConfigRoomDto } from './dto/config-room.dto';
 import { ActionRoomDto } from '../chat/dto/action-room.dto';
 import { Grade } from './data/user.grade';
 import { SimpleRoomDto } from './dto/simple.room.dto';
@@ -43,7 +43,7 @@ export class RoomService {
     private readonly userService: UserService,
   ) {}
 
-  async findNotPrivateRooms() {
+  async joinLobby(): Promise<SimpleRoomDto[]> {
     const rooms = await this.roomRepository.findAll();
     const roomList = [];
     for (const room of rooms) {
@@ -55,7 +55,8 @@ export class RoomService {
 
   async findById(id: string): Promise<Room> {
     const room = await this.roomRepository.find(id);
-    if (!room) throw new NotFoundException(`There is no room under id ${id}`);
+    if (!room)
+      throw new NotFoundException(`해당하는 id의 방이 없습니다. id ${id}`);
     return room;
   }
 
@@ -88,7 +89,7 @@ export class RoomService {
     return { room, user };
   }
 
-  async create(client: Socket, dto: CreateRoomDto) {
+  async create(client: Socket, dto: ConfigRoomDto) {
     const ownerId = await this.clientRepository.findUserId(client.id);
     const owner = await this.userService.findOne(ownerId);
     const room = new Room(dto.title, owner, dto.mode, dto.password);
@@ -383,5 +384,24 @@ export class RoomService {
       .except('block-' + userId)
       .emit('room-message', roomMessageDto);
     client.emit('room-message', roomMessageDto);
+  }
+
+  async changeMode(client: Socket, mode: string, password: string) {
+    const room = await this.getJoinedRoom(client);
+    if (!room) throw new BadRequestException('방에 참여하고 있지 않습니다.');
+
+    const userId = await this.clientRepository.findUserId(client.id);
+    const userGrade = this.getGrade(userId, room);
+    if (userGrade !== Grade.OWNER)
+      throw new ForbiddenException('방장만이 모드를 변경할 수 있습니다.');
+
+    room.mode = mode;
+    if (mode === 'PROTECTED') room.password = password;
+
+    this.server.to(room.id).emit('room-mode', {
+      mode: mode,
+    });
+
+    await this.roomRepository.update(room);
   }
 }
