@@ -66,6 +66,11 @@ export class UserController {
       nickName,
       file.filename,
     );
+    await this.roomService.changeUserProfile(
+      req.user.id,
+      nickName,
+      file.filename,
+    );
     return { filepath: 'uploads/' + file.filename };
   }
 
@@ -137,5 +142,16 @@ export class UserController {
         HttpStatus.BAD_REQUEST,
       );
     }
+  }
+
+  @Post('search/follow')
+  @HttpCode(HttpStatus.OK)
+  async searchFollow(
+    @Body('name') name: string,
+    @Body('offset') offset: number,
+    @Req() req,
+  ) {
+    const user = await this.userService.findOne(req.user.id);
+    return await this.userService.searchFriends(name, offset, user);
   }
 }

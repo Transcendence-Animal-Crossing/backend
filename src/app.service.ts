@@ -1,12 +1,11 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ILike, Repository } from 'typeorm';
+import { Injectable, Logger } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { User } from './user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRecord } from './gameRecord/entities/game-record';
 import { Game } from './game/entities/game.entity';
 import { Follow } from './folllow/entities/follow.entity';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
-import { GameService } from './game/game.service';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
 

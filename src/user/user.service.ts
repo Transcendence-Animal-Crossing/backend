@@ -18,6 +18,7 @@ import {
 import { Game } from 'src/game/entities/game.entity';
 import { GameRecord } from 'src/gameRecord/entities/game-record';
 import { PAGINATION_LIMIT } from 'src/common/constants';
+import { Follow } from 'src/folllow/entities/follow.entity';
 
 @Injectable()
 export class UserService {
@@ -26,6 +27,8 @@ export class UserService {
     @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
+    @InjectRepository(Follow)
+    private readonly followRepository: Repository<Follow>,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -195,5 +198,23 @@ export class UserService {
       user.blockIds = user.blockIds.filter((id) => id !== unblockId);
       await this.userRepository.update(user.id, { blockIds: user.blockIds });
     }
+  }
+
+  //.where('user.intraName LIKE :name', { name: `%${name}%` })
+  //.orWhere('user.nickName LIKE :name', { name: `%${name}%` })
+
+  async searchFriends(name: string, offset: number, user: User) {
+    const friends = await this.followRepository
+      .createQueryBuilder('follow')
+      .leftJoinAndSelect('follow.follower', 'follower')
+      .select('follow.id')
+      .addSelect(['follower.id', 'follower.nickName', 'follower.intraName'])
+      .where('follow.followingId = :followingId', { followingId: user.id })
+      .andWhere('follower.intraName LIKE :name', { name: `%${name}%` })
+      .orWhere('follower.nickName LIKE :name', { name: `%${name}%` })
+      .offset(offset)
+      .limit(PAGINATION_LIMIT)
+      .getMany();
+    return friends;
   }
 }
