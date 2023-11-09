@@ -71,7 +71,12 @@ export class UserController {
       nickName,
       file.filename,
     );
-    return { filepath: 'uploads/' + file.filename };
+    return {
+      id: req.user.id,
+      nickName: req.user.nickName,
+      intraName: req.user.intraName,
+      filepath: 'uploads/' + file.filename,
+    };
   }
 
   @Patch('profileWithUrl')
@@ -83,7 +88,12 @@ export class UserController {
     await this.userService.checkNickName(req.user.id, nickName);
     await this.userService.saveUrlImage(req.user.id, nickName, avatar);
     await this.roomService.changeUserProfile(req.user.id, nickName, avatar);
-    return { filepath: 'original/' + avatar };
+    return {
+      id: req.user.id,
+      nickName: req.user.nickName,
+      intraName: req.user.intraName,
+      filepath: 'original/' + avatar,
+    };
   }
 
   @Post('nickname')

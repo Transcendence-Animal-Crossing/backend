@@ -31,13 +31,14 @@ export class AuthController {
   ) {}
 
   @Public()
-  @Get('/callback')
+  @Get('/callback') //백엔드 데모용 삭제 예정
   async oauth2Callback(
     @Query('code') code: string,
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
     let tokens: any;
+    let user: User;
     try {
       const accessToken = await this.authService.getAccessToken(code);
 
@@ -46,7 +47,7 @@ export class AuthController {
       const existingUser = await this.userService.findByName(
         userPublicData.login,
       );
-      let user: User;
+
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
@@ -67,8 +68,12 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.json(tokens);
-    return tokens;
+    return {
+      id: user.id,
+      nickName: user.nickName,
+      intraName: user.intraName,
+      avatar: user.avatar,
+    };
   }
 
   @Public()
@@ -78,6 +83,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     let tokens: any;
+    let user: User;
     try {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
@@ -85,7 +91,7 @@ export class AuthController {
       const existingUser = await this.userService.findByName(
         userPublicData.login,
       );
-      let user: User;
+
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
@@ -106,7 +112,7 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    res.send();
+    return user.id, user.nickName, user.intraName, user.avatar;
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
@@ -189,6 +195,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const tokens = await this.authService.signIn(userDto);
+    const user = await this.userService.findOneByIntraName(userDto.intraName);
     if (!tokens) {
       throw new HttpException('token failed', HttpStatus.BAD_REQUEST);
     }
@@ -199,9 +206,14 @@ export class AuthController {
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     console.log('token', tokens);
-    res.status(HttpStatus.OK);
-    res.send();
+    return {
+      id: user.id,
+      nickName: user.nickName,
+      intraName: user.intraName,
+      avatar: user.avatar,
+    };
   }
+
   @Public()
   @Get('/token')
   async updateTokens(
