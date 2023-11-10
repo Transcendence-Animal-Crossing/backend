@@ -112,7 +112,12 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    return user.id, user.nickName, user.intraName, user.avatar;
+    return {
+      id: user.id,
+      nickName: user.nickName,
+      intraName: user.intraName,
+      avatar: user.avatar,
+    };
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트
