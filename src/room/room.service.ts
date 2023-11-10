@@ -29,8 +29,8 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { RoomMessageDto } from '../chat/dto/room-message.dto';
 import { ClientService } from '../ws/client.service';
 
-@Injectable()
 @WebSocketGateway()
+@Injectable()
 export class RoomService {
   @WebSocketServer() server;
   SECOND = 1000;

@@ -6,7 +6,6 @@ import { User } from '../user/entities/user.entity';
 import { RoomRepository } from './room.repository';
 import { WSModule } from '../ws/ws.module';
 import { ChatModule } from '../chat/chat.module';
-import { ClientRepository } from '../ws/client.repository';
 
 @Module({
   imports: [
@@ -15,7 +14,7 @@ import { ClientRepository } from '../ws/client.repository';
     forwardRef(() => WSModule),
     forwardRef(() => ChatModule),
   ],
-  providers: [RoomService, RoomRepository, ClientRepository],
-  exports: [RoomService],
+  providers: [RoomService, RoomRepository],
+  exports: [RoomService, RoomRepository],
 })
 export class RoomModule {}
