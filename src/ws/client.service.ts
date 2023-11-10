@@ -5,7 +5,6 @@ import { Socket } from 'socket.io';
 import { User } from '../user/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
-import { RoomService } from '../room/room.service';
 import { FollowService } from '../folllow/follow.service';
 
 @WebSocketGateway()
@@ -18,41 +17,25 @@ export class ClientService {
     private readonly clientRepository: ClientRepository,
     private readonly authService: AuthService,
     private readonly userService: UserService,
-    private readonly roomService: RoomService,
     private readonly followService: FollowService,
   ) {}
 
   async connect(client: Socket) {
     this.logger.log('Trying to connect WebSocket...');
     const user = await this.findUserByToken(client);
-    if (!user) {
-      this.forceDisconnect(client, 'Invalid User.');
-      return;
-    }
     await this.clientRepository.connect(client.id, user.id);
     user.blockIds.map((id) => {
       this.ignoreUser(client, id);
     });
     await this.listenFriendsStatus(client, user);
     await this.sendStatusToFriends(client, user);
-
-    this.logger.log('[WebSocket Connected!] nickName: ' + user.nickName);
+    return user;
   }
 
   async disconnect(client: Socket) {
     const user = await this.findUserByToken(client);
-    if (!user) {
-      this.forceDisconnect(client, 'Invalid User.');
-      return;
-    }
-
-    const room = await this.roomService.getJoinedRoom(client);
-    if (room) {
-      await this.roomService.leave(client, user, room);
-    }
-
     await this.clientRepository.disconnect(client.id);
-    this.logger.log('[WebSocket Disconnected!] nickName: ' + user.nickName);
+    return user;
   }
 
   async findUserByToken(client: Socket): Promise<User> {
@@ -65,7 +48,12 @@ export class ClientService {
       this.forceDisconnect(client, 'Invalid or Expired Token.');
       return;
     }
-    return jwtPayload && (await this.userService.findOne(jwtPayload.id));
+    const user = await this.userService.findOne(jwtPayload?.id);
+    if (!user) {
+      this.forceDisconnect(client, 'Invalid User.');
+      return;
+    }
+    return user;
   }
 
   forceDisconnect(client: Socket, reason: string) {

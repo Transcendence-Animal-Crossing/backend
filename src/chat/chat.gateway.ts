@@ -46,11 +46,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    await this.clientService.connect(client);
+    const user = await this.clientService.connect(client);
+    this.logger.log('[WebSocket Connected!] nickName: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
-    await this.clientService.disconnect(client);
+    const user = await this.clientService.disconnect(client);
+    const room = await this.roomService.getJoinedRoom(user.id);
+    if (room) await this.roomService.leave(client, user, room);
+    this.logger.log('[WebSocket Disconnected!] nickName: ' + user.nickName);
   }
 
   @SubscribeMessage('room-lobby')

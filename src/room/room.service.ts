@@ -64,8 +64,7 @@ export class RoomService {
     return room;
   }
 
-  async getJoinedRoom(client: Socket) {
-    const userId = await this.clientRepository.findUserId(client.id);
+  async getJoinedRoom(userId: number) {
     const roomId = await this.roomRepository.findRoomIdByUserId(userId);
     if (roomId) return await this.findById(roomId);
     return null;
@@ -228,8 +227,11 @@ export class RoomService {
   async leave(client: Socket, user: User, room: Room) {
     if (!this.isParticipant(user.id, room))
       throw new BadRequestException('방 안에 있지 않습니다.');
-    if (room.participants.length === 1)
+    if (room.participants.length === 1) {
+      client.leave(room.id);
+      await this.roomRepository.userLeave(user.id);
       return await this.roomRepository.delete(room.id);
+    }
     if (this.getGrade(user.id, room) === Grade.OWNER) {
       room.participants[1].grade = Grade.OWNER;
       this.server.emit('change-owner', {
@@ -333,13 +335,7 @@ export class RoomService {
   }
 
   async changeUserProfile(user: User, nickName: string, image: string) {
-    const clientId = await this.clientRepository.findClientId(user.id);
-    if (!clientId) {
-      this.logger.log('온라인이 아닌 상태에서의 프로필 변경');
-      return;
-    }
-    const client = this.server.sockets.sockets[clientId];
-    const room = await this.getJoinedRoom(client);
+    const room = await this.getJoinedRoom(user.id);
 
     if (!room) return;
     for (const participant of room.participants) {
@@ -418,10 +414,9 @@ export class RoomService {
   }
 
   async changeMode(client: Socket, mode: string, password: string) {
-    const room = await this.getJoinedRoom(client);
-    if (!room) throw new BadRequestException('방에 참여하고 있지 않습니다.');
-
     const userId = await this.clientRepository.findUserId(client.id);
+    const room = await this.getJoinedRoom(userId);
+    if (!room) throw new BadRequestException('방에 참여하고 있지 않습니다.');
     const userGrade = this.getGrade(userId, room);
     if (userGrade !== Grade.OWNER)
       throw new ForbiddenException('방장만이 모드를 변경할 수 있습니다.');
