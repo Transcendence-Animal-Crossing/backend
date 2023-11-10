@@ -91,4 +91,7 @@ export class ChatService {
       text: data.text,
     }));
   }
+
+  // async directMessage(client: Socket, dto: DirectMessageDto) {
+  // }
 }

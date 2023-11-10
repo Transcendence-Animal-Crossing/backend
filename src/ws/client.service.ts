@@ -5,7 +5,6 @@ import { Socket } from 'socket.io';
 import { User } from '../user/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
-import { UserData } from '../room/data/user.data';
 import { RoomService } from '../room/room.service';
 import { FollowService } from '../folllow/follow.service';
 
@@ -49,8 +48,7 @@ export class ClientService {
 
     const room = await this.roomService.getJoinedRoom(client);
     if (room) {
-      await this.roomService.leave(user.id, room);
-      this.server.to(room.id).emit('room-leave', new UserData(user));
+      await this.roomService.leave(client, user, room);
     }
 
     await this.clientRepository.disconnect(client.id);

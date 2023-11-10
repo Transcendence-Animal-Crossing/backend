@@ -2,13 +2,19 @@ import { v1 as uuid } from 'uuid';
 import { UserData } from './user.data';
 import { ParticipantData } from './participant.data';
 import { User } from '../../user/entities/user.entity';
+import { Grade } from './user.grade';
 
 export class Room {
-  constructor(title: string, owner: User, mode: string, password: string) {
+  private constructor(
+    title: string,
+    owner: User,
+    mode: string,
+    password: string,
+  ) {
     this.id = uuid();
     this.title = title;
     this.participants = [];
-    this.participants.push(new ParticipantData(owner, 2));
+    this.participants.push(ParticipantData.of(owner, Grade.OWNER));
     this.bannedUsers = [];
     this.invitedUsers = [];
     this.mode = mode;
@@ -22,4 +28,13 @@ export class Room {
   invitedUsers: UserData[];
   mode: string;
   password: string;
+
+  public static create(
+    title: string,
+    owner: User,
+    mode: string,
+    password: string,
+  ): Room {
+    return new Room(title, owner, mode, password);
+  }
 }

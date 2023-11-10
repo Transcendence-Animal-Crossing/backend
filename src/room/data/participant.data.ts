@@ -2,7 +2,7 @@ import { User } from '../../user/entities/user.entity';
 import { UserData } from './user.data';
 
 export class ParticipantData extends UserData {
-  constructor(user: User, grade: number) {
+  private constructor(user: User, grade: number) {
     super(user);
     this.grade = grade;
     this.muteStartTime = null;
@@ -13,4 +13,8 @@ export class ParticipantData extends UserData {
   muteStartTime: Date;
   joinTime: Date;
   adminTime: Date;
+
+  public static of(user: User, grade: number): ParticipantData {
+    return new ParticipantData(user, grade);
+  }
 }
