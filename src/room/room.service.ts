@@ -28,6 +28,7 @@ import { JoinRoomDto } from '../chat/dto/join-room.dto';
 import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { RoomMessageDto } from '../chat/dto/room-message.dto';
 import { ClientService } from '../ws/client.service';
+import { Status } from '../ws/const/client.status';
 
 @WebSocketGateway()
 @Injectable()
@@ -335,8 +336,9 @@ export class RoomService {
   }
 
   async changeUserProfile(user: User, nickName: string, image: string) {
-    const room = await this.getJoinedRoom(user.id);
+    this.clientService.sendUpdateToFriends(user, Status.ONLINE);
 
+    const room = await this.getJoinedRoom(user.id);
     if (!room) return;
     for (const participant of room.participants) {
       if (participant.id === user.id) {
@@ -350,7 +352,7 @@ export class RoomService {
       nickName: nickName,
       image: image,
     });
-    // 유저의 친구들한테도 emit 해주어야 함
+
     await this.roomRepository.update(room);
   }
 

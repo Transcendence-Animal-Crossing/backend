@@ -6,6 +6,7 @@ import { User } from '../user/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
 import { FollowService } from '../folllow/follow.service';
+import { Status } from './const/client.status';
 
 @WebSocketGateway()
 @Injectable()
@@ -28,13 +29,14 @@ export class ClientService {
       this.ignoreUser(client, id);
     });
     await this.listenFriendsStatus(client, user);
-    await this.sendStatusToFriends(client, user);
+    await this.sendUpdateToFriends(user, Status.ONLINE);
     return user;
   }
 
   async disconnect(client: Socket) {
     const user = await this.findUserByToken(client);
     await this.clientRepository.disconnect(client.id);
+    await this.sendUpdateToFriends(user, Status.OFFLINE);
     return user;
   }
 
@@ -84,10 +86,12 @@ export class ClientService {
     }
   }
 
-  sendStatusToFriends(client: Socket, user: User) {
-    client.to('friend-' + user.id).emit('friend-status', {
+  sendUpdateToFriends(user: User, status: string) {
+    this.server.to('friend-' + user.id).emit('friend-status', {
       id: user.id,
-      status: 'ONLINE',
+      nickName: user.nickName,
+      avatar: user.avatar,
+      status: status,
     });
   }
 }
