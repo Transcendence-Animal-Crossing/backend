@@ -94,4 +94,12 @@ export class ClientService {
       status: status,
     });
   }
+
+  async findUserIdByClientId(id: string): Promise<number> {
+    return await this.clientRepository.findUserId(id);
+  }
+
+  async findClientIdByUserId(id: number): Promise<string> {
+    return await this.clientRepository.findClientId(id);
+  }
 }
