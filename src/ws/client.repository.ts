@@ -46,16 +46,4 @@ export class ClientRepository {
     if (status) return status;
     return 'OFFLINE';
   }
-
-  async saveTimerId(targetId: number, timerId: NodeJS.Timeout) {
-    await this.cacheManager.set('timer-' + targetId, timerId);
-  }
-
-  async findTimerId(targetId: number): Promise<NodeJS.Timeout> {
-    return await this.cacheManager.get('timer-' + targetId);
-  }
-
-  async deleteTimerId(targetId: number) {
-    await this.cacheManager.del('timer-' + targetId);
-  }
 }

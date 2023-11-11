@@ -39,4 +39,16 @@ export class RoomRepository {
   async findRoomIdByUserId(userId): Promise<string> {
     return this.cacheManager.get('room-user-' + userId);
   }
+
+  async saveMuteTimerId(targetId: number, timerId: NodeJS.Timeout) {
+    await this.cacheManager.set('timer-' + targetId, timerId);
+  }
+
+  async findMuteTimerId(targetId: number): Promise<NodeJS.Timeout> {
+    return await this.cacheManager.get('timer-' + targetId);
+  }
+
+  async deleteMuteTimerId(targetId: number) {
+    await this.cacheManager.del('timer-' + targetId);
+  }
 }
