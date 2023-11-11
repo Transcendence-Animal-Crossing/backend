@@ -10,6 +10,7 @@ import {
   Body,
   HttpStatus,
   Headers,
+  HttpCode,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { Public } from './guards/public';
@@ -194,6 +195,7 @@ export class AuthController {
   }
 
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Post('/signIn')
   async singIn(
     @Body() userDto: LoginUserDto,
@@ -220,6 +222,7 @@ export class AuthController {
   }
 
   @Public()
+  @HttpCode(HttpStatus.OK)
   @Get('/token')
   async updateTokens(
     @Req() req: Request,
