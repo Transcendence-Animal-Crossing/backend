@@ -6,6 +6,8 @@ import { DirectMessageDto } from './dto/direct-message.dto';
 import { UserService } from '../user/user.service';
 import { LoadMessageDto } from './dto/load-message.dto';
 import { UnreadMessageDto } from './dto/unread-message.dto';
+import { Socket } from 'socket.io';
+import { ClientService } from '../ws/client.service';
 
 @Injectable()
 export class ChatService {
@@ -13,6 +15,7 @@ export class ChatService {
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
     private readonly userService: UserService,
+    private readonly clientService: ClientService,
   ) {}
 
   async createAndSave(dto: DirectMessageDto, viewed: boolean) {
@@ -71,17 +74,6 @@ export class ChatService {
       .orderBy('messageId', 'ASC')
       .take(20)
       .getRawMany();
-    // update viewed
-    // await this.messageRepository
-    //   .createQueryBuilder('message')
-    //   .update()
-    //   .set({ viewed: true })
-    //   .where('message.receiverId = :receiverId', { receiverId: user.id })
-    //   .andWhere('message.senderId = :senderId', { senderId: target.id })
-    //   .andWhere('message.id <= :cursorId', {
-    //     cursorId: loadMessageDto.cursorId,
-    //   })
-    //   .execute();
 
     return messageData.map((data) => ({
       messageId: data.messageid,
@@ -92,6 +84,72 @@ export class ChatService {
     }));
   }
 
-  // async directMessage(client: Socket, dto: DirectMessageDto) {
-  // }
+  async loadUnViewedMessage(userId: number, loadMessageDto: LoadMessageDto) {
+    const user = await this.userService.findOne(userId);
+    const target = await this.userService.findOne(loadMessageDto.targetId);
+
+    let whereCondition =
+      '((sender.id = :userId AND receiver.id = :targetId) ' +
+      'OR ' +
+      '(sender.id = :targetId AND receiver.id = :userId)) ';
+    whereCondition += 'AND message.viewed = false ';
+
+    const messageData = await this.messageRepository
+      .createQueryBuilder('message')
+      .select([
+        'message.id AS messageId',
+        'message.text AS text',
+        'message.created_at AS date',
+        'sender.id AS senderid',
+        'receiver.id AS receiverid',
+      ])
+      .innerJoin('message.sender', 'sender')
+      .innerJoin('message.receiver', 'receiver')
+      .where(whereCondition, {
+        userId: user.id,
+        targetId: target.id,
+      })
+      .orderBy('messageId', 'ASC')
+      .take(20)
+      .getRawMany();
+
+    if (messageData.length > 0) {
+      await this.messageRepository
+        .createQueryBuilder('message')
+        .update()
+        .set({ viewed: true })
+        .where('message.receiverId = :receiverId', { receiverId: user.id })
+        .andWhere('message.senderId = :senderId', { senderId: target.id })
+        .andWhere('message.id >= :cursorId', {
+          cursorId: messageData[0].messageId,
+        })
+        .execute();
+    }
+
+    return messageData.map((data) => ({
+      messageId: data.messageid,
+      senderId: data.senderid,
+      receiverId: data.receiverid,
+      date: data.date,
+      text: data.text,
+    }));
+  }
+
+  async directMessage(client: Socket, dto: DirectMessageDto) {
+    dto.senderId = await this.clientService.findUserIdByClientId(client.id);
+    const receiver = await this.clientService.findClientIdByUserId(
+      dto.receiverId,
+    );
+    if (!receiver) {
+      await this.createAndSave(dto, false);
+      return;
+    }
+    client
+      .to(receiver)
+      .except('block-' + dto.senderId)
+      .emit('direct-message', dto);
+    const { viewed } = await client.emitWithAck('direct-message', dto);
+
+    await this.createAndSave(dto, viewed);
+  }
 }
