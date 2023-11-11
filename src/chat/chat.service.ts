@@ -8,6 +8,7 @@ import { LoadMessageDto } from './dto/load-message.dto';
 import { UnreadMessageDto } from './dto/unread-message.dto';
 import { Socket } from 'socket.io';
 import { ClientService } from '../ws/client.service';
+import { ViewMessageDto } from './dto/view-message.dto';
 
 @Injectable()
 export class ChatService {
@@ -45,15 +46,15 @@ export class ChatService {
     return unreadMessageCount;
   }
 
-  async loadMessage(userId: number, loadMessageDto: LoadMessageDto) {
+  async loadWithPagination(userId: number, dto: LoadMessageDto) {
     const user = await this.userService.findOne(userId);
-    const target = await this.userService.findOne(loadMessageDto.targetId);
+    const target = await this.userService.findOne(dto.targetId);
 
     let whereCondition =
       '((sender.id = :userId AND receiver.id = :targetId) ' +
       'OR ' +
       '(sender.id = :targetId AND receiver.id = :userId)) ';
-    if (loadMessageDto.cursorId) whereCondition += 'AND message.id < :cursorId';
+    if (dto.cursorId) whereCondition += 'AND message.id < :cursorId';
 
     const messageData = await this.messageRepository
       .createQueryBuilder('message')
@@ -69,7 +70,7 @@ export class ChatService {
       .where(whereCondition, {
         userId: user.id,
         targetId: target.id,
-        cursorId: loadMessageDto.cursorId,
+        cursorId: dto.cursorId,
       })
       .orderBy('messageId', 'ASC')
       .take(20)
@@ -84,7 +85,7 @@ export class ChatService {
     }));
   }
 
-  async loadUnViewedMessage(userId: number, loadMessageDto: LoadMessageDto) {
+  async loadAllUnViewed(userId: number, loadMessageDto: LoadMessageDto) {
     const user = await this.userService.findOne(userId);
     const target = await this.userService.findOne(loadMessageDto.targetId);
 
@@ -135,7 +136,7 @@ export class ChatService {
     }));
   }
 
-  async directMessage(client: Socket, dto: DirectMessageDto) {
+  async send(client: Socket, dto: DirectMessageDto) {
     dto.senderId = await this.clientService.findUserIdByClientId(client.id);
     const receiver = await this.clientService.findClientIdByUserId(
       dto.receiverId,
@@ -151,5 +152,21 @@ export class ChatService {
     const { viewed } = await client.emitWithAck('direct-message', dto);
 
     await this.createAndSave(dto, viewed);
+  }
+
+  async view(receiverId: number, dto: ViewMessageDto) {
+    await this.messageRepository
+      .createQueryBuilder('message')
+      .update()
+      .set({ viewed: true })
+      .where('message.receiverId = :receiverId', { receiverId: receiverId })
+      .andWhere('message.senderId = :senderId', { senderId: dto.targetId })
+      .andWhere('message.id >= :minId', {
+        minId: dto.minId,
+      })
+      .andWhere('message.id <= :maxId', {
+        maxId: dto.maxId,
+      })
+      .execute();
   }
 }

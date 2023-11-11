@@ -26,6 +26,7 @@ import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
+import { ViewMessageDto } from './dto/view-message.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -183,16 +184,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onDirectMessageSend(client: Socket, dto: DirectMessageDto) {
     this.logger.debug('Client Send Event <dm-send>');
 
-    await this.chatService.directMessage(client, dto);
+    await this.chatService.send(client, dto);
 
     return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('dm-load')
-  async onDirectMessageLoad(client: Socket, loadMessageDto: LoadMessageDto) {
+  async onDirectMessageLoad(client: Socket, dto: LoadMessageDto) {
     this.logger.debug('Client Send Event <dm-load>');
     const userId = await this.clientRepository.findUserId(client.id);
-    const messages = await this.chatService.loadMessage(userId, loadMessageDto);
+    const messages = await this.chatService.loadWithPagination(userId, dto);
     return { status: HttpStatus.OK, body: messages };
   }
 
@@ -203,11 +204,19 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     this.logger.debug('Client Send Event <dm-load-unviewed>');
     const userId = await this.clientRepository.findUserId(client.id);
-    const messages = await this.chatService.loadUnViewedMessage(
+    const messages = await this.chatService.loadAllUnViewed(
       userId,
       loadMessageDto,
     );
     return { status: HttpStatus.OK, body: messages };
+  }
+
+  @SubscribeMessage('dm-view')
+  async onDirectMessageRead(client: Socket, dto: ViewMessageDto) {
+    this.logger.debug('Client Send Event <dm-read>');
+    const userId = await this.clientRepository.findUserId(client.id);
+    await this.chatService.view(userId, dto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('friend-list')
