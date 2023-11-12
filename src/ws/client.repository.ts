@@ -13,14 +13,14 @@ export class ClientRepository {
   async connect(clientId, userId) {
     await this.cacheManager.set('client-' + clientId, userId);
     await this.cacheManager.set('user-' + userId, clientId);
-    await this.cacheManager.set('user-' + userId + 'status', 'ONLINE');
+    await this.cacheManager.set('user-status-' + userId, 'ONLINE');
   }
 
   async disconnect(clientId) {
     const userId = await this.findUserId(clientId);
     await this.cacheManager.del('client-' + clientId);
     await this.cacheManager.del('user-' + userId);
-    await this.cacheManager.del('user-' + userId + 'status');
+    await this.cacheManager.del('user-status-' + userId);
   }
 
   async findClientId(userId): Promise<string> {
@@ -41,7 +41,21 @@ export class ClientRepository {
     });
   }
 
-  async getUserStatus(userId): Promise<string> {
-    return await this.cacheManager.get('user-' + userId + 'status');
+  async getUserStatus(userId) {
+    const status = await this.cacheManager.get('user-status-' + userId);
+    if (status) return status;
+    return 'OFFLINE';
+  }
+
+  async saveTimerId(targetId: number, timerId: NodeJS.Timeout) {
+    await this.cacheManager.set('timer-' + targetId, timerId);
+  }
+
+  async findTimerId(targetId: number): Promise<NodeJS.Timeout> {
+    return await this.cacheManager.get('timer-' + targetId);
+  }
+
+  async deleteTimerId(targetId: number) {
+    await this.cacheManager.del('timer-' + targetId);
   }
 }

@@ -8,16 +8,18 @@ import { ChatService } from './chat.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from './entity/message.entity';
 import { WSModule } from '../ws/ws.module';
+import { FollowModule } from '../folllow/follow.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Message]),
     AuthModule,
+    FollowModule,
     forwardRef(() => UserModule),
     forwardRef(() => RoomModule),
     WSModule,
   ],
   providers: [ChatGateway, ChatService],
-  exports: [ChatGateway],
+  exports: [ChatGateway, ChatService],
 })
 export class ChatModule {}

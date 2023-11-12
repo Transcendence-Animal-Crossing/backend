@@ -5,53 +5,39 @@ import { Socket } from 'socket.io';
 import { User } from '../user/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
-import { UserData } from '../room/data/user.data';
-import { RoomService } from '../room/room.service';
+import { FollowService } from '../folllow/follow.service';
+import { Status } from './const/client.status';
 
 @WebSocketGateway()
 @Injectable()
 export class ClientService {
   @WebSocketServer() server;
   private readonly logger: Logger = new Logger('ClientService');
+
   constructor(
     private readonly clientRepository: ClientRepository,
     private readonly authService: AuthService,
     private readonly userService: UserService,
-    private readonly roomService: RoomService,
+    private readonly followService: FollowService,
   ) {}
 
   async connect(client: Socket) {
     this.logger.log('Trying to connect WebSocket...');
     const user = await this.findUserByToken(client);
-    if (!user) {
-      this.forceDisconnect(client, 'Invalid User.');
-      return;
-    }
     await this.clientRepository.connect(client.id, user.id);
     user.blockIds.map((id) => {
       this.ignoreUser(client, id);
     });
-    // this.listenFriendsStatus(client, user);
-    // this.sendStatusToFriends(client, user);
-
-    this.logger.log('[WebSocket Connected!] nickName: ' + user.nickName);
+    await this.listenFriendsStatus(client, user);
+    await this.sendUpdateToFriends(user, Status.ONLINE);
+    return user;
   }
 
   async disconnect(client: Socket) {
     const user = await this.findUserByToken(client);
-    if (!user) {
-      this.forceDisconnect(client, 'Invalid User.');
-      return;
-    }
-
-    const room = await this.roomService.getJoinedRoom(client);
-    if (room) {
-      await this.roomService.leave(user.id, room);
-      this.server.to(room.id).emit('room-leave', new UserData(user));
-    }
-
     await this.clientRepository.disconnect(client.id);
-    this.logger.log('[WebSocket Disconnected!] nickName: ' + user.nickName);
+    await this.sendUpdateToFriends(user, Status.OFFLINE);
+    return user;
   }
 
   async findUserByToken(client: Socket): Promise<User> {
@@ -64,7 +50,12 @@ export class ClientService {
       this.forceDisconnect(client, 'Invalid or Expired Token.');
       return;
     }
-    return jwtPayload && (await this.userService.findOne(jwtPayload.id));
+    const user = await this.userService.findOne(jwtPayload?.id);
+    if (!user) {
+      this.forceDisconnect(client, 'Invalid User.');
+      return;
+    }
+    return user;
   }
 
   forceDisconnect(client: Socket, reason: string) {
@@ -78,15 +69,6 @@ export class ClientService {
     client.disconnect(true);
   }
 
-  async getConnectedUsersData() {
-    const ids = await this.clientRepository.connectedUserIds();
-    const connectedUsers = await this.userService.getUserDataByIds(ids);
-    connectedUsers.map((user) => {
-      user.status = 'ONLINE';
-    });
-    return connectedUsers;
-  }
-
   async getClientByUserId(userId: number): Promise<Socket> {
     const clientId = await this.clientRepository.findClientId(userId);
     if (!clientId) return null;
@@ -97,18 +79,19 @@ export class ClientService {
     client.join('block-' + userId);
   }
 
-  // listenFriendsStatus(client: Socket, user: User) {
-  //   const friends = user.friends;
-  //   for (const friend of friends) {
-  //     client.join('friend-' + friend.id);
-  //   }
-  //   client.on('disconnect', () => {
-  //     for (const friend of friends) {
-  //       client.leave('friend-' + friend.id);
-  //     }
-  //   });
-  // }
-  // sendStatusToFriends(client: Socket, user: User) {
-  // client.to('follow-' + user.id).emit('follow', new UserData(user));
-  // }
+  async listenFriendsStatus(client: Socket, user: User) {
+    const friends = await this.followService.findAllFriends(user.id);
+    for (const friend of friends) {
+      client.join('friend-' + friend.friendId);
+    }
+  }
+
+  sendUpdateToFriends(user: User, status: string) {
+    this.server.to('friend-' + user.id).emit('friend-status', {
+      id: user.id,
+      nickName: user.nickName,
+      avatar: user.avatar,
+      status: status,
+    });
+  }
 }

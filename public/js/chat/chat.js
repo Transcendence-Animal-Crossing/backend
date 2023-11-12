@@ -28,6 +28,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     console.log('roomDetail', roomDetail);
     handleRoomDetail(roomDetail);
   }
+
+  const friendList = await socket.emitWithAck('friend-list');
+  console.log('friendList', friendList);
 });
 
 window.socket = socket;

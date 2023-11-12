@@ -2,10 +2,10 @@ import { Room } from '../data/room.data';
 import { UserData } from '../data/user.data';
 
 export class SimpleRoomDto {
-  constructor(room: Room) {
+  private constructor(room: Room) {
     this.id = room.id;
     this.title = room.title;
-    this.owner = UserData.compressParticipant(room.participants[0]);
+    this.owner = UserData.compressToParticipant(room.participants[0]);
     this.headCount = room.participants.length;
     this.mode = room.mode;
   }
@@ -14,4 +14,8 @@ export class SimpleRoomDto {
   owner: UserData;
   headCount: number;
   mode: string;
+
+  public static from(room: Room): SimpleRoomDto {
+    return new SimpleRoomDto(room);
+  }
 }

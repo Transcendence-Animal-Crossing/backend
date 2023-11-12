@@ -3,7 +3,7 @@ import { UserData } from '../data/user.data';
 import { ParticipantData } from '../data/participant.data';
 
 export class DetailRoomDto {
-  constructor(room: Room) {
+  private constructor(room: Room) {
     this.id = room.id;
     this.title = room.title;
     this.participants = room.participants;
@@ -17,4 +17,8 @@ export class DetailRoomDto {
   bannedUsers: UserData[];
   invitedUsers: UserData[];
   mode: string;
+
+  public static from(room: Room): DetailRoomDto {
+    return new DetailRoomDto(room);
+  }
 }
