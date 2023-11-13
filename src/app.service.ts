@@ -35,8 +35,18 @@ export class AppService {
       await this.initFollow();
       await this.initBlock();
       const count = await this.gameRepository.count();
-      if (count < 30) {
+      const user0GameCount = await this.gameRepository
+        .createQueryBuilder('game')
+        .leftJoinAndSelect('game.loser', 'loser')
+        .leftJoinAndSelect('game.winner', 'winner')
+        .where('loser.id = :userId OR winner.id = :userId', { userId: 0 })
+        .getCount();
+      console.log('cnt', user0GameCount);
+      if (count - user0GameCount < 30) {
         await this.initGame();
+      }
+      if (user0GameCount < 40) {
+        await this.initOneUserGame();
       }
     } catch (e) {
       this.logger.log('Application Init Fail by ' + e);
@@ -157,6 +167,37 @@ export class AppService {
     for (let i = 11; i < 20; i++) {
       const user = await this.userService.findOne(0);
       await this.userService.blockUser(user, i);
+    }
+  }
+
+  async initOneUserGame() {
+    const totalGames = 40; //게임 수
+
+    for (let gameIndex = 0; gameIndex < totalGames; gameIndex++) {
+      const ids = [0, Math.floor(Math.random() * 19) + 1];
+      const winnerIndex = Math.floor(Math.random() * 2);
+      const winnerId = ids[winnerIndex];
+      const loserId = ids[1 - winnerIndex];
+      const winnerScore = Math.floor(Math.random() * (60 - 50 + 1));
+      const loserScore = Math.floor(Math.random() * winnerScore); //여기서는 패자 점수 설정해줌
+      const playTime = Math.floor(Math.random() * (3600 - 300 + 1)) + 300;
+      const isRank = Math.random() > 0.5;
+
+      const newGame = await this.gameRepository.create({
+        winnerId,
+        loserId,
+        winnerScore,
+        loserScore,
+        playTime,
+        isRank,
+      });
+
+      await this.gameRepository.save(newGame);
+      await this.gameRecordService.updateGameRecord(
+        newGame.winnerId,
+        newGame.loserId,
+        newGame.isRank,
+      );
     }
   }
 }
