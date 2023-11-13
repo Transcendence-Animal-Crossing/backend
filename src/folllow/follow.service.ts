@@ -142,12 +142,14 @@ export class FollowService {
       .select('follow.id')
       .addSelect('following.id')
       .addSelect('following.nickName')
+      .addSelect('following.intraName')
       .addSelect('following.avatar')
       .getMany();
 
     return friends.map((fr) => ({
       friendId: fr.following.id,
       freindNickName: fr.following.nickName,
+      freindIntraName: fr.following.intraName,
       freindProfile: fr.following.avatar,
     }));
   }

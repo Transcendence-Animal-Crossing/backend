@@ -26,6 +26,7 @@ import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
+import { ViewMessageDto } from './dto/view-message.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -179,43 +180,43 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK };
   }
 
-  @SubscribeMessage('direct-message')
-  async onDirectMessage(client: Socket, dto: DirectMessageDto) {
-    this.logger.debug('Client Send Event <direct-message>');
+  @SubscribeMessage('dm-send')
+  async onDirectMessageSend(client: Socket, dto: DirectMessageDto) {
+    this.logger.debug('Client Send Event <dm-send>');
 
-    // await this.chatService.directMessage(client, dto);
-    dto.senderId = await this.clientRepository.findUserId(client.id);
-    const receiver = await this.clientRepository.findClientId(dto.receiverId);
-    client
-      .to(receiver)
-      .except('block-' + dto.senderId)
-      .emit('direct-message', dto);
-    client.emit('direct-message', dto);
-    // const viewed: boolean = await client.emitWithAck('direct-message', dto);
+    await this.chatService.send(client, dto);
 
-    await this.chatService.createAndSave(dto, false);
     return { status: HttpStatus.OK };
   }
 
-  @SubscribeMessage('load-message')
-  async onMessageLoad(client: Socket, loadMessageDto: LoadMessageDto) {
-    this.logger.debug('Client Send Event <load-message>');
+  @SubscribeMessage('dm-load')
+  async onDirectMessageLoad(client: Socket, dto: LoadMessageDto) {
+    this.logger.debug('Client Send Event <dm-load>');
     const userId = await this.clientRepository.findUserId(client.id);
-    const messages = await this.chatService.loadMessage(userId, loadMessageDto);
+    const messages = await this.chatService.loadWithPagination(userId, dto);
     return { status: HttpStatus.OK, body: messages };
   }
 
-  // 없어질 함수
-  @SubscribeMessage('user-list')
-  async onUserList(client: Socket) {
-    this.logger.debug('Client Send Event <user-list>');
+  @SubscribeMessage('dm-load-unviewed')
+  async onDirectMessageLoadUnRead(
+    client: Socket,
+    loadMessageDto: LoadMessageDto,
+  ) {
+    this.logger.debug('Client Send Event <dm-load-unviewed>');
     const userId = await this.clientRepository.findUserId(client.id);
-    const connectedUsers = await this.clientRepository.connectedUserIds();
-    const ids = Array.from(connectedUsers).filter((id) => {
-      return id !== userId;
-    });
-    const users = await this.userService.getUserDataByIds(ids);
-    return { status: HttpStatus.OK, body: users };
+    const messages = await this.chatService.loadAllUnViewed(
+      userId,
+      loadMessageDto,
+    );
+    return { status: HttpStatus.OK, body: messages };
+  }
+
+  @SubscribeMessage('dm-view')
+  async onDirectMessageRead(client: Socket, dto: ViewMessageDto) {
+    this.logger.debug('Client Send Event <dm-read>');
+    const userId = await this.clientRepository.findUserId(client.id);
+    await this.chatService.view(userId, dto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('friend-list')
