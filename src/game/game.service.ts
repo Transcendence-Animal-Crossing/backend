@@ -46,9 +46,11 @@ export class GameService {
         'winner.id',
         'winner.nickName',
         'winner.intraName',
+        'winner.avatar',
         'loser.id',
         'loser.nickName',
         'loser.intraName',
+        'loser.avatar',
       ])
       .where('(loser.id = :id OR winner.id = :id) AND game.isRank = :isRank', {
         id,
