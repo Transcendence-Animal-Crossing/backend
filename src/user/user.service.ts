@@ -84,7 +84,7 @@ export class UserService {
     return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
   }
 
-  isBlocked(user: User, targetId: number): boolean {
+  async isBlocked(user: User, targetId: number): Promise<boolean> {
     return user.blockIds.includes(targetId);
   }
   async block(user: User, targetId: number) {

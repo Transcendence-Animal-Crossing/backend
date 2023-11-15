@@ -25,7 +25,8 @@ export class FollowController {
   @Post('request')
   @HttpCode(HttpStatus.CREATED)
   async createRequest(@Body('sendTo') id: number, @Req() req) {
-    if (await this.userService.isBlocked(req.user.id, id))
+    const user = await this.userService.findOne(req.user.id);
+    if (await this.userService.isBlocked(user, id))
       throw new HttpException(
         '차단한 사람은 친구추가 불가',
         HttpStatus.CONFLICT,
