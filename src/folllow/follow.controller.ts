@@ -62,4 +62,18 @@ export class FollowController {
   async getFollow(@Req() req) {
     return await this.followService.findAllFriends(req.user.id);
   }
+
+  @Post('search')
+  @HttpCode(HttpStatus.OK)
+  async getFriendsByName(
+    @Req() req,
+    @Body('name') name: string,
+    @Body('offset') offset: number,
+  ) {
+    return await this.followService.findFriendsByName(
+      req.user.id,
+      name,
+      offset,
+    );
+  }
 }
