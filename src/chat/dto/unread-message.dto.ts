@@ -1,25 +1,45 @@
 export class UnreadMessageDto {
+  private messageId: number;
   private senderId: number;
-  private count: number;
+  private text: string;
+  private date: Date;
 
-  constructor(sender_id: number, cnt: number) {
+  constructor(messageId: number, sender_id: number, text: string, date: Date) {
     this.senderId = sender_id;
-    this.count = cnt;
+    this.messageId = messageId;
+    this.text = text;
+    this.date = date;
   }
 
-  getSenderId(): number {
+  get MessageId(): number {
+    return this.messageId;
+  }
+
+  get SenderId(): number {
     return this.senderId;
   }
 
-  getCount(): number {
-    return this.count;
+  get Text(): string {
+    return this.text;
   }
 
-  setSenderId(senderId: number): void {
+  get Date(): Date {
+    return this.date;
+  }
+
+  set MessageId(messageId: number) {
+    this.messageId = messageId;
+  }
+
+  set SenderId(senderId: number) {
     this.senderId = senderId;
   }
 
-  setCount(count: number): void {
-    this.count = count;
+  set Text(text: string) {
+    this.text = text;
+  }
+
+  set Date(date: Date) {
+    this.date = date;
   }
 }
