@@ -107,8 +107,8 @@ export class UserService {
 
     return {
       id: targetId,
-      blocked: blockStatus,
-      followRequest: followStatus,
+      blockStatus: blockStatus,
+      followStatus: followStatus,
     };
   }
 
