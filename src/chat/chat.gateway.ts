@@ -229,4 +229,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
     return { status: HttpStatus.OK, body: friendsWithStatus };
   }
+
+  @SubscribeMessage('block-list')
+  async onBlockList(client: Socket) {
+    this.logger.debug('Client Send Event <block-list>');
+    const userId = await this.clientRepository.findUserId(client.id);
+    const blockUserProfiles =
+      await this.userService.findBlockUserProfiles(userId);
+
+    return { status: HttpStatus.OK, body: blockUserProfiles };
+  }
 }
