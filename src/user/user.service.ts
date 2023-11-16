@@ -39,9 +39,15 @@ export class UserService {
   }
 
   async findOneByIntraName(intraName: string): Promise<User> {
-    return this.userRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: { intraName: intraName },
     });
+    if (!user)
+      throw new HttpException(
+        '해당 인트라네임을 가진 유저가 없습니다.',
+        HttpStatus.NOT_FOUND,
+      );
+    return user;
   }
 
   async findByName(name: string): Promise<User> {
@@ -195,5 +201,19 @@ export class UserService {
       user.blockIds = user.blockIds.filter((id) => id !== unblockId);
       await this.userRepository.update(user.id, { blockIds: user.blockIds });
     }
+  }
+  async set2fa(id: number) {
+    const user = await this.findOne(id);
+    if (user.two_factor_auth)
+      throw new HttpException('이미 2fa 켜져있음', HttpStatus.BAD_REQUEST);
+    await this.userRepository.update(id, { two_factor_auth: true });
+    return toResponseUserDto(user);
+  }
+  async cancel2fa(id: number) {
+    const user = await this.findOne(id);
+    if (!user.two_factor_auth)
+      throw new HttpException('이미 2fa 꺼져있음', HttpStatus.BAD_REQUEST);
+    await this.userRepository.update(id, { two_factor_auth: false });
+    return toResponseUserDto(user);
   }
 }

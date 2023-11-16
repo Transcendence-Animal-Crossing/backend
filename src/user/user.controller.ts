@@ -154,4 +154,15 @@ export class UserController {
       );
     }
   }
+  @Patch('2fa-setup')
+  @HttpCode(HttpStatus.OK)
+  async set2fa(@Req() req) {
+    return await this.userService.set2fa(req.user.id);
+  }
+
+  @Patch('2fa-cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancel2fa(@Req() req) {
+    return await this.userService.cancel2fa(req.user.id);
+  }
 }
