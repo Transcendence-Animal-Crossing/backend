@@ -18,7 +18,7 @@ import { RoomService } from '../room/room.service';
 import { ActionRoomDto } from './dto/action-room.dto';
 import { ConfigRoomDto } from '../room/dto/config-room.dto';
 import { LeaveRoomDto } from './dto/leave-room.dto';
-import { WsExceptionFilter } from '../ws/filter/WsExceptionFilter';
+import { CustomSocketFilter } from '../ws/filter/custom-socket.filter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
 import { ChatService } from './chat.service';
 import { LoadMessageDto } from './dto/load-message.dto';
@@ -28,8 +28,8 @@ import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
 
 // @UsePipes(new ValidationPipe())
-@WebSocketGateway()
-@UseFilters(new WsExceptionFilter())
+@WebSocketGateway({ namespace: '/chat' })
+@UseFilters(new CustomSocketFilter())
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server;
@@ -47,14 +47,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleConnection(client: Socket): Promise<void> {
     const user = await this.clientService.connect(client);
-    this.logger.log('[WebSocket Connected!] nickName: ' + user.nickName);
+    this.logger.log('[Chat WebSocket Connected!]: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
     const user = await this.clientService.disconnect(client);
     const room = await this.roomService.getJoinedRoom(user.id);
     if (room) await this.roomService.leave(client, user, room);
-    this.logger.log('[WebSocket Disconnected!] nickName: ' + user.nickName);
+    this.logger.log('[Chat WebSocket Disconnected!]: ' + user.nickName);
   }
 
   @SubscribeMessage('room-lobby')
