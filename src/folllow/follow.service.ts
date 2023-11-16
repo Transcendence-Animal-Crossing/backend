@@ -155,7 +155,7 @@ export class FollowService {
     }));
   }
 
-  async findFriendsByName(id: number, name: string, offset: number) {
+  async findFriendsByName(id: number, name: string) {
     const rawFriends = await this.followRepository
       .createQueryBuilder('follow')
       .leftJoinAndSelect('follow.following', 'user')
@@ -175,8 +175,7 @@ export class FollowService {
           );
         }),
       )
-      .offset(offset)
-      .limit(PAGINATION_LIMIT) //todo: 프론트와 몇 개씩 넘겨줄지에 대해 이야기하기
+      .limit(PAGINATION_LIMIT)
       .getMany();
 
     const freinds = rawFriends.map((rawFriend) => {
