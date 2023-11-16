@@ -9,10 +9,12 @@ import { JwtStrategy } from './strategies/jwt.strategy';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '../user/entities/user.entity';
 import { GameRecordModule } from 'src/gameRecord/game-record.module';
+import { EmailVerification } from 'src/email/entities/emailVerification.entity';
+import { EmailService } from 'src/email/email.service';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, EmailVerification]),
     forwardRef(() => UserModule),
     PassportModule,
     GameRecordModule,
@@ -20,7 +22,7 @@ import { GameRecordModule } from 'src/gameRecord/game-record.module';
       signOptions: { expiresIn: process.env.JWT_REFRESH_EXPIRE },
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy],
+  providers: [AuthService, LocalStrategy, JwtStrategy, EmailService],
   controllers: [AuthController],
   exports: [AuthService],
 })
