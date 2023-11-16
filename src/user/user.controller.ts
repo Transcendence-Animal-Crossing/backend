@@ -73,7 +73,7 @@ export class UserController {
     );
     return {
       id: req.user.id,
-      nickName: req.user.nickName,
+      nickName: nickName,
       intraName: req.user.intraName,
       filepath: 'uploads/' + file.filename,
     };
@@ -90,7 +90,7 @@ export class UserController {
     await this.roomService.changeUserProfile(req.user.id, nickName, avatar);
     return {
       id: req.user.id,
-      nickName: req.user.nickName,
+      nickName: nickName,
       intraName: req.user.intraName,
       filepath: 'original/' + avatar,
     };
