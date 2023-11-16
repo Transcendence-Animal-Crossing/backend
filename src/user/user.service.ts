@@ -18,6 +18,7 @@ import {
 import { Game } from 'src/game/entities/game.entity';
 import { GameRecord } from 'src/gameRecord/entities/game-record';
 import { PAGINATION_LIMIT } from 'src/common/constants';
+import { FollowService } from 'src/folllow/follow.service';
 
 @Injectable()
 export class UserService {
@@ -26,6 +27,7 @@ export class UserService {
     @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
+    private followService: FollowService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -39,9 +41,15 @@ export class UserService {
   }
 
   async findOneByIntraName(intraName: string): Promise<User> {
-    return this.userRepository.findOne({
+    const user = await this.userRepository.findOne({
       where: { intraName: intraName },
     });
+    if (!user)
+      throw new HttpException(
+        '해당 인트라네임을 가진 유저가 없습니다.',
+        HttpStatus.NOT_FOUND,
+      );
+    return user;
   }
 
   async findByName(name: string): Promise<User> {
@@ -84,9 +92,29 @@ export class UserService {
     return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
   }
 
-  isBlocked(user: User, targetId: number): boolean {
+  async findSummaryOneById(id: number, targetId: number) {
+    const user = await this.findOne(id);
+    let blockStatus = 0;
+    let followStatus = 0;
+
+    if (await this.isBlocked(user, targetId)) {
+      blockStatus = 1;
+    }
+    if (await this.followService.isRequestExisted(id, targetId))
+      followStatus = 1;
+    if (await this.followService.isFollowed(id, targetId)) followStatus = 2;
+
+    return {
+      id: targetId,
+      blockStatus: blockStatus,
+      followStatus: followStatus,
+    };
+  }
+
+  async isBlocked(user: User, targetId: number): Promise<boolean> {
     return user.blockIds.includes(targetId);
   }
+
   async block(user: User, targetId: number) {
     await user.blockIds.push(targetId);
     await this.userRepository.save(user);
@@ -184,16 +212,30 @@ export class UserService {
   }
 
   async blockUser(user: User, blockId: number) {
-    if (!this.isBlocked(user, blockId)) {
+    if (!(await this.isBlocked(user, blockId))) {
       user.blockIds.push(blockId);
       await this.userRepository.update(user.id, { blockIds: user.blockIds });
     }
   }
 
   async unblockUser(user: User, unblockId: number) {
-    if (this.isBlocked(user, unblockId)) {
+    if (await this.isBlocked(user, unblockId)) {
       user.blockIds = user.blockIds.filter((id) => id !== unblockId);
       await this.userRepository.update(user.id, { blockIds: user.blockIds });
     }
+  }
+  async set2fa(id: number) {
+    const user = await this.findOne(id);
+    if (user.two_factor_auth)
+      throw new HttpException('이미 2fa 켜져있음', HttpStatus.BAD_REQUEST);
+    await this.userRepository.update(id, { two_factor_auth: true });
+    return toResponseUserDto(user);
+  }
+  async cancel2fa(id: number) {
+    const user = await this.findOne(id);
+    if (!user.two_factor_auth)
+      throw new HttpException('이미 2fa 꺼져있음', HttpStatus.BAD_REQUEST);
+    await this.userRepository.update(id, { two_factor_auth: false });
+    return toResponseUserDto(user);
   }
 }

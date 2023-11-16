@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Param,
   Post,
   Query,
   UseGuards,
@@ -45,5 +46,15 @@ export class GameController {
       createGameDto.loserId,
       createGameDto.isRank,
     );
+  }
+  //삭제 예정
+  @Get('all')
+  async getGameAll() {
+    return this.gameService.findAll();
+  }
+  //삭제 예정
+  @Post(':id')
+  async getGameById(@Param('id') id: number) {
+    return this.gameService.findByUserId(id);
   }
 }

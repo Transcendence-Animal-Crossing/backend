@@ -1,9 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Follow } from './entities/follow.entity';
-import { Repository } from 'typeorm';
+import { Brackets, Repository } from 'typeorm';
 import { FollowRequest } from './entities/follow-request.entity';
 import { User } from 'src/user/entities/user.entity';
+import { PAGINATION_LIMIT } from 'src/common/constants';
 
 @Injectable()
 export class FollowService {
@@ -28,7 +29,7 @@ export class FollowService {
   }
 
   async createRequest(sendBy: number, sendTo: number) {
-    const reversedRequest = await this.isRequestExisted(sendTo, sendBy);
+    const reversedRequest = await this.isAnyRequestExisted(sendTo, sendBy);
     if (reversedRequest && !reversedRequest.deletedAt) {
       await this.deleteRequest(sendTo, sendBy);
       const follow1 = await this.isFollowed(sendBy, sendTo);
@@ -49,7 +50,7 @@ export class FollowService {
       await this.createFollows(sendBy, sendTo);
       return 'new freinds';
     }
-    const existingRequest = await this.isRequestExisted(sendBy, sendTo);
+    const existingRequest = await this.isAnyRequestExisted(sendBy, sendTo);
     if (existingRequest) {
       if (existingRequest.deletedAt) {
         await this.followRequestRepository.restore(existingRequest.id);
@@ -74,13 +75,23 @@ export class FollowService {
         sendBy: { id: sendBy },
         sendTo: { id: sendTo },
       },
+    });
+    return existingRequest;
+  }
+
+  async isAnyRequestExisted(sendBy: number, sendTo: number) {
+    const existingRequest = await this.followRequestRepository.findOne({
+      where: {
+        sendBy: { id: sendBy },
+        sendTo: { id: sendTo },
+      },
       withDeleted: true,
     });
     return existingRequest;
   }
 
   async deleteRequest(sendBy: number, sendTo: number) {
-    const existingRequest = await this.isRequestExisted(sendBy, sendTo);
+    const existingRequest = await this.isAnyRequestExisted(sendBy, sendTo);
     if (existingRequest && !existingRequest.deletedAt) {
       await this.followRequestRepository.softDelete(existingRequest.id);
     } else {
@@ -152,5 +163,40 @@ export class FollowService {
       freindIntraName: fr.following.intraName,
       freindProfile: fr.following.avatar,
     }));
+  }
+
+  async findFriendsByName(id: number, name: string) {
+    const rawFriends = await this.followRepository
+      .createQueryBuilder('follow')
+      .leftJoinAndSelect('follow.following', 'user')
+      .select([
+        'follow.id',
+        'user.id',
+        'user.intraName',
+        'user.nickName',
+        'user.avatar',
+      ])
+      .where('follow.followerId = :followerId', { followerId: id })
+      .andWhere(
+        new Brackets((qb) => {
+          qb.where('user.intraName LIKE :name', { name: `%${name}%` }).orWhere(
+            'user.nickName LIKE :name',
+            { name: `%${name}%` },
+          );
+        }),
+      )
+      .limit(PAGINATION_LIMIT)
+      .getMany();
+
+    const freinds = rawFriends.map((rawFriend) => {
+      return {
+        followId: rawFriend.id,
+        userId: rawFriend.following.id,
+        nickName: rawFriend.following.nickName,
+        intraName: rawFriend.following.intraName,
+        avatar: rawFriend.following.avatar,
+      };
+    });
+    return freinds;
   }
 }

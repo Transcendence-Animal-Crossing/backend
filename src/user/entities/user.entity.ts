@@ -1,3 +1,4 @@
+import { EmailVerification } from 'src/email/entities/emailVerification.entity';
 import { GameRecord } from 'src/gameRecord/entities/game-record';
 import {
   Column,
@@ -36,6 +37,13 @@ export class User {
 
   @OneToOne(() => GameRecord, (gameRecord) => gameRecord.user)
   gameRecord: GameRecord;
+
+  @OneToOne(
+    () => EmailVerification,
+    (emailVerification) => emailVerification.user,
+  )
+  emailVerification: EmailVerification;
+
   @CreateDateColumn()
   createdAt: Date;
 

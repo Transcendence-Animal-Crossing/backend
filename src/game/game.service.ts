@@ -22,6 +22,12 @@ export class GameService {
     return this.gameRepository.findOneBy({ id: id });
   }
 
+  async findByUserId(id: number) {
+    return this.gameRepository.find({
+      where: [{ winner: { id: id } }, { loser: { id: id } }],
+    });
+  }
+
   async createGame(createGameDto: CreateGameDto) {
     try {
       await this.gameRepository.save(createGameDto);

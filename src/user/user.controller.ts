@@ -33,17 +33,17 @@ export class UserController {
   private readonly logger: Logger = new Logger('UserController');
 
   @Get('user')
-  findOnyById(@Query('id') id: number) {
-    return this.userService.findOneById(id);
+  async findOnyById(@Query('targetId') targetId: number, @Req() req) {
+    return await this.userService.findSummaryOneById(req.user.id, targetId);
   }
 
   @Get('detail')
-  findMeDetail(@Query('id') id: number) {
+  async findMeDetail(@Query('id') id: number) {
     return this.userService.findOneById(id, true);
   }
 
   @Get('me')
-  findMe(@Req() req) {
+  async findMe(@Req() req) {
     return this.userService.findOneById(req.user.id);
   }
 
@@ -130,7 +130,8 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async blockUser(@Body('id') id: number, @Req() req) {
     if (req.user.id != id) {
-      await this.userService.blockUser(req.user.id, id);
+      const user = await this.userService.findOne(req.user.id);
+      await this.userService.blockUser(user, id);
       const follow = await this.followService.isFollowed(req.user.id, id);
       if (follow && !follow.deletedAt) {
         await this.followService.deleteFollow(req.user.id, id);
@@ -152,5 +153,16 @@ export class UserController {
         HttpStatus.BAD_REQUEST,
       );
     }
+  }
+  @Patch('2fa-setup')
+  @HttpCode(HttpStatus.OK)
+  async set2fa(@Req() req) {
+    return await this.userService.set2fa(req.user.id);
+  }
+
+  @Patch('2fa-cancel')
+  @HttpCode(HttpStatus.OK)
+  async cancel2fa(@Req() req) {
+    return await this.userService.cancel2fa(req.user.id);
   }
 }
