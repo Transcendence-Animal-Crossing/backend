@@ -93,7 +93,6 @@ export class UserService {
   }
 
   async findSummaryOneById(id: number, targetId: number) {
-    console.log('id', id, targetId);
     const user = await this.findOne(id);
     let blockStatus = 0;
     let followStatus = 0;
@@ -107,8 +106,8 @@ export class UserService {
 
     return {
       id: targetId,
-      blocked: blockStatus,
-      followRequest: followStatus,
+      blockStatus: blockStatus,
+      followStatus: followStatus,
     };
   }
 
