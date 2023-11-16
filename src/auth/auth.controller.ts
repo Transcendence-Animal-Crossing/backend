@@ -9,7 +9,6 @@ import {
   Post,
   Body,
   HttpStatus,
-  Headers,
   HttpCode,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
@@ -21,6 +20,7 @@ import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 import { GameRecordService } from 'src/gameRecord/game-record.service';
+import { EmailService } from 'src/email/email.service';
 
 @Controller('auth')
 export class AuthController {
@@ -28,6 +28,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly userService: UserService,
     private readonly gameRecordService: GameRecordService,
+    private readonly emailService: EmailService,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
@@ -48,10 +49,13 @@ export class AuthController {
       const existingUser = await this.userService.findByName(
         userPublicData.login,
       );
-
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
+        await this.emailService.initEmailVerification(
+          userPublicData.email,
+          user,
+        );
         //console.log('new user', user);
       } else {
         user = existingUser;
@@ -69,6 +73,7 @@ export class AuthController {
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    console.log('tokens', tokens.accessToken);
     return {
       id: user.id,
       nickName: user.nickName,
@@ -96,6 +101,10 @@ export class AuthController {
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
+        await this.emailService.initEmailVerification(
+          userPublicData.email,
+          user,
+        );
         res.status(201);
       } else {
         user = existingUser;
@@ -202,9 +211,17 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const tokens = await this.authService.signIn(userDto);
-    const user = await this.userService.findOneByIntraName(userDto.intraName);
     if (!tokens) {
       throw new HttpException('token failed', HttpStatus.BAD_REQUEST);
+    }
+    const user = await this.userService.findOneByIntraName(userDto.intraName);
+
+    if (user.two_factor_auth) {
+      //todo: 프론트랑 어떻게 줄지 협의해봐야함
+      throw new HttpException(
+        '2단계 인증이 필요합니다.',
+        HttpStatus.UNAUTHORIZED,
+      );
     }
 
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -223,7 +240,7 @@ export class AuthController {
 
   @Public()
   @HttpCode(HttpStatus.OK)
-  @Get('/token')
+  @Get('token')
   async updateTokens(
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
@@ -233,17 +250,51 @@ export class AuthController {
     if (!accessToken) {
       throw new HttpException('token update failed', HttpStatus.UNAUTHORIZED);
     }
-    res.setHeader('Authorization', 'Bearer ' + accessToken);
+    console.log('update token : ', accessToken);
     res.status(HttpStatus.OK);
     res.send();
   }
+  //분리할까..음..
+  @Public()
+  @HttpCode(HttpStatus.OK)
+  @Get('2fa')
+  async sendEmail(@Body() userDto: LoginUserDto) {
+    const user = await this.userService.findOneByIntraName(userDto.intraName);
+    const emailVerification =
+      await this.emailService.findEmailVerification(user);
+    await this.emailService.createEmailToken(emailVerification.email);
+    await this.emailService.sendEmailVerification(emailVerification.email);
+  }
 
-  //verifyaccesstoken 테스트 지워야함
-  @Get('test')
-  test(@Headers('authorization') authHeader: string) {
-    const token = authHeader && authHeader.split(' ')[1];
+  @Public() //todo 예외처리 해야함
+  @HttpCode(HttpStatus.OK)
+  @Get('email/token')
+  async verifiyPassword(
+    @Body('intraName') intraName: string,
+    @Body('token') token: string,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const user = await this.userService.findOneByIntraName(intraName);
+    const emailVerification =
+      await this.emailService.findEmailVerification(user);
+    await this.emailService.verifyEmailToken(emailVerification, token);
 
-    const payload = this.authService.verifyAccessToken(token);
-    console.log('payload', payload);
+    //todo: 중복 토큰 발급 부분 분리하기
+    const tokens = await this.authService.generateTokens(user.id.toString());
+    if (!tokens) {
+      throw new HttpException('token failed', HttpStatus.BAD_REQUEST);
+    }
+    res.cookie('refreshToken', tokens.refreshToken, {
+      httpOnly: true,
+      maxAge: 30 * 24 * 60 * 60 * 1000,
+    });
+    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
+    console.log('token', tokens);
+    return {
+      id: user.id,
+      nickName: user.nickName,
+      intraName: user.intraName,
+      avatar: user.avatar,
+    };
   }
 }

@@ -41,7 +41,6 @@ export class AppService {
         .leftJoinAndSelect('game.winner', 'winner')
         .where('loser.id = :userId OR winner.id = :userId', { userId: 0 })
         .getCount();
-      console.log('cnt', user0GameCount);
       if (count - user0GameCount < 30) {
         await this.initGame();
       }
