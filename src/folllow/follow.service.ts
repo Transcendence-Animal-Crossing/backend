@@ -29,7 +29,7 @@ export class FollowService {
   }
 
   async createRequest(sendBy: number, sendTo: number) {
-    const reversedRequest = await this.isRequestExisted(sendTo, sendBy);
+    const reversedRequest = await this.isAnyRequestExisted(sendTo, sendBy);
     if (reversedRequest && !reversedRequest.deletedAt) {
       await this.deleteRequest(sendTo, sendBy);
       const follow1 = await this.isFollowed(sendBy, sendTo);
@@ -50,7 +50,7 @@ export class FollowService {
       await this.createFollows(sendBy, sendTo);
       return 'new freinds';
     }
-    const existingRequest = await this.isRequestExisted(sendBy, sendTo);
+    const existingRequest = await this.isAnyRequestExisted(sendBy, sendTo);
     if (existingRequest) {
       if (existingRequest.deletedAt) {
         await this.followRequestRepository.restore(existingRequest.id);
@@ -75,13 +75,23 @@ export class FollowService {
         sendBy: { id: sendBy },
         sendTo: { id: sendTo },
       },
+    });
+    return existingRequest;
+  }
+
+  async isAnyRequestExisted(sendBy: number, sendTo: number) {
+    const existingRequest = await this.followRequestRepository.findOne({
+      where: {
+        sendBy: { id: sendBy },
+        sendTo: { id: sendTo },
+      },
       withDeleted: true,
     });
     return existingRequest;
   }
 
   async deleteRequest(sendBy: number, sendTo: number) {
-    const existingRequest = await this.isRequestExisted(sendBy, sendTo);
+    const existingRequest = await this.isAnyRequestExisted(sendBy, sendTo);
     if (existingRequest && !existingRequest.deletedAt) {
       await this.followRequestRepository.softDelete(existingRequest.id);
     } else {

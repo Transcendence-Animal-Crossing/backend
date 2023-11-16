@@ -33,17 +33,17 @@ export class UserController {
   private readonly logger: Logger = new Logger('UserController');
 
   @Get('user')
-  findOnyById(@Query('id') id: number) {
-    return this.userService.findOneById(id);
+  async findOnyById(@Query('targetId') targetId: number, @Req() req) {
+    return await this.userService.findSummaryOneById(req.user.id, targetId);
   }
 
   @Get('detail')
-  findMeDetail(@Query('id') id: number) {
+  async findMeDetail(@Query('id') id: number) {
     return this.userService.findOneById(id, true);
   }
 
   @Get('me')
-  findMe(@Req() req) {
+  async findMe(@Req() req) {
     return this.userService.findOneById(req.user.id);
   }
 
