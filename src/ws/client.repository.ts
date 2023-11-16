@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { WebSocketServer } from '@nestjs/websockets';
+import { Status } from './const/client.status';
 
 @Injectable()
 export class ClientRepository {
@@ -13,7 +14,7 @@ export class ClientRepository {
   async connect(clientId, userId) {
     await this.cacheManager.set('client-' + clientId, userId);
     await this.cacheManager.set('user-' + userId, clientId);
-    await this.cacheManager.set('user-status-' + userId, 'ONLINE');
+    await this.cacheManager.set('user-status-' + userId, Status.ONLINE);
   }
 
   async disconnect(clientId) {
@@ -31,20 +32,10 @@ export class ClientRepository {
     return await this.cacheManager.get('client-' + clientId);
   }
 
-  async connectedUserIds(): Promise<number[]> {
-    return this.server.allSockets().then((clientIds) => {
-      const userIds = [];
-      for (const clientId of clientIds) {
-        userIds.push(this.findUserId(clientId));
-      }
-      return userIds;
-    });
-  }
-
   async getUserStatus(userId) {
     const status = await this.cacheManager.get('user-status-' + userId);
     if (status) return status;
-    return 'OFFLINE';
+    return Status.OFFLINE;
   }
 
   async saveDMFocus(userId, targetId) {
