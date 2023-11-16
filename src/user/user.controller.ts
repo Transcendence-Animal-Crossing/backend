@@ -131,7 +131,10 @@ export class UserController {
   async blockUser(@Body('id') id: number, @Req() req) {
     if (req.user.id != id) {
       await this.userService.blockUser(req.user.id, id);
-      const follow = await this.followService.isFollowed(req.user.id, id);
+      const follow = await this.followService.findFollowWithDeleted(
+        req.user.id,
+        id,
+      );
       if (follow && !follow.deletedAt) {
         await this.followService.deleteFollow(req.user.id, id);
       }

@@ -30,7 +30,10 @@ export class FollowController {
         '차단한 사람은 친구추가 불가',
         HttpStatus.CONFLICT,
       );
-    const isFollowed = await this.followService.isFollowed(req.user.id, id); //이미 친구이면 exception
+    const isFollowed = await this.followService.findFollowWithDeleted(
+      req.user.id,
+      id,
+    ); //이미 친구이면 exception
     if (isFollowed && !isFollowed.deletedAt) {
       throw new HttpException('already friend', HttpStatus.BAD_REQUEST);
     }
@@ -59,6 +62,6 @@ export class FollowController {
   @Get()
   @HttpCode(HttpStatus.OK)
   async getFollow(@Req() req) {
-    return await this.followService.findAllFriends(req.user.id);
+    return await this.followService.getSimpleFriends(req.user.id);
   }
 }
