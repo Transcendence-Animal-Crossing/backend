@@ -4,6 +4,7 @@ import { Follow } from './entities/follow.entity';
 import { Brackets, Repository } from 'typeorm';
 import { FollowRequest } from './entities/follow-request.entity';
 import { User } from 'src/user/entities/user.entity';
+import { UserData } from '../room/data/user.data';
 import { PAGINATION_LIMIT } from 'src/common/constants';
 
 @Injectable()
@@ -32,8 +33,8 @@ export class FollowService {
     const reversedRequest = await this.isAnyRequestExisted(sendTo, sendBy);
     if (reversedRequest && !reversedRequest.deletedAt) {
       await this.deleteRequest(sendTo, sendBy);
-      const follow1 = await this.isFollowed(sendBy, sendTo);
-      const follow2 = await this.isFollowed(sendTo, sendBy);
+      const follow1 = await this.findFollowWithDeleted(sendBy, sendTo);
+      const follow2 = await this.findFollowWithDeleted(sendTo, sendBy);
       if (follow1 && follow2) {
         //친구관계였다가 취소한경우
         if (follow1.deletedAt && follow2.deletedAt) {
@@ -102,7 +103,16 @@ export class FollowService {
     }
   }
 
-  async isFollowed(sendBy: number, sendTo: number) {
+  async isFollow(sendBy: number, sendTo: number) {
+    return await this.followRepository.exist({
+      where: {
+        follower: { id: sendBy },
+        following: { id: sendTo },
+      },
+    });
+  }
+
+  async findFollowWithDeleted(sendBy: number, sendTo: number) {
     const follow = await this.followRepository.findOne({
       where: {
         follower: { id: sendBy },
@@ -114,8 +124,8 @@ export class FollowService {
   }
 
   async deleteFollow(sendBy: number, sendTo: number) {
-    const follow1 = await this.isFollowed(sendBy, sendTo);
-    const follow2 = await this.isFollowed(sendTo, sendBy);
+    const follow1 = await this.findFollowWithDeleted(sendBy, sendTo);
+    const follow2 = await this.findFollowWithDeleted(sendTo, sendBy);
     if (follow1 && follow2) {
       if (!follow1.deletedAt && !follow2.deletedAt) {
         await this.followRepository.softDelete(follow1.id);
@@ -125,6 +135,7 @@ export class FollowService {
     }
     throw new HttpException('delete failed', HttpStatus.CONFLICT);
   }
+
   async findAllSentTo(userId: number) {
     const followRequests = await this.followRequestRepository
       .createQueryBuilder('followRequest')
@@ -145,7 +156,7 @@ export class FollowService {
     }));
   }
 
-  async findAllFriends(userId: number) {
+  async getSimpleFriends(userId: number) {
     const friends = await this.followRepository
       .createQueryBuilder('follow')
       .leftJoinAndSelect('follow.following', 'following')
@@ -157,12 +168,21 @@ export class FollowService {
       .addSelect('following.avatar')
       .getMany();
 
-    return friends.map((fr) => ({
-      friendId: fr.following.id,
-      freindNickName: fr.following.nickName,
-      freindIntraName: fr.following.intraName,
-      freindProfile: fr.following.avatar,
-    }));
+    return friends.map((fr) =>
+      UserData.create(
+        fr.following.id,
+        fr.following.nickName,
+        fr.following.intraName,
+        fr.following.avatar,
+      ),
+    );
+
+    // return friends.map((fr) => ({
+    //   id: fr.following.id,
+    //   freindNickName: fr.following.nickName,
+    //   freindIntraName: fr.following.intraName,
+    //   freindProfile: fr.following.avatar,
+    // }));
   }
 
   async findFriendsByName(id: number, name: string) {

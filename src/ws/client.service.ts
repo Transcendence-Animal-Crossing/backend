@@ -80,9 +80,9 @@ export class ClientService {
   }
 
   async listenFriendsStatus(client: Socket, user: User) {
-    const friends = await this.followService.findAllFriends(user.id);
+    const friends = await this.followService.getSimpleFriends(user.id);
     for (const friend of friends) {
-      client.join('friend-' + friend.friendId);
+      client.join('friend-' + friend.id);
     }
   }
 
@@ -101,5 +101,17 @@ export class ClientService {
 
   async findClientIdByUserId(id: number): Promise<string> {
     return await this.clientRepository.findClientId(id);
+  }
+
+  async getDMFocus(userId: number) {
+    return await this.clientRepository.getDMFocus(userId);
+  }
+
+  async changeDMFocus(userId: number, targetId: number) {
+    if (targetId === null) {
+      await this.clientRepository.deleteDMFocus(userId);
+      return;
+    }
+    await this.clientRepository.saveDMFocus(userId, targetId);
   }
 }

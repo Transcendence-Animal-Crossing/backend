@@ -9,10 +9,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from './entity/message.entity';
 import { WSModule } from '../ws/ws.module';
 import { FollowModule } from '../folllow/follow.module';
+import { MessageHistory } from './entity/messageHistory.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Message]),
+    TypeOrmModule.forFeature([Message, MessageHistory]),
     AuthModule,
     FollowModule,
     forwardRef(() => UserModule),

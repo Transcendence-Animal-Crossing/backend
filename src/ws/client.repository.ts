@@ -46,4 +46,16 @@ export class ClientRepository {
     if (status) return status;
     return 'OFFLINE';
   }
+
+  async saveDMFocus(userId, targetId) {
+    await this.cacheManager.set('dm-focus-' + userId, targetId);
+  }
+
+  async getDMFocus(userId: number): Promise<number> {
+    return await this.cacheManager.get('dm-focus-' + userId);
+  }
+
+  async deleteDMFocus(userId: number) {
+    await this.cacheManager.del('dm-focus-' + userId);
+  }
 }

@@ -5,55 +5,63 @@ import { Message } from './entity/message.entity';
 import { DirectMessageDto } from './dto/direct-message.dto';
 import { UserService } from '../user/user.service';
 import { LoadMessageDto } from './dto/load-message.dto';
-import { UnreadMessageDto } from './dto/unread-message.dto';
 import { Socket } from 'socket.io';
 import { ClientService } from '../ws/client.service';
-import { ViewMessageDto } from './dto/view-message.dto';
+import { FollowService } from '../folllow/follow.service';
+import { MessageHistory } from './entity/messageHistory.entity';
 
 @Injectable()
 export class ChatService {
   constructor(
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
+    @InjectRepository(MessageHistory)
+    private readonly messageHistoryRepository: Repository<MessageHistory>,
     private readonly userService: UserService,
     private readonly clientService: ClientService,
+    private readonly followService: FollowService,
   ) {}
 
-  async createAndSave(dto: DirectMessageDto, viewed: boolean) {
+  async save(dto: DirectMessageDto) {
     const sender = await this.userService.findOne(dto.senderId);
     const receiver = await this.userService.findOne(dto.receiverId);
-    const message = this.messageRepository.create(
-      Message.create(dto.text, viewed, sender, receiver),
-    );
+    const historyId = MessageHistory.createHistoryId(receiver.id, sender.id);
+    const history = MessageHistory.create(historyId);
+    await this.messageHistoryRepository.upsert(history, ['id']);
+
+    // const message = this.messageRepository.create(historyId, dto.text);
+    const message = Message.create(historyId, dto.text);
     return await this.messageRepository.save(message);
   }
 
-  async countUnReadMessage(userId: number) {
-    const user = await this.userService.findOne(userId);
-    const unreadMessageData: Array<UnreadMessageDto> =
-      await this.messageRepository
-        .createQueryBuilder('message')
-        .select('message.senderId AS senderId')
-        .addSelect('COUNT(*) AS cnt')
-        .where('message.receiverId = :receiverId', { receiverId: user.id })
-        .andWhere('message.viewed = :viewed', { viewed: false })
-        .groupBy('message.senderId')
-        .getRawMany();
-    const unreadMessageCount = {};
-    for (const data of unreadMessageData) {
-      unreadMessageCount[data.getSenderId()] = data.getCount();
-    }
-    return unreadMessageCount;
+  async findUnReadMessageFromFriend(userId: number, friendId: number) {
+    const history = await this.messageHistoryRepository.findOneBy({
+      id: MessageHistory.createHistoryId(userId, friendId),
+    });
+    if (!history) return [];
+    const unreadMessageData = await this.messageRepository
+      .createQueryBuilder('message')
+      .select('message.id AS messageId')
+      .addSelect('message.text AS text')
+      .addSelect('message.created_at AS date')
+      .where('message.history_id = :historyId', { historyId: history.id })
+      .andWhere('message.id > :lastReadMessageId', {
+        lastReadMessageId: history.lastReadMessageId,
+      })
+      .getRawMany();
+    return unreadMessageData.map((data) => ({
+      messageId: data.messageid,
+      date: data.date,
+      text: data.text,
+    }));
   }
 
   async loadWithPagination(userId: number, dto: LoadMessageDto) {
     const user = await this.userService.findOne(userId);
     const target = await this.userService.findOne(dto.targetId);
+    const historyId = MessageHistory.createHistoryId(user.id, target.id);
 
-    let whereCondition =
-      '((sender.id = :userId AND receiver.id = :targetId) ' +
-      'OR ' +
-      '(sender.id = :targetId AND receiver.id = :userId)) ';
+    let whereCondition = 'message.historyId = :historyId ';
     if (dto.cursorId) whereCondition += 'AND message.id < :cursorId';
 
     const messageData = await this.messageRepository
@@ -62,75 +70,18 @@ export class ChatService {
         'message.id AS messageId',
         'message.text AS text',
         'message.created_at AS date',
-        'sender.id AS senderid',
-        'receiver.id AS receiverid',
       ])
-      .innerJoin('message.sender', 'sender')
-      .innerJoin('message.receiver', 'receiver')
       .where(whereCondition, {
-        userId: user.id,
-        targetId: target.id,
+        historyId: historyId,
         cursorId: dto.cursorId,
       })
-      .orderBy('messageId', 'ASC')
+      .orderBy('messageId', 'DESC')
       .take(20)
       .getRawMany();
 
     return messageData.map((data) => ({
-      messageId: data.messageid,
-      senderId: data.senderid,
-      receiverId: data.receiverid,
-      date: data.date,
-      text: data.text,
-    }));
-  }
-
-  async loadAllUnViewed(userId: number, loadMessageDto: LoadMessageDto) {
-    const user = await this.userService.findOne(userId);
-    const target = await this.userService.findOne(loadMessageDto.targetId);
-
-    let whereCondition =
-      '((sender.id = :userId AND receiver.id = :targetId) ' +
-      'OR ' +
-      '(sender.id = :targetId AND receiver.id = :userId)) ';
-    whereCondition += 'AND message.viewed = false ';
-
-    const messageData = await this.messageRepository
-      .createQueryBuilder('message')
-      .select([
-        'message.id AS messageId',
-        'message.text AS text',
-        'message.created_at AS date',
-        'sender.id AS senderid',
-        'receiver.id AS receiverid',
-      ])
-      .innerJoin('message.sender', 'sender')
-      .innerJoin('message.receiver', 'receiver')
-      .where(whereCondition, {
-        userId: user.id,
-        targetId: target.id,
-      })
-      .orderBy('messageId', 'ASC')
-      .take(20)
-      .getRawMany();
-
-    if (messageData.length > 0) {
-      await this.messageRepository
-        .createQueryBuilder('message')
-        .update()
-        .set({ viewed: true })
-        .where('message.receiverId = :receiverId', { receiverId: user.id })
-        .andWhere('message.senderId = :senderId', { senderId: target.id })
-        .andWhere('message.id >= :cursorId', {
-          cursorId: messageData[0].messageId,
-        })
-        .execute();
-    }
-
-    return messageData.map((data) => ({
-      messageId: data.messageid,
-      senderId: data.senderid,
-      receiverId: data.receiverid,
+      id: data.messageid,
+      senderId: target.id,
       date: data.date,
       text: data.text,
     }));
@@ -138,35 +89,39 @@ export class ChatService {
 
   async send(client: Socket, dto: DirectMessageDto) {
     dto.senderId = await this.clientService.findUserIdByClientId(client.id);
-    const receiver = await this.clientService.findClientIdByUserId(
+    if (!(await this.followService.isFollow(dto.senderId, dto.receiverId)))
+      return;
+    const message = await this.save(dto);
+    const receiverClient = await this.clientService.findClientIdByUserId(
       dto.receiverId,
     );
-    if (!receiver) {
-      await this.createAndSave(dto, false);
-      return;
-    }
-    client
-      .to(receiver)
-      .except('block-' + dto.senderId)
-      .emit('direct-message', dto);
-    const { viewed } = await client.emitWithAck('direct-message', dto);
-
-    await this.createAndSave(dto, viewed);
+    if (receiverClient)
+      client.to(receiverClient).emit('dm', {
+        id: message.id,
+        senderId: dto.senderId,
+        date: message.created_at,
+        text: message.text,
+      });
+    client.emit('dm', {
+      id: message.id,
+      senderId: dto.senderId,
+      date: message.created_at,
+      text: message.text,
+    });
   }
 
-  async view(receiverId: number, dto: ViewMessageDto) {
-    await this.messageRepository
+  async updateLastRead(userId: number, beforeFocus: number) {
+    const historyId = MessageHistory.createHistoryId(userId, beforeFocus);
+    const lastMessage = await this.messageRepository
       .createQueryBuilder('message')
-      .update()
-      .set({ viewed: true })
-      .where('message.receiverId = :receiverId', { receiverId: receiverId })
-      .andWhere('message.senderId = :senderId', { senderId: dto.targetId })
-      .andWhere('message.id >= :minId', {
-        minId: dto.minId,
-      })
-      .andWhere('message.id <= :maxId', {
-        maxId: dto.maxId,
-      })
-      .execute();
+      .select('message.id')
+      .where('history_id = :historyId', { historyId: historyId })
+      .orderBy('message.id', 'DESC')
+      .getRawOne();
+
+    await this.messageHistoryRepository.update(
+      { id: historyId },
+      { lastReadMessageId: lastMessage.message_id },
+    );
   }
 }

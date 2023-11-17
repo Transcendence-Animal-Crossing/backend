@@ -56,6 +56,26 @@ export class UserService {
     return this.userRepository.findOneBy({ intraName: name });
   }
 
+  async findBlockUserProfiles(userId: number) {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    const blockUserProfiles = await this.userRepository
+      .createQueryBuilder('user')
+      .select('user.id')
+      .addSelect('user.nickName')
+      .addSelect('user.intraName')
+      .addSelect('user.avatar')
+      .where('user.id IN (:...ids)', { ids: user.blockIds })
+      .getRawMany();
+    return blockUserProfiles.map((blockUserProfile) => {
+      return {
+        id: blockUserProfile.user_id,
+        nickName: blockUserProfile.user_nickName,
+        intraName: blockUserProfile.user_intraName,
+        avatar: blockUserProfile.user_avatar,
+      };
+    });
+  }
+
   async findByIds(ids: number[]): Promise<User[]> {
     return this.userRepository.findBy({ id: In(ids) });
   }
@@ -102,7 +122,8 @@ export class UserService {
     }
     if (await this.followService.isRequestExisted(id, targetId))
       followStatus = 1;
-    if (await this.followService.isFollowed(id, targetId)) followStatus = 2;
+    if (await this.followService.findFollowWithDeleted(id, targetId))
+      followStatus = 2;
 
     return {
       id: targetId,

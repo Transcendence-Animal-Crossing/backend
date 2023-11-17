@@ -4,6 +4,7 @@ import {
   Get,
   HttpStatus,
   Patch,
+  Post,
   Query,
   Render,
   Req,
@@ -15,6 +16,7 @@ import { Public } from './auth/guards/public';
 import { AuthService } from './auth/auth.service';
 import { FollowService } from './folllow/follow.service';
 import { ChatService } from './chat/chat.service';
+import { ClientService } from './ws/client.service';
 
 @Controller()
 export class AppController {
@@ -25,6 +27,7 @@ export class AppController {
     private readonly authService: AuthService,
     private readonly followService: FollowService,
     private readonly chatService: ChatService,
+    private readonly clientService: ClientService,
   ) {}
 
   /*
@@ -72,22 +75,44 @@ export class AppController {
     await this.userService.updatePassword(body.id, body.password);
   }
 
+  // friend-list 테스트 용도
   @Public()
   @Get('/friends')
   async getFriends(@Query('id') id: number) {
-    const friends = await this.followService.findAllFriends(id);
+    const friends = await this.followService.getSimpleFriends(id);
     const friendsWithStatus = [];
-    const unReadMessageData = await this.chatService.countUnReadMessage(id);
     for (const friend of friends) {
-      const unReadMessageCount = unReadMessageData[friend.friendId]
-        ? unReadMessageData[friend.friendId]
-        : 0;
+      const status = 'ONLINE';
+      const unReadMessages = await this.chatService.findUnReadMessageFromFriend(
+        id,
+        friend.id,
+      );
       friendsWithStatus.push({
         ...friend,
-        unReadMessageCount: unReadMessageCount,
+        status,
+        unReadMessages,
       });
     }
-    console.log('friendsWithStatus', friendsWithStatus);
     return { status: HttpStatus.OK, body: friendsWithStatus };
+  }
+
+  // dm 테스트 용도
+  @Public()
+  @Post('/dm')
+  async postChat(@Body() body) {
+    await this.chatService.save({ ...body });
+    return { status: HttpStatus.OK };
+  }
+
+  // chat 테스트 용도
+  @Public()
+  @Post('/dm-focus')
+  async postChatFocus(@Body('userId') userId, @Body('targetId') targetId) {
+    console.log('userId', userId, 'targetId', targetId);
+    const beforeFocus: number = await this.clientService.getDMFocus(userId);
+    if (beforeFocus) await this.chatService.updateLastRead(userId, beforeFocus);
+
+    await this.clientService.changeDMFocus(userId, targetId);
+    return { status: HttpStatus.OK };
   }
 }

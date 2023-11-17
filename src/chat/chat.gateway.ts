@@ -26,7 +26,6 @@ import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
-import { ViewMessageDto } from './dto/view-message.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
@@ -180,7 +179,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK };
   }
 
-  @SubscribeMessage('dm-send')
+  @SubscribeMessage('dm')
   async onDirectMessageSend(client: Socket, dto: DirectMessageDto) {
     this.logger.debug('Client Send Event <dm-send>');
 
@@ -197,25 +196,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK, body: messages };
   }
 
-  @SubscribeMessage('dm-load-unviewed')
-  async onDirectMessageLoadUnRead(
-    client: Socket,
-    loadMessageDto: LoadMessageDto,
-  ) {
-    this.logger.debug('Client Send Event <dm-load-unviewed>');
+  @SubscribeMessage('dm-focus')
+  async onDirectMessageFocus(client: Socket, dto: LoadMessageDto) {
+    this.logger.debug('Client Send Event <dm-focus>');
     const userId = await this.clientRepository.findUserId(client.id);
-    const messages = await this.chatService.loadAllUnViewed(
-      userId,
-      loadMessageDto,
-    );
-    return { status: HttpStatus.OK, body: messages };
-  }
 
-  @SubscribeMessage('dm-view')
-  async onDirectMessageRead(client: Socket, dto: ViewMessageDto) {
-    this.logger.debug('Client Send Event <dm-read>');
-    const userId = await this.clientRepository.findUserId(client.id);
-    await this.chatService.view(userId, dto);
+    const beforeFocus: number = await this.clientService.getDMFocus(userId);
+    if (beforeFocus) await this.chatService.updateLastRead(userId, beforeFocus);
+
+    await this.clientService.changeDMFocus(userId, dto.targetId);
     return { status: HttpStatus.OK };
   }
 
@@ -223,20 +212,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onFriendList(client: Socket) {
     this.logger.debug('Client Send Event <friend-list>');
     const userId = await this.clientRepository.findUserId(client.id);
-    const friends = await this.followService.findAllFriends(userId);
+
+    const friends = await this.followService.getSimpleFriends(userId);
     const friendsWithStatus = [];
-    const unReadMessageData = await this.chatService.countUnReadMessage(userId);
     for (const friend of friends) {
-      const status = await this.clientRepository.getUserStatus(friend.friendId);
-      const unReadMessageCount = unReadMessageData[friend.friendId]
-        ? unReadMessageData[friend.friendId]
-        : 0;
+      const status = await this.clientRepository.getUserStatus(friend.id);
+      const unReadMessages = this.chatService.findUnReadMessageFromFriend(
+        userId,
+        friend.id,
+      );
       friendsWithStatus.push({
         ...friend,
         status,
-        unReadMessageCount: unReadMessageCount,
+        unReadMessages,
       });
     }
     return { status: HttpStatus.OK, body: friendsWithStatus };
+  }
+
+  @SubscribeMessage('block-list')
+  async onBlockList(client: Socket) {
+    this.logger.debug('Client Send Event <block-list>');
+    const userId = await this.clientRepository.findUserId(client.id);
+    const blockUserProfiles =
+      await this.userService.findBlockUserProfiles(userId);
+
+    return { status: HttpStatus.OK, body: blockUserProfiles };
   }
 }
