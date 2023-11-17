@@ -6,7 +6,12 @@ import { QueueGateway } from './queue.gateway';
 import { ClientService } from '../ws/client.service';
 import { Namespace } from '../ws/const/namespace';
 import { GameService } from '../game/game.service';
-import { GameType, GAMETYPE_RANK } from '../game/const/game.type';
+import {
+  GameType,
+  GAMETYPE_CLASSIC,
+  GAMETYPE_RANK,
+  GAMETYPE_SPECIAL,
+} from '../game/const/game.type';
 
 @Injectable()
 export class QueueCron {
@@ -20,9 +25,9 @@ export class QueueCron {
   @Cron(CronExpression.EVERY_5_SECONDS)
   async matchCron(): Promise<void> {
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
-      await this.match(manager, GameType.RANK);
-      await this.match(manager, GameType.CLASSIC);
-      await this.match(manager, GameType.SPECIAL);
+      await this.match(manager, GAMETYPE_RANK);
+      await this.match(manager, GAMETYPE_CLASSIC);
+      await this.match(manager, GAMETYPE_SPECIAL);
     });
   }
 
@@ -41,7 +46,7 @@ export class QueueCron {
     }
   }
 
-  private async generalMatch(manager: EntityManager, queue: ObjectLiteral[]) {
+  private async generalMatch(manager: EntityManager, queue) {
     while (queue.length >= 2) {
       const matched = queue.splice(0, 2);
       const game = await this.gameService.initGame(matched[0].type);
@@ -58,7 +63,5 @@ export class QueueCron {
     }
   }
 
-  private async rankMatch(manager: EntityManager, queue: ObjectLiteral[]) {
-
-  }
+  private async rankMatch(manager: EntityManager, queue: ObjectLiteral[]) {}
 }
