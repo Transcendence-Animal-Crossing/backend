@@ -15,18 +15,22 @@ export class Standby {
   @Column()
   type: GameType;
 
+  @Column()
+  rankScore: number;
+
   @UpdateDateColumn()
   updatedAt: Date;
 
   @CreateDateColumn()
   createdAt: Date;
 
-  constructor(id: number, type: GameType) {
+  constructor(id: number, type: GameType, rankScore: number) {
     this.id = id;
     this.type = type;
+    this.rankScore = rankScore;
   }
 
-  static create(id: number, type: GameType) {
-    return new Standby(id, type);
+  static create(id: number, type: GameType, rankScore: number) {
+    return new Standby(id, type, rankScore);
   }
 }

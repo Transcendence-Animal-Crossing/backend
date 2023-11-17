@@ -2,10 +2,14 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { JoinQueueDto } from './dto/join-queue.dto';
 import { DataSource } from 'typeorm';
 import { Standby } from './entities/standby.entity';
+import { GameRecordService } from '../gameRecord/game-record.service';
 
 @Injectable()
 export class QueueService {
-  constructor(private readonly dataSource: DataSource) {}
+  constructor(
+    private readonly dataSource: DataSource,
+    private readonly gameRecordService: GameRecordService,
+  ) {}
 
   async join(userId: number, dto: JoinQueueDto) {
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
@@ -33,6 +37,7 @@ export class QueueService {
   // }
 
   private async joinQueue(manager, userId: number, dto: JoinQueueDto) {
-    manager.save(Standby.create(userId, dto.type));
+    const gameRecord = await this.gameRecordService.findOneById(userId);
+    manager.save(Standby.create(userId, dto.type, gameRecord.rankScore));
   }
 }

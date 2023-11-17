@@ -91,12 +91,16 @@ export class GameRecordService {
     });
   }
 
-  async findRecord(id: number, isRank: boolean) {
-    const gameRecord = await this.gameRecordRepository.findOne({
+  async findOneById(id: number) {
+    return await this.gameRecordRepository.findOne({
       where: {
         user: { id: id },
       },
     });
+  }
+
+  async findRecord(id: number, isRank: boolean) {
+    const gameRecord = await this.findOneById(id);
     let winRate;
 
     if (isRank) {

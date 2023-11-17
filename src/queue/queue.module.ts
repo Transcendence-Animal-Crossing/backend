@@ -6,9 +6,15 @@ import { QueueGateway } from './queue.gateway';
 import { WSModule } from '../ws/ws.module';
 import { QueueCron } from './queue.cron';
 import { GameModule } from '../game/game.module';
+import { GameRecordModule } from '../gameRecord/game-record.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Standby]), WSModule, GameModule],
+  imports: [
+    TypeOrmModule.forFeature([Standby]),
+    WSModule,
+    GameModule,
+    GameRecordModule,
+  ],
   providers: [QueueService, QueueGateway, QueueCron],
   exports: [QueueService],
 })
