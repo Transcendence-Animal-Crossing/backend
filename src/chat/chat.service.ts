@@ -9,6 +9,7 @@ import { Socket } from 'socket.io';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
 import { MessageHistory } from './entity/messageHistory.entity';
+import { Namespace } from '../ws/const/namespace';
 
 @Injectable()
 export class ChatService {
@@ -80,7 +81,7 @@ export class ChatService {
       .getRawMany();
 
     return messageData.map((data) => ({
-      messageId: data.messageid,
+      id: data.messageid,
       senderId: target.id,
       date: data.date,
       text: data.text,
@@ -88,15 +89,24 @@ export class ChatService {
   }
 
   async send(client: Socket, dto: DirectMessageDto) {
-    dto.senderId = await this.clientService.findUserIdByClientId(client.id);
+    dto.senderId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     if (!(await this.followService.isFollow(dto.senderId, dto.receiverId)))
       return;
-
+    const message = await this.save(dto);
     const receiverClient = await this.clientService.findClientIdByUserId(
+      Namespace.CHAT,
       dto.receiverId,
     );
-    if (receiverClient) client.to(receiverClient).emit('dm', dto);
-    await this.save(dto);
+    if (receiverClient)
+      client.to(receiverClient).emit('dm', {
+        id: message.id,
+        senderId: dto.senderId,
+        date: message.created_at,
+        text: message.text,
+      });
   }
 
   async updateLastRead(userId: number, beforeFocus: number) {

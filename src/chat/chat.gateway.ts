@@ -26,9 +26,10 @@ import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
+import { Namespace } from '../ws/const/namespace';
 
 // @UsePipes(new ValidationPipe())
-@WebSocketGateway({ namespace: '/chat' })
+@WebSocketGateway({ namespace: Namespace.CHAT })
 @UseFilters(new CustomSocketFilter())
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -46,12 +47,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    const user = await this.clientService.connect(client);
+    console.log('clientId', client.id);
+    const user = await this.clientService.connect(Namespace.CHAT, client);
     this.logger.log('[Chat WebSocket Connected!]: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
-    const user = await this.clientService.disconnect(client);
+    console.log('userId', client.data.userId);
+    const user = await this.clientService.disconnect(Namespace.CHAT, client);
     const room = await this.roomService.getJoinedRoom(user.id);
     if (room) await this.roomService.leave(client, user, room);
     this.logger.log('[Chat WebSocket Disconnected!]: ' + user.nickName);
@@ -98,7 +101,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-leave')
   async onRoomLeave(client: Socket, dto: LeaveRoomDto) {
     this.logger.debug('Client Send Event <room-leave>');
-    const userId = await this.clientRepository.findUserId(client.id);
+    const userId = await this.clientRepository.findUserId(
+      Namespace.CHAT,
+      client.id,
+    );
     const user = await this.userService.findOne(userId);
     const room = await this.roomService.findById(dto.roomId);
 
@@ -133,7 +139,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-kick')
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-kick>');
-    const userId = await this.clientRepository.findUserId(client.id);
+    const userId = await this.clientRepository.findUserId(
+      Namespace.CHAT,
+      client.id,
+    );
 
     await this.roomService.kick(userId, dto);
     return { status: HttpStatus.OK };
@@ -191,7 +200,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('dm-load')
   async onDirectMessageLoad(client: Socket, dto: LoadMessageDto) {
     this.logger.debug('Client Send Event <dm-load>');
-    const userId = await this.clientRepository.findUserId(client.id);
+    const userId = await this.clientRepository.findUserId(
+      Namespace.CHAT,
+      client.id,
+    );
     const messages = await this.chatService.loadWithPagination(userId, dto);
     return { status: HttpStatus.OK, body: messages };
   }
@@ -199,7 +211,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('dm-focus')
   async onDirectMessageFocus(client: Socket, dto: LoadMessageDto) {
     this.logger.debug('Client Send Event <dm-focus>');
-    const userId = await this.clientRepository.findUserId(client.id);
+    const userId = await this.clientRepository.findUserId(
+      Namespace.CHAT,
+      client.id,
+    );
 
     const beforeFocus: number = await this.clientService.getDMFocus(userId);
     if (beforeFocus) await this.chatService.updateLastRead(userId, beforeFocus);
@@ -211,7 +226,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('friend-list')
   async onFriendList(client: Socket) {
     this.logger.debug('Client Send Event <friend-list>');
-    const userId = await this.clientRepository.findUserId(client.id);
+    const userId = await this.clientRepository.findUserId(
+      Namespace.CHAT,
+      client.id,
+    );
 
     const friends = await this.followService.getSimpleFriends(userId);
     const friendsWithStatus = [];
@@ -233,7 +251,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('block-list')
   async onBlockList(client: Socket) {
     this.logger.debug('Client Send Event <block-list>');
-    const userId = await this.clientRepository.findUserId(client.id);
+    const userId = await this.clientRepository.findUserId(
+      Namespace.CHAT,
+      client.id,
+    );
     const blockUserProfiles =
       await this.userService.findBlockUserProfiles(userId);
 
