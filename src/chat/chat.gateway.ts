@@ -230,6 +230,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.CHAT,
       client.id,
     );
+    if (!userId) return { status: HttpStatus.EARLYHINTS };
 
     const friends = await this.followService.getSimpleFriends(userId);
     const friendsWithStatus = [];
