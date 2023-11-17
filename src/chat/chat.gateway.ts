@@ -212,6 +212,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onFriendList(client: Socket) {
     this.logger.debug('Client Send Event <friend-list>');
     const userId = await this.clientRepository.findUserId(client.id);
+    if (!userId) return { status: HttpStatus.EARLYHINTS };
 
     const friends = await this.followService.getSimpleFriends(userId);
     const friendsWithStatus = [];
