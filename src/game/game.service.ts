@@ -28,6 +28,10 @@ export class GameService {
     });
   }
 
+  async initGame(isRank: boolean, isSpecial: boolean) {
+    return await this.gameRepository.save(Game.init(isRank, isSpecial));
+  }
+
   async createGame(createGameDto: CreateGameDto) {
     try {
       await this.gameRepository.save(createGameDto);

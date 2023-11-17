@@ -24,9 +24,12 @@ import { GameRecordService } from './gameRecord/game-record.service';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { FollowService } from './folllow/follow.service';
 import { Follow } from './folllow/entities/follow.entity';
+import { QueueModule } from './queue/queue.module';
+import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     CacheModule.register({
       ttl: null,
       max: 1000,
@@ -59,6 +62,7 @@ import { Follow } from './folllow/entities/follow.entity';
     GameModule,
     GameRecordModule,
     GameModule,
+    QueueModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

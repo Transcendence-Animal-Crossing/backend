@@ -28,6 +28,7 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { RoomMessageDto } from '../chat/dto/room-message.dto';
 import { ClientService } from '../ws/client.service';
 import { Status } from '../ws/const/client.status';
+import { Namespace } from '../ws/const/namespace';
 
 @WebSocketGateway()
 @Injectable()
@@ -70,7 +71,10 @@ export class RoomService {
   }
 
   async joinRoom(client: Socket, dto: JoinRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const user = await this.userService.findOne(userId);
     const room: Room = await this.findById(dto.roomId);
 
@@ -96,7 +100,10 @@ export class RoomService {
   }
 
   async create(client: Socket, dto: ConfigRoomDto) {
-    const ownerId = await this.clientService.findUserIdByClientId(client.id);
+    const ownerId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const owner = await this.userService.findOne(ownerId);
     const room = Room.create(dto.title, owner, dto.mode, dto.password);
 
@@ -109,7 +116,10 @@ export class RoomService {
   }
 
   async mute(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
@@ -138,7 +148,10 @@ export class RoomService {
   }
 
   async unmute(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
@@ -175,13 +188,17 @@ export class RoomService {
 
     this.server.to(dto.roomId).emit('room-kick', dto);
     const kickedClient = await this.clientService.getClientByUserId(
+      Namespace.CHAT,
       dto.targetId,
     );
     kickedClient.leave(dto.roomId);
   }
 
   async ban(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
@@ -203,13 +220,17 @@ export class RoomService {
     await this.roomRepository.update(room);
     this.server.to(dto.roomId).emit('room-ban', dto);
     const bannedClient = await this.clientService.getClientByUserId(
+      Namespace.CHAT,
       dto.targetId,
     );
     bannedClient.leave(dto.roomId);
   }
 
   async unban(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
 
@@ -274,7 +295,10 @@ export class RoomService {
   }
 
   async addAdmin(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.findById(dto.roomId);
     if (this.getGrade(userId, room) !== Grade.OWNER)
       throw new ForbiddenException('방장만이 관리자를 추가할 수 있습니다.');
@@ -293,7 +317,10 @@ export class RoomService {
   }
 
   async removeAdmin(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.findById(dto.roomId);
     if (this.getGrade(userId, room) !== Grade.OWNER)
       throw new ForbiddenException('방장만이 관리자를 회수할 수 있습니다.');
@@ -312,7 +339,10 @@ export class RoomService {
   }
 
   async invite(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.findById(dto.roomId);
     if (!this.isParticipant(userId, room))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
@@ -326,6 +356,7 @@ export class RoomService {
     await this.roomRepository.update(room);
 
     const invitedClient = await this.clientService.getClientByUserId(
+      Namespace.CHAT,
       dto.targetId,
     );
     invitedClient.emit('room-invite', SimpleRoomDto.from(room));
@@ -395,7 +426,10 @@ export class RoomService {
   }
 
   async sendMessage(client: Socket, roomMessageDto: RoomMessageDto) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     roomMessageDto.senderId = userId;
 
     const room = await this.findById(roomMessageDto.roomId);
@@ -414,7 +448,10 @@ export class RoomService {
   }
 
   async changeMode(client: Socket, mode: string, password: string) {
-    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const userId = await this.clientService.findUserIdByClientId(
+      Namespace.CHAT,
+      client.id,
+    );
     const room = await this.getJoinedRoom(userId);
     if (!room) throw new BadRequestException('방에 참여하고 있지 않습니다.');
     const userGrade = this.getGrade(userId, room);
@@ -422,12 +459,9 @@ export class RoomService {
       throw new ForbiddenException('방장만이 모드를 변경할 수 있습니다.');
 
     room.mode = mode;
-    if (room.mode !== mode)
-      this.server
-        .to('room-lobby')
-        .emit('room-update', SimpleRoomDto.from(room));
     if (mode === 'PROTECTED') room.password = password;
 
+    this.server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
     this.server.to(room.id).emit('room-mode', {
       mode: mode,
     });

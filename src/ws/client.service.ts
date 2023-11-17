@@ -21,10 +21,11 @@ export class ClientService {
     private readonly followService: FollowService,
   ) {}
 
-  async connect(client: Socket) {
+  async connect(namespace, client: Socket) {
     this.logger.log('Trying to connect WebSocket...');
     const user = await this.findUserByToken(client);
-    await this.clientRepository.connect(client.id, user.id);
+    client.data.userId = user.id;
+    await this.clientRepository.connect(namespace, client.id, user.id);
     user.blockIds.map((id) => {
       this.ignoreUser(client, id);
     });
@@ -33,9 +34,9 @@ export class ClientService {
     return user;
   }
 
-  async disconnect(client: Socket) {
+  async disconnect(namespace, client: Socket) {
     const user = await this.findUserByToken(client);
-    await this.clientRepository.disconnect(client.id);
+    await this.clientRepository.disconnect(namespace, client.id);
     await this.sendUpdateToFriends(user, Status.OFFLINE);
     return user;
   }
@@ -69,8 +70,11 @@ export class ClientService {
     client.disconnect(true);
   }
 
-  async getClientByUserId(userId: number): Promise<Socket> {
-    const clientId = await this.clientRepository.findClientId(userId);
+  async getClientByUserId(namespace, userId: number): Promise<Socket> {
+    const clientId = await this.clientRepository.findClientId(
+      namespace,
+      userId,
+    );
     if (!clientId) return null;
     return this.server.sockets.sockets.get(clientId);
   }
@@ -95,12 +99,12 @@ export class ClientService {
     });
   }
 
-  async findUserIdByClientId(id: string): Promise<number> {
-    return await this.clientRepository.findUserId(id);
+  async findUserIdByClientId(namespace, id: string): Promise<number> {
+    return await this.clientRepository.findUserId(namespace, id);
   }
 
-  async findClientIdByUserId(id: number): Promise<string> {
-    return await this.clientRepository.findClientId(id);
+  async findClientIdByUserId(namespace, id: number): Promise<string> {
+    return await this.clientRepository.findClientId(namespace, id);
   }
 
   async getDMFocus(userId: number) {

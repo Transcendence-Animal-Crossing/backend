@@ -17,6 +17,7 @@ import { AuthService } from './auth/auth.service';
 import { FollowService } from './folllow/follow.service';
 import { ChatService } from './chat/chat.service';
 import { ClientService } from './ws/client.service';
+import { QueueService } from './queue/queue.service';
 
 @Controller()
 export class AppController {
@@ -28,6 +29,7 @@ export class AppController {
     private readonly followService: FollowService,
     private readonly chatService: ChatService,
     private readonly clientService: ClientService,
+    private readonly queueService: QueueService,
   ) {}
 
   /*
@@ -113,6 +115,14 @@ export class AppController {
     if (beforeFocus) await this.chatService.updateLastRead(userId, beforeFocus);
 
     await this.clientService.changeDMFocus(userId, targetId);
+    return { status: HttpStatus.OK };
+  }
+
+  // queue 테스트 용도
+  @Public()
+  @Post('/queue')
+  async postQueue(@Body('userId') userId, @Body() body) {
+    await this.queueService.join(userId, { ...body });
     return { status: HttpStatus.OK };
   }
 }

@@ -40,9 +40,24 @@ export class Game {
   @Column()
   isRank: boolean;
 
+  @Column()
+  isSpecial: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 
   @UpdateDateColumn()
   updatedAt: Date;
+
+  static init(isRank: boolean, isSpecial: boolean) {
+    const game = new Game();
+    game.winnerId = 0;
+    game.loserId = 0;
+    game.winnerScore = 0;
+    game.loserScore = 0;
+    game.playTime = 0;
+    game.isRank = isRank;
+    game.isSpecial = isSpecial;
+    return game;
+  }
 }
