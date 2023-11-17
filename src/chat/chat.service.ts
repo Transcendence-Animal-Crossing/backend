@@ -44,7 +44,7 @@ export class ChatService {
       .select('message.id AS messageId')
       .addSelect('message.text AS text')
       .addSelect('message.created_at AS date')
-      .where('message.historyId = :historyId', { historyId: history.id })
+      .where('message.history_id = :historyId', { historyId: history.id })
       .andWhere('message.id > :lastReadMessageId', {
         lastReadMessageId: history.lastReadMessageId,
       })
