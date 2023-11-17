@@ -1,9 +1,7 @@
-import { IsBoolean } from 'class-validator';
+import { IsString } from 'class-validator';
+import { GameType } from '../../game/const/game.type';
 
 export class JoinQueueDto {
-  @IsBoolean()
-  readonly isRank: boolean;
-
-  @IsBoolean()
-  readonly isSpecial: boolean;
+  @IsString()
+  readonly type: GameType;
 }

@@ -33,6 +33,6 @@ export class QueueService {
   // }
 
   private async joinQueue(manager, userId: number, dto: JoinQueueDto) {
-    manager.save(Standby.create(userId, dto.isRank, dto.isSpecial));
+    manager.save(Standby.create(userId, dto.type));
   }
 }

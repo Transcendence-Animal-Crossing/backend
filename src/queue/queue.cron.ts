@@ -6,6 +6,7 @@ import { QueueGateway } from './queue.gateway';
 import { ClientService } from '../ws/client.service';
 import { Namespace } from '../ws/const/namespace';
 import { GameService } from '../game/game.service';
+import { GameType, GAMETYPE_RANK } from '../game/const/game.type';
 
 @Injectable()
 export class QueueCron {
@@ -19,40 +20,31 @@ export class QueueCron {
   @Cron(CronExpression.EVERY_5_SECONDS)
   async matchCron(): Promise<void> {
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
-      await this.match(manager, true, true);
-      await this.match(manager, true, false);
-      await this.match(manager, false, true);
-      await this.match(manager, false, false);
+      await this.match(manager, GameType.RANK);
+      await this.match(manager, GameType.CLASSIC);
+      await this.match(manager, GameType.SPECIAL);
     });
   }
 
-  private async match(
-    manager: EntityManager,
-    isRank: boolean,
-    isSpecial: boolean,
-  ) {
+  private async match(manager: EntityManager, type: GameType) {
     const queue = await manager
       .getRepository(Standby)
       .createQueryBuilder('standby')
       .select('standby.id')
-      .where('standby.isRank = :isRank', { isRank })
-      .andWhere('standby.isSpecial = :isSpecial', { isSpecial })
+      .where('standby.type = :type', { type })
       .orderBy('standby.createdAt', 'ASC')
       .getMany();
 
     while (queue.length >= 2) {
-      if (isRank) await this.generalMatch(manager, queue);
-      else await this.rankMatch(manager, queue);
+      if (type === GAMETYPE_RANK) await this.rankMatch(manager, queue);
+      else await this.generalMatch(manager, queue);
     }
   }
 
   private async generalMatch(manager: EntityManager, queue: ObjectLiteral[]) {
     while (queue.length >= 2) {
       const matched = queue.splice(0, 2);
-      const game = await this.gameService.initGame(
-        matched[0].isRank,
-        matched[0].isSpecial,
-      );
+      const game = await this.gameService.initGame(matched[0].type);
       for (const user of matched) {
         const client = await this.clientService.getClientByUserId(
           Namespace.QUEUE,

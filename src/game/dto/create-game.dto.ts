@@ -1,4 +1,5 @@
-import { IsBoolean, IsNumber } from 'class-validator';
+import { IsNumber, IsString } from 'class-validator';
+import { GameType } from '../const/game.type';
 
 export class CreateGameDto {
   @IsNumber()
@@ -16,6 +17,6 @@ export class CreateGameDto {
   @IsNumber()
   loserId: number;
 
-  @IsBoolean()
-  isRank: boolean;
+  @IsString()
+  type: GameType;
 }

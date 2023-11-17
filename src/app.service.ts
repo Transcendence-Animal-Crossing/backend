@@ -1,14 +1,14 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ILike, Repository } from 'typeorm';
+import { Injectable, Logger } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { User } from './user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRecord } from './gameRecord/entities/game-record';
 import { Game } from './game/entities/game.entity';
 import { Follow } from './folllow/entities/follow.entity';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
-import { GameService } from './game/game.service';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
+import { GameType } from './game/const/game.type';
 
 @Injectable()
 export class AppService {
@@ -128,13 +128,15 @@ export class AppService {
     const userIds = Array.from({ length: 20 }, (_, index) => index); // 0부터 19까지의 사용자 ID 배열
 
     for (let gameIndex = 0; gameIndex < totalGames; gameIndex++) {
-      let playerIndices = this.getRandomPlayerIndices(userIds);
+      const playerIndices = this.getRandomPlayerIndices(userIds);
       const winnerId = userIds[playerIndices[0]];
       const loserId = userIds[playerIndices[1]];
       const winnerScore = Math.floor(Math.random() * (60 - 50 + 1)); // 0~50
       const loserScore = Math.floor(Math.random() * winnerScore); // 패자 점수: 0 ~ winnerScore - 1
       const playTime = Math.floor(Math.random() * (3600 - 300 + 1)) + 300; // 게임 시간: 300초(5분) ~ 3600초(1시간)
-      const isRank = Math.random() > 0.5; // 랭크 게임 여부: 50% 확률
+      const randType = Math.floor(Math.random() * 3); // 게임 타입: 0~2
+      const type: GameType =
+        randType === 0 ? 'RANK' : randType === 1 ? 'CLASSIC' : 'SPECIAL';
 
       const newGame = await this.gameRepository.create({
         winnerId,
@@ -142,21 +144,21 @@ export class AppService {
         winnerScore,
         loserScore,
         playTime,
-        isRank,
+        type,
       });
 
       await this.gameRepository.save(newGame);
       await this.gameRecordService.updateGameRecord(
         newGame.winnerId,
         newGame.loserId,
-        newGame.isRank,
+        newGame.type,
       );
     }
   }
   getRandomPlayerIndices(userIds: number[]): number[] {
-    let indexSet = new Set<number>();
+    const indexSet = new Set<number>();
     while (indexSet.size < 2) {
-      let randomIndex = Math.floor(Math.random() * userIds.length);
+      const randomIndex = Math.floor(Math.random() * userIds.length);
       indexSet.add(randomIndex);
     }
     return Array.from(indexSet);
@@ -180,7 +182,9 @@ export class AppService {
       const winnerScore = Math.floor(Math.random() * (60 - 50 + 1));
       const loserScore = Math.floor(Math.random() * winnerScore); //여기서는 패자 점수 설정해줌
       const playTime = Math.floor(Math.random() * (3600 - 300 + 1)) + 300;
-      const isRank = Math.random() > 0.5;
+      const randType = Math.floor(Math.random() * 3); // 게임 타입: 0~2
+      const type: GameType =
+        randType === 0 ? 'RANK' : randType === 1 ? 'CLASSIC' : 'SPECIAL';
 
       const newGame = await this.gameRepository.create({
         winnerId,
@@ -188,14 +192,14 @@ export class AppService {
         winnerScore,
         loserScore,
         playTime,
-        isRank,
+        type,
       });
 
       await this.gameRepository.save(newGame);
       await this.gameRecordService.updateGameRecord(
         newGame.winnerId,
         newGame.loserId,
-        newGame.isRank,
+        newGame.type,
       );
     }
   }

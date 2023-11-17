@@ -5,6 +5,7 @@ import { Game } from './entities/game.entity';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameRecord } from '../gameRecord/entities/game-record';
 import { PAGINATION_LIMIT } from 'src/common/constants';
+import { GameType } from './const/game.type';
 
 @Injectable()
 export class GameService {
@@ -28,8 +29,8 @@ export class GameService {
     });
   }
 
-  async initGame(isRank: boolean, isSpecial: boolean) {
-    return await this.gameRepository.save(Game.init(isRank, isSpecial));
+  async initGame(type: GameType) {
+    return await this.gameRepository.save(Game.init(type));
   }
 
   async createGame(createGameDto: CreateGameDto) {
@@ -43,7 +44,7 @@ export class GameService {
     }
   }
 
-  async getAllGamesById(id: number, isRank: boolean, offset: number) {
+  async getAllGamesById(id: number, type: GameType, offset: number) {
     const games = await this.gameRepository
       .createQueryBuilder('game')
       .leftJoinAndSelect('game.loser', 'loser')
@@ -62,9 +63,9 @@ export class GameService {
         'loser.intraName',
         'loser.avatar',
       ])
-      .where('(loser.id = :id OR winner.id = :id) AND game.isRank = :isRank', {
+      .where('(loser.id = :id OR winner.id = :id) AND game.type = :type', {
         id,
-        isRank,
+        type,
       })
       .orderBy('game.id', 'DESC')
       .offset(offset)

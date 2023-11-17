@@ -8,6 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { GameType } from '../const/game.type';
 
 @Entity()
 export class Game {
@@ -38,10 +39,7 @@ export class Game {
   playTime: number;
 
   @Column()
-  isRank: boolean;
-
-  @Column()
-  isSpecial: boolean;
+  type: GameType;
 
   @CreateDateColumn()
   createdAt: Date;
@@ -49,15 +47,32 @@ export class Game {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  static init(isRank: boolean, isSpecial: boolean) {
+  static create(
+    winnerId: number,
+    loserId: number,
+    winnerScore: number,
+    loserScore: number,
+    playTime: number,
+    type: GameType,
+  ) {
+    const game = new Game();
+    game.winnerId = winnerId;
+    game.loserId = loserId;
+    game.winnerScore = winnerScore;
+    game.loserScore = loserScore;
+    game.playTime = playTime;
+    game.type = type;
+    return game;
+  }
+
+  static init(type: GameType) {
     const game = new Game();
     game.winnerId = 0;
     game.loserId = 0;
     game.winnerScore = 0;
     game.loserScore = 0;
     game.playTime = 0;
-    game.isRank = isRank;
-    game.isSpecial = isSpecial;
+    game.type = type;
     return game;
   }
 }

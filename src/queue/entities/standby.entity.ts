@@ -5,6 +5,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
+import { GameType } from '../../game/const/game.type';
 
 @Entity()
 export class Standby {
@@ -12,10 +13,7 @@ export class Standby {
   id: number;
 
   @Column()
-  isRank: boolean;
-
-  @Column()
-  isSpecial: boolean;
+  type: GameType;
 
   @UpdateDateColumn()
   updatedAt: Date;
@@ -23,13 +21,12 @@ export class Standby {
   @CreateDateColumn()
   createdAt: Date;
 
-  constructor(id: number, isRank: boolean, isSpecial: boolean) {
+  constructor(id: number, type: GameType) {
     this.id = id;
-    this.isRank = isRank;
-    this.isSpecial = isSpecial;
+    this.type = type;
   }
 
-  static create(id: number, isRank: boolean, isSpecial: boolean) {
-    return new Standby(id, isRank, isSpecial);
+  static create(id: number, type: GameType) {
+    return new Standby(id, type);
   }
 }
