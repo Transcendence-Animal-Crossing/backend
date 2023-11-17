@@ -31,14 +31,16 @@ export class QueueCron {
     });
   }
 
-  private async match(manager: EntityManager, type: GameType) {
-    const queue = await manager
+  private async match(manager: 중, type: GameType) {
+    const data = await manager
       .getRepository(Standby)
       .createQueryBuilder('standby')
       .select('standby.id')
+      .addSelect('standby.rankScore')
       .where('standby.type = :type', { type })
       .orderBy('standby.createdAt', 'ASC')
       .getMany();
+    // const queue: Standby[] = data
 
     if (type === GAMETYPE_RANK) await this.rankMatch(manager, queue);
     else await this.generalMatch(manager, queue);
@@ -51,7 +53,7 @@ export class QueueCron {
     }
   }
 
-  private async rankMatch(manager: EntityManager, queue: ObjectLiteral[]) {
+  private async rankMatch(manager: EntityManager, queue: Standby[]) {
     queue.sort((a, b) => {
       return a.rank - b.rank;
     });
@@ -64,19 +66,19 @@ export class QueueCron {
 
   /**
    * @description
-   * standardUser가 matchable한 범위를 벗어나면 break
-   * matchable한 범위 안에 들어오면서 standardUser와 matchable한 user를 찾으면 break
+   * standardUser의 matchable한 범위를 벗어나면 break
+   * 쌍방으로 matchable 하면 매칭하고 break
    */
 
   private async findMatchableUser(
     manager: EntityManager,
-    queue: ObjectLiteral[],
-    standardUser: ObjectLiteral,
+    queue: Standby[],
+    standardUser: Standby,
   ) {
     for (let i = 0; i < queue.length; ++i) {
       if (!this.isMatchable(standardUser, queue[i])) break;
       if (this.isMatchable(queue[i], standardUser)) {
-        const matchedUser = queue.splice(i, 1);
+        const matchedUser = queue.splice(i, 1)[0];
         --i;
         await this.processMatchedUser(manager, standardUser, matchedUser);
         break;
@@ -86,8 +88,8 @@ export class QueueCron {
 
   private async processMatchedUser(
     manager: EntityManager,
-    userA: ObjectLiteral,
-    userB: ObjectLiteral,
+    userA: Standby,
+    userB: Standby,
   ) {
     const game = await this.gameService.initGame(userA.type);
     await this.sendMatchedEvent(userA, game);
