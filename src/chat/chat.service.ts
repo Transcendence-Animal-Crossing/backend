@@ -45,7 +45,7 @@ export class ChatService {
       .select('message.id AS messageId')
       .addSelect('message.text AS text')
       .addSelect('message.created_at AS date')
-      .where('message.historyId = :historyId', { historyId: history.id })
+      .where('message.history_id = :historyId', { historyId: history.id })
       .andWhere('message.id > :lastReadMessageId', {
         lastReadMessageId: history.lastReadMessageId,
       })
@@ -107,6 +107,12 @@ export class ChatService {
         date: message.created_at,
         text: message.text,
       });
+    client.emit('dm', {
+      id: message.id,
+      senderId: dto.senderId,
+      date: message.created_at,
+      text: message.text,
+    });
   }
 
   async updateLastRead(userId: number, beforeFocus: number) {
