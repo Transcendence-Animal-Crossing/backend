@@ -80,7 +80,7 @@ export class ChatService {
       .getRawMany();
 
     return messageData.map((data) => ({
-      messageId: data.messageid,
+      id: data.messageid,
       senderId: target.id,
       date: data.date,
       text: data.text,
@@ -91,12 +91,17 @@ export class ChatService {
     dto.senderId = await this.clientService.findUserIdByClientId(client.id);
     if (!(await this.followService.isFollow(dto.senderId, dto.receiverId)))
       return;
-
+    const message = await this.save(dto);
     const receiverClient = await this.clientService.findClientIdByUserId(
       dto.receiverId,
     );
-    if (receiverClient) client.to(receiverClient).emit('dm', dto);
-    await this.save(dto);
+    if (receiverClient)
+      client.to(receiverClient).emit('dm', {
+        id: message.id,
+        senderId: dto.senderId,
+        date: message.created_at,
+        text: message.text,
+      });
   }
 
   async updateLastRead(userId: number, beforeFocus: number) {
