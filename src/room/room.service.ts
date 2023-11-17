@@ -379,7 +379,7 @@ export class RoomService {
     this.server.to(room.id).emit('user-update', {
       id: user.id,
       nickName: nickName,
-      image: image,
+      avatar: image,
     });
 
     await this.roomRepository.update(room);
