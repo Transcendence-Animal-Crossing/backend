@@ -31,7 +31,7 @@ export class QueueCron {
     });
   }
 
-  private async match(manager: 중, type: GameType) {
+  private async match(manager: EntityManager, type: GameType) {
     const data = await manager
       .getRepository(Standby)
       .createQueryBuilder('standby')
@@ -40,7 +40,9 @@ export class QueueCron {
       .where('standby.type = :type', { type })
       .orderBy('standby.createdAt', 'ASC')
       .getMany();
-    // const queue: Standby[] = data
+    const queue: Standby[] = data.map((d) => {
+      return Standby.create(d.id, type, d.rankScore);
+    });
 
     if (type === GAMETYPE_RANK) await this.rankMatch(manager, queue);
     else await this.generalMatch(manager, queue);
@@ -55,7 +57,7 @@ export class QueueCron {
 
   private async rankMatch(manager: EntityManager, queue: Standby[]) {
     queue.sort((a, b) => {
-      return a.rank - b.rank;
+      return a.rankScore - b.rankScore;
     });
     this.cacheMatchableRank(queue);
     while (queue.length >= 2) {
