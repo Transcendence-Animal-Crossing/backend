@@ -91,7 +91,7 @@ export class ClientService {
   }
 
   sendUpdateToFriends(user: User, status: string) {
-    this.server.to('friend-' + user.id).emit('friend-status', {
+    this.server.to('friend-' + user.id).emit('friend-update', {
       id: user.id,
       nickName: user.nickName,
       avatar: user.avatar,
