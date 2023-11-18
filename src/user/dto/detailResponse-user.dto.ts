@@ -5,9 +5,15 @@ export class DetailResponseUserDto extends ResponseUserDto {
   achievements: string[];
 }
 
-export function toDetailResponseUserDto(user: User): DetailResponseUserDto {
+export async function toDetailResponseUserDto(
+  user: User,
+  achievementService,
+): Promise<DetailResponseUserDto> {
+  const achievements = await achievementService.getAchievementsInOrder(
+    user.achievements,
+  );
   return {
     ...toResponseUserDto(user),
-    achievements: user.achievements,
+    achievements: achievements,
   };
 }

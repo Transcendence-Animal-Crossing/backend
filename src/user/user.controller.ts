@@ -110,16 +110,6 @@ export class UserController {
     return '패스워드 설정 햇뜸';
   }
 
-  //todo : achievement update 고쳐야함
-  @Patch('achievement')
-  async updateAchievements(
-    @Body('intraName') intraName: string,
-    @Body('achievement') achievement: string,
-  ) {
-    await this.userService.updateAchievements(intraName, achievement);
-    return 'success';
-  }
-
   @Post('search')
   @HttpCode(HttpStatus.OK)
   async searchUser(@Body('name') name: string, @Body('offset') offset: number) {

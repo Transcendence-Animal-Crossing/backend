@@ -19,6 +19,7 @@ import { Game } from 'src/game/entities/game.entity';
 import { GameRecord } from 'src/gameRecord/entities/game-record';
 import { PAGINATION_LIMIT } from 'src/common/constants';
 import { FollowService } from 'src/folllow/follow.service';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Injectable()
 export class UserService {
@@ -28,6 +29,7 @@ export class UserService {
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
     private followService: FollowService,
+    private readonly achievementService: AchievementService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -109,7 +111,9 @@ export class UserService {
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
 
-    return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
+    return detailed
+      ? toDetailResponseUserDto(user, this.achievementService)
+      : toResponseUserDto(user);
   }
 
   async findSummaryOneById(id: number, targetId: number) {
