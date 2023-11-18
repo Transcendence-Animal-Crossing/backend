@@ -114,14 +114,15 @@ export class ChatService {
     const historyId = MessageHistory.createHistoryId(userId, beforeFocus);
     const lastMessage = await this.messageRepository
       .createQueryBuilder('message')
-      .select('message.id')
+      .select('message.id AS id')
       .where('history_id = :historyId', { historyId: historyId })
       .orderBy('message.id', 'DESC')
       .getRawOne();
 
-    await this.messageHistoryRepository.update(
-      { id: historyId },
-      { lastReadMessageId: lastMessage.message_id },
-    );
+    if (lastMessage)
+      await this.messageHistoryRepository.update(
+        { id: historyId },
+        { lastReadMessageId: lastMessage.id },
+      );
   }
 }
