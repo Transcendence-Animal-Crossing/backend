@@ -6,6 +6,7 @@ import { User } from '../user/entities/user.entity';
 import { RoomRepository } from './room.repository';
 import { WSModule } from '../ws/ws.module';
 import { ChatModule } from '../chat/chat.module';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Module({
   imports: [
@@ -14,7 +15,7 @@ import { ChatModule } from '../chat/chat.module';
     forwardRef(() => WSModule),
     forwardRef(() => ChatModule),
   ],
-  providers: [RoomService, RoomRepository],
+  providers: [RoomService, RoomRepository, AchievementService],
   exports: [RoomService, RoomRepository],
 })
 export class RoomModule {}

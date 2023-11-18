@@ -28,6 +28,7 @@ import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { RoomMessageDto } from '../chat/dto/room-message.dto';
 import { ClientService } from '../ws/client.service';
 import { Status } from '../ws/const/client.status';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @WebSocketGateway()
 @Injectable()
@@ -42,6 +43,7 @@ export class RoomService {
     private readonly roomRepository: RoomRepository,
     private readonly clientService: ClientService,
     private readonly userService: UserService,
+    private readonly achievementService: AchievementService,
   ) {}
 
   async joinLobby(client: Socket): Promise<SimpleRoomDto[]> {
@@ -86,6 +88,8 @@ export class RoomService {
     await this.roomRepository.userJoin(dto.roomId, userId);
     room.participants.push(ParticipantData.of(user, Grade.PARTICIPANT));
     await this.roomRepository.update(room);
+
+    await this.achievementService.getChattingJoin(user);
 
     client.join(dto.roomId);
     this.server
