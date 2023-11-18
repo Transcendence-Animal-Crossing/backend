@@ -122,8 +122,7 @@ export class UserService {
     }
     if (await this.followService.isRequestExisted(id, targetId))
       followStatus = 1;
-    if (await this.followService.findFollowWithDeleted(id, targetId))
-      followStatus = 2;
+    if (await this.followService.isFollow(id, targetId)) followStatus = 2;
 
     return {
       id: targetId,
