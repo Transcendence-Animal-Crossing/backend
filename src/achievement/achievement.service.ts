@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { Repository } from 'typeorm';
@@ -31,6 +31,7 @@ export class AchievementService {
 
   async getFollowRequestAchievement(user: User) {
     await this.addAchievement(user, Achievement.FriendRequest);
+    this.hasAllAchievements(user);
   }
 
   async getSignUpAchievement(user: User) {
@@ -39,22 +40,32 @@ export class AchievementService {
 
   async getFiveFriendsAchievement(user: User) {
     await this.addAchievement(user, Achievement.FiveFriends);
+    this.hasAllAchievements(user);
   }
 
   async getGeneralGameAchievement(user: User) {
     await this.addAchievement(user, Achievement.GeneralGameStart);
+    this.hasAllAchievements(user);
   }
 
   async getRankGameAchievement(user: User) {
     await this.addAchievement(user, Achievement.RankGameStart);
+    this.hasAllAchievements(user);
   }
 
   async getChattingJoin(user: User) {
     await this.addAchievement(user, Achievement.ChattingJoin);
+    this.hasAllAchievements(user);
   }
 
   async hasAllAchievements(user: User) {
     if (user.achievements.length === 6)
       await this.addAchievement(user, Achievement.AllAchievements);
+  }
+
+  async getAchievementsInOrder(userAchievements: string[]) {
+    return Object.values(Achievement).map((achievement) =>
+      userAchievements.includes(achievement) ? 1 : 0,
+    );
   }
 }
