@@ -21,6 +21,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { LoginUserDto } from 'src/user/dto/login-user.dto';
 import { GameRecordService } from 'src/gameRecord/game-record.service';
 import { EmailService } from 'src/email/email.service';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Controller('auth')
 export class AuthController {
@@ -29,6 +30,7 @@ export class AuthController {
     private readonly userService: UserService,
     private readonly gameRecordService: GameRecordService,
     private readonly emailService: EmailService,
+    private readonly achievementService: AchievementService,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
   ) {}
 
@@ -52,6 +54,7 @@ export class AuthController {
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
+        await this.achievementService.getSignUpAchievement(user);
         await this.emailService.initEmailVerification(
           userPublicData.email,
           user,
@@ -60,6 +63,13 @@ export class AuthController {
       } else {
         user = existingUser;
         //console.log('already existed', user);
+      }
+      if (user.two_factor_auth) {
+        await this.emailService.sendEmailVerification(user);
+        return res.status(HttpStatus.UNAUTHORIZED).json({
+          message: '2단계 인증이 필요합니다.',
+          redirect: '/2fa', //todo: 프론트 리다이렉션 주소로 변경
+        });
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -101,6 +111,7 @@ export class AuthController {
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
+        await this.achievementService.getSignUpAchievement(user);
         await this.emailService.initEmailVerification(
           userPublicData.email,
           user,
@@ -109,6 +120,13 @@ export class AuthController {
       } else {
         user = existingUser;
         res.status(200);
+      }
+      if (user.two_factor_auth) {
+        await this.emailService.sendEmailVerification(user);
+        return res.status(HttpStatus.UNAUTHORIZED).json({
+          message: '2단계 인증이 필요합니다.',
+          redirect: '/2fa', //todo: 프론트 리다이렉션 주소로 변경
+        });
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -217,11 +235,11 @@ export class AuthController {
     const user = await this.userService.findOneByIntraName(userDto.intraName);
 
     if (user.two_factor_auth) {
-      //todo: 프론트랑 어떻게 줄지 협의해봐야함
-      throw new HttpException(
-        '2단계 인증이 필요합니다.',
-        HttpStatus.UNAUTHORIZED,
-      );
+      await this.emailService.sendEmailVerification(user);
+      return res.status(HttpStatus.UNAUTHORIZED).json({
+        message: '2단계 인증이 필요합니다.',
+        redirect: '/2fa', //todo: 프론트 리다이렉션 주소로 변경
+      });
     }
 
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -255,16 +273,16 @@ export class AuthController {
     res.send();
   }
   //분리할까..음..
-  @Public()
-  @HttpCode(HttpStatus.OK)
-  @Get('2fa')
-  async sendEmail(@Body() userDto: LoginUserDto) {
-    const user = await this.userService.findOneByIntraName(userDto.intraName);
-    const emailVerification =
-      await this.emailService.findEmailVerification(user);
-    await this.emailService.createEmailToken(emailVerification.email);
-    await this.emailService.sendEmailVerification(emailVerification.email);
-  }
+  //@Public()
+  //@HttpCode(HttpStatus.OK)
+  //@Get('2fa')
+  //async sendEmail(@Body() userDto: LoginUserDto) {
+  //  const user = await this.userService.findOneByIntraName(userDto.intraName);
+  //  const emailVerification =
+  //    await this.emailService.findEmailVerification(user);
+  //  await this.emailService.createEmailToken(emailVerification.email);
+  //  await this.emailService.sendEmailVerification(emailVerification.email);
+  //}
 
   @Public() //todo 예외처리 해야함
   @HttpCode(HttpStatus.OK)
