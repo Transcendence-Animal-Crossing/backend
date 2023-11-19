@@ -44,7 +44,7 @@ export class EmailService {
     }
   }
 
-  async sendEmailVerification(email: string) {
+  async sendEmail(email: string) {
     const model = await this.emailVerificationRepository.findOne({
       where: { email },
     });
@@ -58,7 +58,6 @@ export class EmailService {
           pass: process.env.EMAIL_PASS,
         },
       });
-
       const mailOptions = {
         from: process.env.EMAIL_FROM,
         to: email,
@@ -106,5 +105,11 @@ export class EmailService {
         HttpStatus.UNAUTHORIZED,
       );
     }
+  }
+
+  async sendEmailVerification(user: User) {
+    const emailVerification = await this.findEmailVerification(user);
+    await this.createEmailToken(emailVerification.email);
+    await this.sendEmail(emailVerification.email);
   }
 }

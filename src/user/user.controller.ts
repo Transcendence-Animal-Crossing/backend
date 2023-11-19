@@ -34,7 +34,7 @@ export class UserController {
 
   @Get('user')
   async findOnyById(@Query('targetId') targetId: number, @Req() req) {
-    return await this.userService.findSummaryOneById(req.user.id, targetId);
+    return await this.userService.findRelationById(req.user.id, targetId);
   }
 
   @Get('detail')
@@ -110,16 +110,6 @@ export class UserController {
     return '패스워드 설정 햇뜸';
   }
 
-  //todo : achievement update 고쳐야함
-  @Patch('achievement')
-  async updateAchievements(
-    @Body('intraName') intraName: string,
-    @Body('achievement') achievement: string,
-  ) {
-    await this.userService.updateAchievements(intraName, achievement);
-    return 'success';
-  }
-
   @Post('search')
   @HttpCode(HttpStatus.OK)
   async searchUser(@Body('name') name: string, @Body('offset') offset: number) {
@@ -132,7 +122,10 @@ export class UserController {
     if (req.user.id != id) {
       const user = await this.userService.findOne(req.user.id);
       await this.userService.blockUser(user, id);
-      const follow = await this.followService.findFollowWithDeleted(req.user.id, id);
+      const follow = await this.followService.findFollowWithDeleted(
+        req.user.id,
+        id,
+      );
       if (follow && !follow.deletedAt) {
         await this.followService.deleteFollow(req.user.id, id);
       }

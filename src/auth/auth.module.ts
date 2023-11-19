@@ -11,6 +11,7 @@ import { User } from '../user/entities/user.entity';
 import { GameRecordModule } from 'src/gameRecord/game-record.module';
 import { EmailVerification } from 'src/email/entities/emailVerification.entity';
 import { EmailService } from 'src/email/email.service';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Module({
   imports: [
@@ -22,7 +23,13 @@ import { EmailService } from 'src/email/email.service';
       signOptions: { expiresIn: process.env.JWT_REFRESH_EXPIRE },
     }),
   ],
-  providers: [AuthService, LocalStrategy, JwtStrategy, EmailService],
+  providers: [
+    AuthService,
+    LocalStrategy,
+    JwtStrategy,
+    EmailService,
+    AchievementService,
+  ],
   controllers: [AuthController],
   exports: [AuthService],
 })

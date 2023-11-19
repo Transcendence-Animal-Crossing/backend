@@ -19,6 +19,7 @@ import { Game } from 'src/game/entities/game.entity';
 import { GameRecord } from 'src/gameRecord/entities/game-record';
 import { PAGINATION_LIMIT } from 'src/common/constants';
 import { FollowService } from 'src/folllow/follow.service';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Injectable()
 export class UserService {
@@ -28,6 +29,7 @@ export class UserService {
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
     private followService: FollowService,
+    private readonly achievementService: AchievementService,
   ) {}
 
   async findAll(): Promise<User[]> {
@@ -109,10 +111,22 @@ export class UserService {
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
 
-    return detailed ? toDetailResponseUserDto(user) : toResponseUserDto(user);
+    if (!detailed) {
+      return toResponseUserDto(user);
+    }
+    const gameRecord = await this.gameRecordRepository.findOne({
+      where: { user: { id: id } },
+    });
+    const orderedAchievements =
+      await this.achievementService.getAchievementsInOrder(user.achievements);
+    return toDetailResponseUserDto(
+      user,
+      orderedAchievements,
+      (await gameRecord).rankScore,
+    );
   }
 
-  async findSummaryOneById(id: number, targetId: number) {
+  async findRelationById(id: number, targetId: number) {
     const user = await this.findOne(id);
     let blockStatus = 0;
     let followStatus = 0;
@@ -122,8 +136,7 @@ export class UserService {
     }
     if (await this.followService.isRequestExisted(id, targetId))
       followStatus = 1;
-    if (await this.followService.findFollowWithDeleted(id, targetId))
-      followStatus = 2;
+    if (await this.followService.isFollow(id, targetId)) followStatus = 2;
 
     return {
       id: targetId,
