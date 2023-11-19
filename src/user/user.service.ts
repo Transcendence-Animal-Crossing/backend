@@ -111,9 +111,19 @@ export class UserService {
     const user = await this.userRepository.findOneBy({ id: id });
     if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
 
-    return detailed
-      ? toDetailResponseUserDto(user, this.achievementService)
-      : toResponseUserDto(user);
+    if (!detailed) {
+      return toResponseUserDto(user);
+    }
+    const gameRecord = await this.gameRecordRepository.findOne({
+      where: { user: { id: id } },
+    });
+    const orderedAchievements =
+      await this.achievementService.getAchievementsInOrder(user.achievements);
+    return toDetailResponseUserDto(
+      user,
+      orderedAchievements,
+      (await gameRecord).rankScore,
+    );
   }
 
   async findRelationById(id: number, targetId: number) {
