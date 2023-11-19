@@ -54,7 +54,7 @@ export class AuthController {
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
-        await this.achievementService.getSignUpAchievement(user);
+        await this.achievementService.addSignUpAchievement(user);
         await this.emailService.initEmailVerification(
           userPublicData.email,
           user,
@@ -66,7 +66,7 @@ export class AuthController {
       }
       if (user.two_factor_auth) {
         await this.emailService.sendEmailVerification(user);
-        return res.status(HttpStatus.UNAUTHORIZED).json({
+        return res.status(HttpStatus.CONTINUE).json({
           message: '2단계 인증이 필요합니다.',
           redirect: '/2fa', //todo: 프론트 리다이렉션 주소로 변경
         });
@@ -111,7 +111,7 @@ export class AuthController {
       if (!existingUser) {
         user = await this.userService.createUser(userPublicData);
         await this.gameRecordService.initGameRecord(user);
-        await this.achievementService.getSignUpAchievement(user);
+        await this.achievementService.addSignUpAchievement(user);
         await this.emailService.initEmailVerification(
           userPublicData.email,
           user,

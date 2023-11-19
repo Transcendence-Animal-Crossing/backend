@@ -57,11 +57,11 @@ export class FollowService {
       const sendToFollowCount = await this.getFollowCount(sendTo);
       if (sendByFollowCount == 5) {
         const user = await this.userRepository.findOneBy({ id: sendBy });
-        await this.achievementService.getFiveFriendsAchievement(user);
+        await this.achievementService.addFiveFriendsAchievement(user);
       }
       if (sendToFollowCount == 5) {
         const user = await this.userRepository.findOneBy({ id: sendTo });
-        await this.achievementService.getFiveFriendsAchievement(user);
+        await this.achievementService.addFiveFriendsAchievement(user);
       }
       return 'new freinds';
     }

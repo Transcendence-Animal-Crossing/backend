@@ -116,7 +116,7 @@ export class UserService {
       : toResponseUserDto(user);
   }
 
-  async findSummaryOneById(id: number, targetId: number) {
+  async findRelationById(id: number, targetId: number) {
     const user = await this.findOne(id);
     let blockStatus = 0;
     let followStatus = 0;

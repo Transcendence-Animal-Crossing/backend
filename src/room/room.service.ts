@@ -89,7 +89,7 @@ export class RoomService {
     room.participants.push(ParticipantData.of(user, Grade.PARTICIPANT));
     await this.roomRepository.update(room);
 
-    await this.achievementService.getChattingJoin(user);
+    await this.achievementService.addChattingJoin(user);
 
     client.join(dto.roomId);
     this.server

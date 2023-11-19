@@ -29,21 +29,21 @@ export class AchievementService {
     }
   }
 
-  async getFollowRequestAchievement(user: User) {
+  async addFollowRequestAchievement(user: User) {
     await this.addAchievement(user, Achievement.FriendRequest);
     this.hasAllAchievements(user);
   }
 
-  async getSignUpAchievement(user: User) {
+  async addSignUpAchievement(user: User) {
     await this.addAchievement(user, Achievement.SignUp);
   }
 
-  async getFiveFriendsAchievement(user: User) {
+  async addFiveFriendsAchievement(user: User) {
     await this.addAchievement(user, Achievement.FiveFriends);
     this.hasAllAchievements(user);
   }
 
-  async getGeneralGameAchievement(user: User) {
+  async addGeneralGameAchievement(user: User) {
     await this.addAchievement(user, Achievement.GeneralGameStart);
     this.hasAllAchievements(user);
   }
@@ -53,7 +53,7 @@ export class AchievementService {
     this.hasAllAchievements(user);
   }
 
-  async getChattingJoin(user: User) {
+  async addChattingJoin(user: User) {
     await this.addAchievement(user, Achievement.ChattingJoin);
     this.hasAllAchievements(user);
   }

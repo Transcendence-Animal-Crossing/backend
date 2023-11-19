@@ -41,7 +41,7 @@ export class FollowController {
       throw new HttpException('already friend', HttpStatus.BAD_REQUEST);
     }
     await this.followService.createRequest(req.user.id, id);
-    await this.achievementService.getFollowRequestAchievement(user);
+    await this.achievementService.addFollowRequestAchievement(user);
   }
 
   @Delete('request')
@@ -50,7 +50,7 @@ export class FollowController {
     await this.followService.deleteRequest(req.user.id, id);
   }
 
-  @Delete('request/other')
+  @Delete('requested')
   @HttpCode(HttpStatus.OK)
   async deleteOtherRequest(@Body('sendBy') id: number, @Req() req) {
     await this.followService.deleteRequest(id, req.user.id);

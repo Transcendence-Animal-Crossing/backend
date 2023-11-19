@@ -34,7 +34,7 @@ export class UserController {
 
   @Get('user')
   async findOnyById(@Query('targetId') targetId: number, @Req() req) {
-    return await this.userService.findSummaryOneById(req.user.id, targetId);
+    return await this.userService.findRelationById(req.user.id, targetId);
   }
 
   @Get('detail')
