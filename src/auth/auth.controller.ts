@@ -66,10 +66,7 @@ export class AuthController {
       }
       if (user.two_factor_auth) {
         await this.emailService.sendEmailVerification(user);
-        return res.status(HttpStatus.CONTINUE).json({
-          message: '2단계 인증이 필요합니다.',
-          redirect: '/2fa', //todo: 프론트 리다이렉션 주소로 변경
-        });
+        return res.redirect('/2fa');
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -123,10 +120,7 @@ export class AuthController {
       }
       if (user.two_factor_auth) {
         await this.emailService.sendEmailVerification(user);
-        return res.status(HttpStatus.UNAUTHORIZED).json({
-          message: '2단계 인증이 필요합니다.',
-          redirect: '/2fa', //todo: 프론트 리다이렉션 주소로 변경
-        });
+        return res.redirect('/2fa');
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -236,10 +230,7 @@ export class AuthController {
 
     if (user.two_factor_auth) {
       await this.emailService.sendEmailVerification(user);
-      return res.status(HttpStatus.UNAUTHORIZED).json({
-        message: '2단계 인증이 필요합니다.',
-        redirect: '/2fa', //todo: 프론트 리다이렉션 주소로 변경
-      });
+      return res.redirect('/2fa');
     }
 
     res.cookie('refreshToken', tokens.refreshToken, {
