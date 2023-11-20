@@ -23,6 +23,7 @@ import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
+import { UserData } from '../room/data/user.data';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway()
