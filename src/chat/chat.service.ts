@@ -35,10 +35,14 @@ export class ChatService {
   }
 
   async findUnReadMessageFromFriend(userId: number, friendId: number) {
-    const history = await this.messageHistoryRepository.findOneBy({
-      id: MessageHistory.createHistoryId(userId, friendId),
+    const historyId = MessageHistory.createHistoryId(userId, friendId);
+    let history = await this.messageHistoryRepository.findOneBy({
+      id: historyId,
     });
-    if (!history) return [];
+    if (!history) {
+      history = MessageHistory.create(historyId);
+      await this.messageHistoryRepository.upsert(history, ['id']);
+    }
     const unreadMessageData = await this.messageRepository
       .createQueryBuilder('message')
       .select('message.id AS id')
