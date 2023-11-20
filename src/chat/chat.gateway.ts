@@ -183,7 +183,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('dm')
   async onDirectMessageSend(client: Socket, dto: DirectMessageDto) {
     this.logger.debug('Client Send Event <dm-send>');
-
     await this.chatService.send(client, dto);
 
     return { status: HttpStatus.OK };
@@ -232,44 +231,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK, body: friendsWithStatus };
   }
 
-  // @SubscribeMessage('friend-request-list')
-  // async onFriendRequestList(client: Socket) {
-  //   this.logger.debug('Client Send Event <friend-request-list>');
-  //   const userId = await this.clientRepository.findUserId(client.id);
-  //   if (!userId) return { status: HttpStatus.EARLYHINTS };
-  //
-  //   const requests = await this.followService.findAllSentTo(userId);
-  //   const requestsWithStatus = [];
-  //   for (const request of requests) {
-  //     const status = await this.clientRepository.getUserStatus(request.id);
-  //     requestsWithStatus.push({
-  //       ...request,
-  //       status,
-  //     });
-  //   }
-  //   return { status: HttpStatus.OK, body: requestsWithStatus };
-  // }
-
-  // @SubscribeMessage('friend-request')
-  // async onFriendRequest(client: Socket) {
-  //   this.logger.debug('Client Send Event <friend-request>');
-  //   const userId = await this.clientRepository.findUserId(client.id);
-  //   const user = await this.userService.findOne(userId);
-  //   if (await this.userService.isBlocked(user, id))
-  //     throw new HttpException(
-  //       '차단한 사람은 친구추가 불가',
-  //       HttpStatus.CONFLICT,
-  //     );
-  //   const isFollowed = await this.followService.findFollowWithDeleted(
-  //     req.user.id,
-  //     id,
-  //   ); //이미 친구이면 exception
-  //   if (isFollowed && !isFollowed.deletedAt) {
-  //     throw new HttpException('already friend', HttpStatus.BAD_REQUEST);
-  //   }
-  //   return await this.followService.createRequest(req.user.id, id);
-  // }
-
   @SubscribeMessage('block-list')
   async onBlockList(client: Socket) {
     this.logger.debug('Client Send Event <block-list>');
@@ -284,12 +245,59 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return this.server.sockets.sockets.get(clientId);
   }
 
-  async changeUserProfile(user, nickName: string, avatar: string) {
-    await this.roomService.changeUserProfile(
-      this.server,
-      user,
-      nickName,
-      avatar,
-    );
+  async handleProfileChange(profile) {
+    const friends = await this.followService.getSimpleFriends(profile.id);
+    for (const friend of friends) {
+      const client = await this.getClientByUserId(friend.id);
+      if (client) {
+        client.emit('friend-update', profile);
+      }
+    }
+  }
+
+  async handleNewFriend(userA: UserData, userB: UserData) {
+    const userAClientId = await this.clientRepository.findClientId(userA.id);
+    const userBClientId = await this.clientRepository.findClientId(userB.id);
+    if (userAClientId) {
+      const client = this.server.sockets.sockets.get(userAClientId);
+      client.join('friend-' + userB.id);
+      const userBWithStatus = {
+        ...userB,
+        status: await this.clientRepository.getUserStatus(userB.id),
+      };
+      client.emit('new-friend', userBWithStatus);
+    }
+    if (userBClientId) {
+      const client = this.server.sockets.sockets.get(userBClientId);
+      client.join('friend-' + userA.id);
+      const userAWithStatus = {
+        ...userA,
+        status: await this.clientRepository.getUserStatus(userA.id),
+      };
+      client.emit('new-friend', userAWithStatus);
+    }
+  }
+
+  async handleDeleteFriend(userAId: number, userBId: number) {
+    const userAClientId = await this.clientRepository.findClientId(userAId);
+    const userBClientId = await this.clientRepository.findClientId(userBId);
+    if (userAClientId) {
+      const client = this.server.sockets.sockets.get(userAClientId);
+      client.leave('friend-' + userBId);
+    }
+    if (userBClientId) {
+      const client = this.server.sockets.sockets.get(userBClientId);
+      client.leave('friend-' + userAId);
+    }
+  }
+
+  async handleBlockUser(blockerId: number, blockedId: number) {
+    const client = await this.getClientByUserId(blockerId);
+    if (client) client.join('block-' + blockedId);
+  }
+
+  async handleUnBlockUser(blockerId: number, unBlockedId: number) {
+    const client = await this.getClientByUserId(blockerId);
+    if (client) client.join('block-' + unBlockedId);
   }
 }
