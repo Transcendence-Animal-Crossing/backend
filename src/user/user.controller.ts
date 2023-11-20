@@ -28,7 +28,6 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly followService: FollowService,
-    private readonly roomService: RoomService,
   ) {}
   private readonly logger: Logger = new Logger('UserController');
 
@@ -66,7 +65,7 @@ export class UserController {
       nickName,
       file.filename,
     );
-    await this.roomService.changeUserProfile(
+    await this.userService.changeUserProfile(
       req.user.id,
       nickName,
       file.filename,
@@ -87,7 +86,7 @@ export class UserController {
   ) {
     await this.userService.checkNickName(req.user.id, nickName);
     await this.userService.saveUrlImage(req.user.id, nickName, avatar);
-    await this.roomService.changeUserProfile(req.user.id, nickName, avatar);
+    await this.userService.changeUserProfile(req.user.id, nickName, avatar);
     return {
       id: req.user.id,
       nickName: nickName,
