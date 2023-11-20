@@ -52,6 +52,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleDisconnect(client: Socket) {
     await this.roomService.leave(this.server, client);
+    await this.clientService.disconnect(this.server, client);
     this.logger.debug('[WebSocket Disconnected!] socketId: ' + client.id);
   }
 
