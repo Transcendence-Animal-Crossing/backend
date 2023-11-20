@@ -219,7 +219,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const friendsWithStatus = [];
     for (const friend of friends) {
       const status = await this.clientRepository.getUserStatus(friend.id);
-      const unReadMessages = this.chatService.findUnReadMessageFromFriend(
+      const unReadMessages = await this.chatService.findUnReadMessageFromFriend(
         userId,
         friend.id,
       );
