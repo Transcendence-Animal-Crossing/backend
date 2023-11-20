@@ -14,6 +14,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FollowService } from './follow.service';
 import { UserService } from 'src/user/user.service';
 import { AchievementService } from 'src/achievement/achievement.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Controller('follow')
 @UseGuards(JwtAuthGuard)
@@ -22,6 +23,7 @@ export class FollowController {
     private followService: FollowService,
     private readonly userService: UserService,
     private readonly achievementService: AchievementService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   @Post('request')
@@ -40,7 +42,9 @@ export class FollowController {
     if (isFollowed && !isFollowed.deletedAt) {
       throw new HttpException('already friend', HttpStatus.BAD_REQUEST);
     }
-    await this.followService.createRequest(req.user.id, id);
+    const result = await this.followService.createRequest(req.user.id, id);
+    if (result == HttpStatus.CREATED)
+      this.eventEmitter.emit('new.friend', req.user.id, id);
     await this.achievementService.addFollowRequestAchievement(user);
   }
 
@@ -61,6 +65,7 @@ export class FollowController {
   async deleteFollow(@Body('sendTo') id: number, @Req() req) {
     console.log('send byid', req.user.id);
     await this.followService.deleteFollow(req.user.id, id);
+    this.eventEmitter.emit('delete.friend', req.user.id, id);
   }
 
   @Get('request')

@@ -150,13 +150,13 @@ export class UserService {
   }
 
   async block(user: User, targetId: number) {
-    await user.blockIds.push(targetId);
-    await this.userRepository.save(user);
+    user.blockIds.push(targetId);
+    await this.userRepository.update(user.id, { blockIds: user.blockIds });
   }
 
   async unblock(user: User, targetId: number) {
     user.blockIds = user.blockIds.filter((id) => id !== targetId);
-    await this.userRepository.save(user);
+    await this.userRepository.update(user.id, { blockIds: user.blockIds });
   }
 
   async saveProfileImage(id: number, nickName: string, filename: string) {
@@ -275,10 +275,5 @@ export class UserService {
       throw new HttpException('이미 2fa 꺼져있음', HttpStatus.BAD_REQUEST);
     await this.userRepository.update(id, { two_factor_auth: false });
     return toResponseUserDto(user);
-  }
-
-  async changeUserProfile(id, nickName: string, avatar: string) {
-    const user = await this.userRepository.findOneBy({ id: id });
-    // await this.chatGateway.changeUserProfile(user, nickName, avatar);
   }
 }

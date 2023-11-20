@@ -24,9 +24,12 @@ import { GameRecordService } from './gameRecord/game-record.service';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { FollowService } from './folllow/follow.service';
 import { Follow } from './folllow/entities/follow.entity';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { Message } from './chat/entity/message.entity';
 
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     CacheModule.register({
       ttl: null,
       max: 1000,
