@@ -6,14 +6,15 @@ import { FollowController } from './follow.controller';
 import { FollowRequest } from './entities/follow-request.entity';
 import { User } from 'src/user/entities/user.entity';
 import { UserModule } from '../user/user.module';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Module({
   imports: [
     forwardRef(() => UserModule),
     TypeOrmModule.forFeature([Follow, FollowRequest, User]),
   ],
-  providers: [FollowService],
+  providers: [FollowService, AchievementService],
   controllers: [FollowController],
-  exports: [FollowService],
+  exports: [FollowService, AchievementService],
 })
 export class FollowModule {}

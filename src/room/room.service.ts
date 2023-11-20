@@ -28,6 +28,7 @@ import { RoomMessageDto } from '../chat/dto/room-message.dto';
 import { ClientService } from '../ws/client.service';
 import { Status } from '../ws/const/client.status';
 import { ClientRepository } from '../ws/client.repository';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Injectable()
 export class RoomService {
@@ -41,6 +42,7 @@ export class RoomService {
     private readonly clientService: ClientService,
     private readonly userService: UserService,
     private readonly clientRepository: ClientRepository,
+    private readonly achievementService: AchievementService,
   ) {}
 
   async joinLobby(client: Socket): Promise<SimpleRoomDto[]> {
@@ -85,6 +87,8 @@ export class RoomService {
     await this.roomRepository.userJoin(dto.roomId, userId);
     room.participants.push(ParticipantData.of(user, Grade.PARTICIPANT));
     await this.roomRepository.update(room);
+
+    await this.achievementService.addChattingJoin(user);
 
     client.join(dto.roomId);
     server
