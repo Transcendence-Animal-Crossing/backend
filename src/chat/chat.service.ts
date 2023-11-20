@@ -41,7 +41,7 @@ export class ChatService {
     if (!history) return [];
     const unreadMessageData = await this.messageRepository
       .createQueryBuilder('message')
-      .select('message.id AS messageId')
+      .select('message.id AS id')
       .addSelect('message.text AS text')
       .addSelect('message.created_at AS date')
       .where('message.history_id = :historyId', { historyId: history.id })
@@ -50,7 +50,7 @@ export class ChatService {
       })
       .getRawMany();
     return unreadMessageData.map((data) => ({
-      messageId: data.messageid,
+      id: data.id,
       date: data.date,
       text: data.text,
     }));
