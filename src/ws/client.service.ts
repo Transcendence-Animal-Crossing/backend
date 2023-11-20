@@ -1,6 +1,5 @@
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ClientRepository } from './client.repository';
-import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { User } from '../user/entities/user.entity';
 import { AuthService } from '../auth/auth.service';
@@ -8,10 +7,8 @@ import { UserService } from '../user/user.service';
 import { FollowService } from '../folllow/follow.service';
 import { Status } from './const/client.status';
 
-@WebSocketGateway()
 @Injectable()
 export class ClientService {
-  @WebSocketServer() server;
   private readonly logger: Logger = new Logger('ClientService');
 
   constructor(
@@ -21,22 +18,22 @@ export class ClientService {
     private readonly followService: FollowService,
   ) {}
 
-  async connect(client: Socket) {
+  async connect(server, client: Socket) {
     this.logger.log('Trying to connect WebSocket...');
     const user = await this.findUserByToken(client);
     await this.clientRepository.connect(client.id, user.id);
     user.blockIds.map((id) => {
-      this.ignoreUser(client, id);
+      client.join('block-' + id);
     });
     await this.listenFriendsStatus(client, user);
-    await this.sendUpdateToFriends(user, Status.ONLINE);
+    await this.sendUpdateToFriends(server, user, Status.ONLINE);
     return user;
   }
 
-  async disconnect(client: Socket) {
+  async disconnect(server, client: Socket) {
     const user = await this.findUserByToken(client);
     await this.clientRepository.disconnect(client.id);
-    await this.sendUpdateToFriends(user, Status.OFFLINE);
+    await this.sendUpdateToFriends(server, user, Status.OFFLINE);
     return user;
   }
 
@@ -69,15 +66,15 @@ export class ClientService {
     client.disconnect(true);
   }
 
-  async getClientByUserId(userId: number): Promise<Socket> {
-    const clientId = await this.clientRepository.findClientId(userId);
-    if (!clientId) return null;
-    return this.server.sockets.sockets.get(clientId);
-  }
-
-  ignoreUser(client: Socket, userId: number) {
-    client.join('block-' + userId);
-  }
+  // async ignoreUser(userId: number, targetId: number) {
+  //   const client = await this.getClientByUserId(userId);
+  //   if (client) client.join('block-' + targetId);
+  // }
+  //
+  // async unIgnoreUser(userId: number, targetId: number) {
+  //   const client = await this.getClientByUserId(userId);
+  //   if (client) client.leave('block-' + targetId);
+  // }
 
   async listenFriendsStatus(client: Socket, user: User) {
     const friends = await this.followService.getSimpleFriends(user.id);
@@ -86,8 +83,8 @@ export class ClientService {
     }
   }
 
-  sendUpdateToFriends(user: User, status: string) {
-    this.server.to('friend-' + user.id).emit('friend-update', {
+  sendUpdateToFriends(server, user: User, status: string) {
+    server.to('friend-' + user.id).emit('friend-update', {
       id: user.id,
       nickName: user.nickName,
       avatar: user.avatar,
@@ -113,5 +110,10 @@ export class ClientService {
       return;
     }
     await this.clientRepository.saveDMFocus(userId, targetId);
+  }
+
+  async findBlockUserProfiles(client: Socket) {
+    const userId = await this.clientRepository.findUserId(client.id);
+    return await this.userService.findBlockUserProfiles(userId);
   }
 }
