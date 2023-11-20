@@ -13,6 +13,7 @@ import {
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FollowService } from './follow.service';
 import { UserService } from 'src/user/user.service';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Controller('follow')
 @UseGuards(JwtAuthGuard)
@@ -20,6 +21,7 @@ export class FollowController {
   constructor(
     private followService: FollowService,
     private readonly userService: UserService,
+    private readonly achievementService: AchievementService,
   ) {}
 
   @Post('request')
@@ -38,13 +40,20 @@ export class FollowController {
     if (isFollowed && !isFollowed.deletedAt) {
       throw new HttpException('already friend', HttpStatus.BAD_REQUEST);
     }
-    return await this.followService.createRequest(req.user.id, id);
+    await this.followService.createRequest(req.user.id, id);
+    await this.achievementService.addFollowRequestAchievement(user);
   }
 
   @Delete('request')
   @HttpCode(HttpStatus.OK)
   async deleteRequest(@Body('sendTo') id: number, @Req() req) {
     await this.followService.deleteRequest(req.user.id, id);
+  }
+
+  @Delete('requested')
+  @HttpCode(HttpStatus.OK)
+  async deleteOtherRequest(@Body('sendBy') id: number, @Req() req) {
+    await this.followService.deleteRequest(id, req.user.id);
   }
 
   @Delete()

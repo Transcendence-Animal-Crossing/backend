@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Follow } from './entities/follow.entity';
 import { Brackets, Repository } from 'typeorm';
@@ -6,6 +6,7 @@ import { FollowRequest } from './entities/follow-request.entity';
 import { User } from 'src/user/entities/user.entity';
 import { UserData } from '../room/data/user.data';
 import { PAGINATION_LIMIT } from 'src/common/constants';
+import { AchievementService } from 'src/achievement/achievement.service';
 
 @Injectable()
 export class FollowService {
@@ -14,6 +15,9 @@ export class FollowService {
     private readonly followRepository: Repository<Follow>,
     @InjectRepository(FollowRequest)
     private readonly followRequestRepository: Repository<FollowRequest>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
+    private readonly achievementService: AchievementService,
   ) {}
 
   async createFollows(sendBy: number, sendTo: number) {
@@ -49,6 +53,16 @@ export class FollowService {
         }
       }
       await this.createFollows(sendBy, sendTo);
+      const sendByFollowCount = await this.getFollowCount(sendBy);
+      const sendToFollowCount = await this.getFollowCount(sendTo);
+      if (sendByFollowCount == 5) {
+        const user = await this.userRepository.findOneBy({ id: sendBy });
+        await this.achievementService.addFiveFriendsAchievement(user);
+      }
+      if (sendToFollowCount == 5) {
+        const user = await this.userRepository.findOneBy({ id: sendTo });
+        await this.achievementService.addFiveFriendsAchievement(user);
+      }
       return 'new freinds';
     }
     const existingRequest = await this.isAnyRequestExisted(sendBy, sendTo);
@@ -218,5 +232,11 @@ export class FollowService {
       };
     });
     return freinds;
+  }
+
+  private async getFollowCount(userId: number): Promise<number> {
+    return await this.followRepository.count({
+      where: { follower: { id: userId } },
+    });
   }
 }
