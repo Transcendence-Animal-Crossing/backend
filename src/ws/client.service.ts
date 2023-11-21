@@ -6,6 +6,10 @@ import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
 import { FollowService } from '../folllow/follow.service';
 import { Status } from './const/client.status';
+import { MessageHistory } from '../chat/entity/messageHistory.entity';
+import { Repository } from 'typeorm';
+import { Message } from '../chat/entity/message.entity';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class ClientService {
@@ -16,6 +20,10 @@ export class ClientService {
     private readonly authService: AuthService,
     private readonly userService: UserService,
     private readonly followService: FollowService,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
+    @InjectRepository(MessageHistory)
+    private readonly messageHistoryRepository: Repository<MessageHistory>,
   ) {}
 
   async connect(server, client: Socket) {
@@ -34,6 +42,8 @@ export class ClientService {
     const user = await this.findUserByToken(client);
     await this.clientRepository.disconnect(client.id);
     await this.sendUpdateToFriends(server, user, Status.OFFLINE);
+    const dmFocus: number = await this.getDMFocus(user.id);
+    if (dmFocus) await this.updateLastRead(user.id, dmFocus);
     return user;
   }
 
@@ -115,5 +125,21 @@ export class ClientService {
   async findBlockUserProfiles(client: Socket) {
     const userId = await this.clientRepository.findUserId(client.id);
     return await this.userService.findBlockUserProfiles(userId);
+  }
+
+  private async updateLastRead(userId: number, dmFocus: number) {
+    const historyId = MessageHistory.createHistoryId(userId, dmFocus);
+    const lastMessage = await this.messageRepository
+      .createQueryBuilder('message')
+      .select('message.id AS id')
+      .where('history_id = :historyId', { historyId: historyId })
+      .orderBy('message.id', 'DESC')
+      .getRawOne();
+
+    if (lastMessage)
+      await this.messageHistoryRepository.update(
+        { id: historyId },
+        { lastReadMessageId: lastMessage.id },
+      );
   }
 }
