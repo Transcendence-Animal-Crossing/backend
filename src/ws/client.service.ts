@@ -97,6 +97,7 @@ export class ClientService {
     server.to('friend-' + user.id).emit('friend-update', {
       id: user.id,
       nickName: user.nickName,
+      intraName: user.intraName,
       avatar: user.avatar,
       status: status,
     });
