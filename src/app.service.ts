@@ -31,7 +31,7 @@ export class AppService {
 
   private readonly logger: Logger = new Logger(AppService.name);
 
-  async init() {
+  async initDB() {
     try {
       await this.initUser();
       await this.initFollow();
@@ -54,7 +54,7 @@ export class AppService {
       this.logger.log('Application Init Fail by ' + e);
       return;
     }
-    this.logger.log('Application Init Success');
+    this.logger.log('Application DataBase Init Success');
   }
   async initUser() {
     for (let i = 0; i < 20; i++) {

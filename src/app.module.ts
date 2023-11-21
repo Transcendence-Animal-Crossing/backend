@@ -82,7 +82,7 @@ import { Message } from './chat/entity/message.entity';
 })
 export class AppModule implements OnApplicationBootstrap {
   constructor(private readonly appService: AppService) {}
-  onApplicationBootstrap() {
-    this.appService.init();
+  async onApplicationBootstrap() {
+    await this.appService.initDB();
   }
 }
