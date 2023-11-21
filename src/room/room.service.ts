@@ -344,27 +344,6 @@ export class RoomService {
     return room;
   }
 
-  async changeUserProfile(server, user: User, nickName: string, image: string) {
-    this.clientService.sendUpdateToFriends(server, user, Status.ONLINE);
-
-    const room = await this.getJoinedRoom(user.id);
-    if (!room) return;
-    for (const participant of room.participants) {
-      if (participant.id === user.id) {
-        participant.nickName = nickName;
-        participant.avatar = image;
-        break;
-      }
-    }
-    server.to(room.id).emit('user-update', {
-      id: user.id,
-      nickName: nickName,
-      avatar: image,
-    });
-
-    await this.roomRepository.update(room);
-  }
-
   sortParticipants(room: Room) {
     room.participants.sort((a, b) => {
       if (a.grade > b.grade) return -1;
