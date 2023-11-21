@@ -9,6 +9,7 @@ import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
 import { GameType } from './game/const/game.type';
+import { Message } from './chat/entity/message.entity';
 
 @Injectable()
 export class AppService {
@@ -25,6 +26,8 @@ export class AppService {
     private readonly followRequestRepository: Repository<FollowRequest>,
     private readonly gameRecordService: GameRecordService,
     private readonly userService: UserService,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
   ) {}
 
   private readonly logger: Logger = new Logger(AppService.name);
@@ -34,6 +37,7 @@ export class AppService {
       await this.initUser();
       await this.initFollow();
       await this.initBlock();
+      await this.initDM();
       const count = await this.gameRepository.count();
       const user0GameCount = await this.gameRepository
         .createQueryBuilder('game')
@@ -51,7 +55,6 @@ export class AppService {
       this.logger.log('Application Init Fail by ' + e);
       return;
     }
-
     this.logger.log('Application Init Success');
   }
   async initUser() {
@@ -201,6 +204,21 @@ export class AppService {
         newGame.loserId,
         newGame.type,
       );
+    }
+  }
+
+  private async initDM() {
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 5; j++) {
+        if (i !== j) continue;
+        for (let k = 0; k < 20; k++) {
+          const message = this.messageRepository.create({
+            history_id: `${i}-${j}`,
+            text: `Hello, this is from ${i} to ${j}, ${k}`,
+          });
+          await this.messageRepository.save(message);
+        }
+      }
     }
   }
 }

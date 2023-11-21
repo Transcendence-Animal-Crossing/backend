@@ -28,7 +28,7 @@ export class UserService {
     @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
-    private followService: FollowService,
+    private readonly followService: FollowService,
     private readonly achievementService: AchievementService,
   ) {}
 
@@ -150,13 +150,13 @@ export class UserService {
   }
 
   async block(user: User, targetId: number) {
-    await user.blockIds.push(targetId);
-    await this.userRepository.save(user);
+    user.blockIds.push(targetId);
+    await this.userRepository.update(user.id, { blockIds: user.blockIds });
   }
 
   async unblock(user: User, targetId: number) {
     user.blockIds = user.blockIds.filter((id) => id !== targetId);
-    await this.userRepository.save(user);
+    await this.userRepository.update(user.id, { blockIds: user.blockIds });
   }
 
   async saveProfileImage(id: number, nickName: string, filename: string) {
@@ -247,6 +247,8 @@ export class UserService {
 
   async blockUser(user: User, blockId: number) {
     if (!(await this.isBlocked(user, blockId))) {
+      // const client = await this.chatGateway.getClientByUserId(user.id);
+      // if (client) client.join('block-' + blockId);
       user.blockIds.push(blockId);
       await this.userRepository.update(user.id, { blockIds: user.blockIds });
     }
@@ -254,6 +256,8 @@ export class UserService {
 
   async unblockUser(user: User, unblockId: number) {
     if (await this.isBlocked(user, unblockId)) {
+      // const client = await this.chatGateway.getClientByUserId(user.id);
+      // if (client) client.leave('block-' + unblockId);
       user.blockIds = user.blockIds.filter((id) => id !== unblockId);
       await this.userRepository.update(user.id, { blockIds: user.blockIds });
     }

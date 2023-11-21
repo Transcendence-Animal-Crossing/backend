@@ -28,12 +28,20 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    const user = await this.clientService.connect(Namespace.QUEUE, client);
+    const user = await this.clientService.connect(
+      this.server,
+      Namespace.QUEUE,
+      client,
+    );
     this.logger.log('[Queue WebSocket Connected!]: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
-    const user = await this.clientService.disconnect(Namespace.QUEUE, client);
+    const user = await this.clientService.disconnect(
+      this.server,
+      Namespace.QUEUE,
+      client,
+    );
     this.logger.log('[Queue WebSocket Disconnected!]: ' + user.nickName);
   }
 

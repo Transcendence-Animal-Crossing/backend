@@ -1,27 +1,23 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { WebSocketServer } from '@nestjs/websockets';
 import { Status } from './const/client.status';
 import { Namespace } from './const/namespace';
 
 @Injectable()
 export class ClientRepository {
-  @WebSocketServer()
-  server;
-
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   async connect(namespace, clientId, userId) {
-    await this.cacheManager.set(namespace + 'client-' + clientId, userId);
+    await this.cacheManager.set('client-' + clientId, userId);
     await this.cacheManager.set(namespace + 'user-' + userId, clientId);
     if (namespace === Namespace.CHAT)
       await this.cacheManager.set('user-status-' + userId, Status.ONLINE);
   }
 
   async disconnect(namespace, clientId) {
-    const userId = await this.findUserId(namespace, clientId);
-    await this.cacheManager.del(namespace + 'client-' + clientId);
+    const userId = await this.findUserId(clientId);
+    await this.cacheManager.del('client-' + clientId);
     await this.cacheManager.del(namespace + 'user-' + userId);
     if (namespace === Namespace.CHAT)
       await this.cacheManager.del('user-status-' + userId);
@@ -31,8 +27,8 @@ export class ClientRepository {
     return await this.cacheManager.get(namespace + 'user-' + userId);
   }
 
-  async findUserId(namespace, clientId): Promise<number> {
-    return await this.cacheManager.get(namespace + 'client-' + clientId);
+  async findUserId(clientId): Promise<number> {
+    return await this.cacheManager.get('client-' + clientId);
   }
 
   async getUserStatus(userId) {

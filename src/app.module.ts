@@ -26,10 +26,13 @@ import { FollowService } from './folllow/follow.service';
 import { Follow } from './folllow/entities/follow.entity';
 import { QueueModule } from './queue/queue.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { EventEmitterModule } from '@nestjs/event-emitter';
+import { Message } from './chat/entity/message.entity';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    EventEmitterModule.forRoot(),
     CacheModule.register({
       ttl: null,
       max: 1000,
@@ -51,7 +54,14 @@ import { ScheduleModule } from '@nestjs/schedule';
       synchronize: true,
       //logging: true,
     }),
-    TypeOrmModule.forFeature([User, Game, GameRecord, Follow, FollowRequest]),
+    TypeOrmModule.forFeature([
+      User,
+      Game,
+      GameRecord,
+      Follow,
+      FollowRequest,
+      Message,
+    ]),
     ChatModule,
     UserModule,
     AuthModule,

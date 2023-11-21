@@ -4,7 +4,6 @@ import { Standby } from './entities/standby.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueueGateway } from './queue.gateway';
 import { ClientService } from '../ws/client.service';
-import { Namespace } from '../ws/const/namespace';
 import { GameService } from '../game/game.service';
 import {
   GameType,
@@ -12,6 +11,7 @@ import {
   GAMETYPE_RANK,
   GAMETYPE_SPECIAL,
 } from '../game/const/game.type';
+import { Namespace } from '../ws/const/namespace';
 
 @Injectable()
 export class QueueCron {
@@ -102,6 +102,7 @@ export class QueueCron {
 
   private async sendMatchedEvent(user, game) {
     const client = await this.clientService.getClientByUserId(
+      this.queueGateWay.server,
       Namespace.QUEUE,
       user.id,
     );

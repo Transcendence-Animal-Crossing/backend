@@ -24,17 +24,14 @@ import { UserData } from './data/user.data';
 import { ParticipantData } from './data/participant.data';
 import { Socket } from 'socket.io';
 import { JoinRoomDto } from '../chat/dto/join-room.dto';
-import { WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { RoomMessageDto } from '../chat/dto/room-message.dto';
 import { ClientService } from '../ws/client.service';
-import { Status } from '../ws/const/client.status';
 import { Namespace } from '../ws/const/namespace';
+import { ClientRepository } from '../ws/client.repository';
 import { AchievementService } from 'src/achievement/achievement.service';
 
-@WebSocketGateway()
 @Injectable()
 export class RoomService {
-  @WebSocketServer() server;
   SECOND = 1000;
   MUTE_DURATION = 600 * this.SECOND;
   private readonly logger: Logger = new Logger('ChatGateway');
@@ -44,6 +41,7 @@ export class RoomService {
     private readonly roomRepository: RoomRepository,
     private readonly clientService: ClientService,
     private readonly userService: UserService,
+    private readonly clientRepository: ClientRepository,
     private readonly achievementService: AchievementService,
   ) {}
 
@@ -72,11 +70,8 @@ export class RoomService {
     return null;
   }
 
-  async joinRoom(client: Socket, dto: JoinRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async joinRoom(server, client: Socket, dto: JoinRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const user = await this.userService.findOne(userId);
     const room: Room = await this.findById(dto.roomId);
 
@@ -96,34 +91,28 @@ export class RoomService {
     await this.achievementService.addChattingJoin(user);
 
     client.join(dto.roomId);
-    this.server
+    server
       .to(dto.roomId)
       .emit('room-join', ParticipantData.of(user, Grade.PARTICIPANT));
-    this.server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
+    server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
     return room;
   }
 
-  async create(client: Socket, dto: ConfigRoomDto) {
-    const ownerId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async create(server, client: Socket, dto: ConfigRoomDto) {
+    const ownerId = await this.clientRepository.findUserId(client.id);
     const owner = await this.userService.findOne(ownerId);
     const room = Room.create(dto.title, owner, dto.mode, dto.password);
 
     client.join(room.id);
     await this.roomRepository.userJoin(room.id, ownerId);
-    this.server.to('room-lobby').emit('room-create', SimpleRoomDto.from(room));
+    server.to('room-lobby').emit('room-create', SimpleRoomDto.from(room));
 
     await this.roomRepository.save(room);
     return room;
   }
 
-  async mute(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async mute(server, client: Socket, dto: ActionRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
@@ -139,23 +128,20 @@ export class RoomService {
         await this.roomRepository.update(room);
 
         const timerId = setTimeout(() => {
-          this.server.to(dto.roomId).emit('room-unmute', {
+          server.to(dto.roomId).emit('room-unmute', {
             id: dto.targetId,
           });
           this.roomRepository.deleteMuteTimerId(dto.targetId);
         });
         await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
-        this.server.to(dto.roomId).emit('room-mute', dto);
+        server.to(dto.roomId).emit('room-mute', dto);
         return;
       }
     }
   }
 
-  async unmute(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async unmute(server, client: Socket, dto: ActionRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
@@ -170,13 +156,14 @@ export class RoomService {
 
         const timerId = await this.roomRepository.findMuteTimerId(dto.targetId);
         if (timerId) clearTimeout(timerId);
-        this.server.to(dto.roomId).emit('room-unmute', dto);
+        server.to(dto.roomId).emit('room-unmute', dto);
         return;
       }
     }
   }
 
-  async kick(userId: number, dto: ActionRoomDto) {
+  async kick(server, client, dto: ActionRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
@@ -190,19 +177,17 @@ export class RoomService {
     await this.roomRepository.userLeave(dto.targetId);
     await this.roomRepository.update(room);
 
-    this.server.to(dto.roomId).emit('room-kick', dto);
-    const kickedClient = await this.clientService.getClientByUserId(
+    server.to(dto.roomId).emit('room-kick', dto);
+    const kickedClientId = await this.clientRepository.findClientId(
       Namespace.CHAT,
       dto.targetId,
     );
-    kickedClient.leave(dto.roomId);
+    if (kickedClientId)
+      server.sockets.sockets[kickedClientId].leave(dto.roomId);
   }
 
-  async ban(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async ban(server, client: Socket, dto: ActionRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
@@ -222,19 +207,17 @@ export class RoomService {
 
     await this.roomRepository.userLeave(dto.targetId);
     await this.roomRepository.update(room);
-    this.server.to(dto.roomId).emit('room-ban', dto);
-    const bannedClient = await this.clientService.getClientByUserId(
+    server.to(dto.roomId).emit('room-ban', dto);
+    const bannedClientId = await this.clientRepository.findClientId(
       Namespace.CHAT,
       dto.targetId,
     );
-    bannedClient.leave(dto.roomId);
+    if (bannedClientId)
+      server.sockets.sockets[bannedClientId].leave(dto.roomId);
   }
 
-  async unban(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async unban(server, client: Socket, dto: ActionRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
 
@@ -245,33 +228,38 @@ export class RoomService {
       (bannedUser) => bannedUser.id !== dto.targetId,
     );
     await this.roomRepository.update(room);
-    this.server.to(dto.roomId).emit('room-unban', dto);
+    server.to(dto.roomId).emit('room-unban', dto);
   }
 
-  async leave(client: Socket, user: User, room: Room) {
-    if (!this.isParticipant(user.id, room))
+  async leave(server, client: Socket) {
+    const userId = await this.clientRepository.findUserId(client.id);
+    const room = await this.getJoinedRoom(userId);
+    if (!room) return;
+    if (!this.isParticipant(userId, room))
       throw new BadRequestException('방 안에 있지 않습니다.');
     if (room.participants.length === 1) {
       client.leave(room.id);
-      await this.roomRepository.userLeave(user.id);
+      await this.roomRepository.userLeave(userId);
       return await this.roomRepository.delete(room.id);
     }
-    if (this.getGrade(user.id, room) === Grade.OWNER) {
+    if (this.getGrade(userId, room) === Grade.OWNER) {
       room.participants[1].grade = Grade.OWNER;
-      this.server.emit('change-owner', {
+      server.emit('change-owner', {
         id: room.participants[1].id,
       });
     }
 
     room.participants = room.participants.filter(
-      (participant) => participant.id !== user.id,
+      (participant) => participant.id !== userId,
     );
     await this.roomRepository.update(room);
-    await this.roomRepository.userLeave(user.id);
+    await this.roomRepository.userLeave(userId);
 
     client.leave(room.id);
-    this.server.to(room.id).emit('room-leave', UserData.from(user));
-    this.server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
+    // userId 만 전송하도록 바꾸고 싶음
+    const user = await this.userService.findOne(userId);
+    server.to(room.id).emit('room-leave', UserData.from(user));
+    server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
   }
 
   isParticipant(userId: number, room: Room) {
@@ -298,11 +286,8 @@ export class RoomService {
     throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 
-  async addAdmin(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async addAdmin(server, client: Socket, dto: ActionRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     if (this.getGrade(userId, room) !== Grade.OWNER)
       throw new ForbiddenException('방장만이 관리자를 추가할 수 있습니다.');
@@ -317,14 +302,11 @@ export class RoomService {
     }
     this.sortParticipants(room);
     await this.roomRepository.update(room);
-    this.server.to(dto.roomId).emit('add-admin', dto);
+    server.to(dto.roomId).emit('add-admin', dto);
   }
 
-  async removeAdmin(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async removeAdmin(server, client: Socket, dto: ActionRoomDto) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     if (this.getGrade(userId, room) !== Grade.OWNER)
       throw new ForbiddenException('방장만이 관리자를 회수할 수 있습니다.');
@@ -339,14 +321,11 @@ export class RoomService {
     }
     this.sortParticipants(room);
     await this.roomRepository.update(room);
-    this.server.to(dto.roomId).emit('remove-admin', dto);
+    server.to(dto.roomId).emit('remove-admin', dto);
   }
 
   async invite(client: Socket, dto: ActionRoomDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
     if (!this.isParticipant(userId, room))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
@@ -359,34 +338,14 @@ export class RoomService {
     room.invitedUsers.push(UserData.from(target));
     await this.roomRepository.update(room);
 
-    const invitedClient = await this.clientService.getClientByUserId(
+    const invitedClientId = await this.clientRepository.findClientId(
       Namespace.CHAT,
       dto.targetId,
     );
-    invitedClient.emit('room-invite', SimpleRoomDto.from(room));
+    if (invitedClientId)
+      client.to(invitedClientId).emit('room-invite', SimpleRoomDto.from(room));
 
     return room;
-  }
-
-  async changeUserProfile(user: User, nickName: string, image: string) {
-    this.clientService.sendUpdateToFriends(user, Status.ONLINE);
-
-    const room = await this.getJoinedRoom(user.id);
-    if (!room) return;
-    for (const participant of room.participants) {
-      if (participant.id === user.id) {
-        participant.nickName = nickName;
-        participant.avatar = image;
-        break;
-      }
-    }
-    this.server.to(room.id).emit('user-update', {
-      id: user.id,
-      nickName: nickName,
-      avatar: image,
-    });
-
-    await this.roomRepository.update(room);
   }
 
   sortParticipants(room: Room) {
@@ -430,10 +389,7 @@ export class RoomService {
   }
 
   async sendMessage(client: Socket, roomMessageDto: RoomMessageDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+    const userId = await this.clientRepository.findUserId(client.id);
     roomMessageDto.senderId = userId;
 
     const room = await this.findById(roomMessageDto.roomId);
@@ -451,11 +407,8 @@ export class RoomService {
     client.emit('room-message', roomMessageDto);
   }
 
-  async changeMode(client: Socket, mode: string, password: string) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+  async changeMode(server, client: Socket, mode: string, password: string) {
+    const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.getJoinedRoom(userId);
     if (!room) throw new BadRequestException('방에 참여하고 있지 않습니다.');
     const userGrade = this.getGrade(userId, room);
@@ -463,10 +416,11 @@ export class RoomService {
       throw new ForbiddenException('방장만이 모드를 변경할 수 있습니다.');
 
     room.mode = mode;
+
+    server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
     if (mode === 'PROTECTED') room.password = password;
 
-    this.server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
-    this.server.to(room.id).emit('room-mode', {
+    server.to(room.id).emit('room-mode', {
       mode: mode,
     });
 

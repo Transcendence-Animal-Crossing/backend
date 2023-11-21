@@ -20,7 +20,8 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
 import { FollowService } from 'src/folllow/follow.service';
 import { Public } from 'src/auth/guards/public';
-import { RoomService } from 'src/room/room.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { UserData } from '../room/data/user.data';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -28,8 +29,9 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly followService: FollowService,
-    private readonly roomService: RoomService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
+
   private readonly logger: Logger = new Logger('UserController');
 
   @Get('user')
@@ -66,17 +68,14 @@ export class UserController {
       nickName,
       file.filename,
     );
-    await this.roomService.changeUserProfile(
+    const profile = UserData.create(
       req.user.id,
       nickName,
-      file.filename,
+      req.user.intraName,
+      'uploads/' + file.filename,
     );
-    return {
-      id: req.user.id,
-      nickName: nickName,
-      intraName: req.user.intraName,
-      filepath: 'uploads/' + file.filename,
-    };
+    this.eventEmitter.emit('update.profile', profile);
+    return profile;
   }
 
   @Patch('profileWithUrl')
@@ -87,13 +86,14 @@ export class UserController {
   ) {
     await this.userService.checkNickName(req.user.id, nickName);
     await this.userService.saveUrlImage(req.user.id, nickName, avatar);
-    await this.roomService.changeUserProfile(req.user.id, nickName, avatar);
-    return {
-      id: req.user.id,
-      nickName: nickName,
-      intraName: req.user.intraName,
-      filepath: 'original/' + avatar,
-    };
+    const profile = UserData.create(
+      req.user.id,
+      nickName,
+      req.user.intraName,
+      'original/' + avatar,
+    );
+    this.eventEmitter.emit('update.profile', profile);
+    return profile;
   }
 
   @Post('nickname')
@@ -119,33 +119,38 @@ export class UserController {
   @Patch('block')
   @HttpCode(HttpStatus.OK)
   async blockUser(@Body('id') id: number, @Req() req) {
-    if (req.user.id != id) {
-      const user = await this.userService.findOne(req.user.id);
-      await this.userService.blockUser(user, id);
-      const follow = await this.followService.findFollowWithDeleted(
-        req.user.id,
-        id,
-      );
-      if (follow && !follow.deletedAt) {
-        await this.followService.deleteFollow(req.user.id, id);
-      }
-    } else {
+    if (req.user.id == id)
       throw new HttpException('자기 자신은 차단 불가 ', HttpStatus.BAD_REQUEST);
+    const user = await this.userService.findOne(req.user.id);
+    await this.userService.blockUser(user, id);
+    const follow = await this.followService.findFollowWithDeleted(
+      req.user.id,
+      id,
+    );
+    if (follow && !follow.deletedAt) {
+      await this.followService.deleteFollow(req.user.id, id);
+      this.eventEmitter.emit('delete.friend', req.user.id, id);
     }
+    this.eventEmitter.emit('add.block', {
+      userId: req.user.id,
+      targetId: id,
+    });
   }
 
   @Patch('unblock')
   @HttpCode(HttpStatus.OK)
   async unblockUser(@Body('id') id: number, @Req() req) {
-    if (req.user.id != id) {
-      const user = await this.userService.findOne(req.user.id);
-      await this.userService.unblockUser(user, id);
-    } else {
+    if (req.user.id == id)
       throw new HttpException(
         '자기 자신은 차단 해제 불가 ',
         HttpStatus.BAD_REQUEST,
       );
-    }
+    const user = await this.userService.findOne(req.user.id);
+    await this.userService.unblockUser(user, id);
+    this.eventEmitter.emit('delete.user', {
+      userId: req.user.id,
+      targetId: id,
+    });
   }
   @Patch('2fa-setup')
   @HttpCode(HttpStatus.OK)
