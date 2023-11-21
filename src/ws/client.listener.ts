@@ -38,6 +38,12 @@ export class ClientListener {
     await this.chatGateWay.handleDeleteFriend(followerId, followingId);
   }
 
+  @OnEvent('delete.room')
+  async handleDeleteRoomEvent(roomId: string) {
+    this.logger.debug('<delete.room> event is triggered!');
+    await this.chatGateWay.handleDeleteRoom(roomId);
+  }
+
   @OnEvent('add.block')
   async handleBlockUserEvent(blockerId: number, blockedId: number) {
     this.logger.debug('<add.block> event is triggered!');

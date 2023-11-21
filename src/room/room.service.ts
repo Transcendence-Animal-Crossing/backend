@@ -26,9 +26,9 @@ import { Socket } from 'socket.io';
 import { JoinRoomDto } from '../chat/dto/join-room.dto';
 import { RoomMessageDto } from '../chat/dto/room-message.dto';
 import { ClientService } from '../ws/client.service';
-import { Status } from '../ws/const/client.status';
 import { ClientRepository } from '../ws/client.repository';
 import { AchievementService } from 'src/achievement/achievement.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class RoomService {
@@ -43,6 +43,7 @@ export class RoomService {
     private readonly userService: UserService,
     private readonly clientRepository: ClientRepository,
     private readonly achievementService: AchievementService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async joinLobby(client: Socket): Promise<SimpleRoomDto[]> {
@@ -237,6 +238,7 @@ export class RoomService {
     if (room.participants.length === 1) {
       client.leave(room.id);
       await this.roomRepository.userLeave(userId);
+      this.eventEmitter.emit('delete.room', room.id);
       return await this.roomRepository.delete(room.id);
     }
     if (this.getGrade(userId, room) === Grade.OWNER) {
