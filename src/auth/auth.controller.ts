@@ -207,13 +207,6 @@ export class AuthController {
     @Body('password') password: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const user = await this.userService.findOne(id);
-
-    if (!user || user.password !== password)
-      throw new HttpException(
-        'Invalid id or password',
-        HttpStatus.UNAUTHORIZED,
-      );
     const token = await this.authService.signJwt(id);
 
     res.cookie('jwt', token);
