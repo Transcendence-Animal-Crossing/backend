@@ -35,22 +35,26 @@ export class ChatService {
   }
 
   async findUnReadMessageFromFriend(userId: number, friendId: number) {
-    const history = await this.messageHistoryRepository.findOneBy({
-      id: MessageHistory.createHistoryId(userId, friendId),
+    const historyId = MessageHistory.createHistoryId(userId, friendId);
+    let history = await this.messageHistoryRepository.findOneBy({
+      id: historyId,
     });
-    if (!history) return [];
+    if (!history) {
+      history = MessageHistory.create(historyId);
+      await this.messageHistoryRepository.upsert(history, ['id']);
+    }
     const unreadMessageData = await this.messageRepository
       .createQueryBuilder('message')
-      .select('message.id AS messageId')
+      .select('message.id AS id')
       .addSelect('message.text AS text')
       .addSelect('message.created_at AS date')
       .where('message.history_id = :historyId', { historyId: history.id })
-      .andWhere('message.id > :lastReadMessageId', {
+      .andWhere('id > :lastReadMessageId', {
         lastReadMessageId: history.lastReadMessageId,
       })
       .getRawMany();
     return unreadMessageData.map((data) => ({
-      messageId: data.messageid,
+      id: data.id,
       date: data.date,
       text: data.text,
     }));
@@ -61,7 +65,7 @@ export class ChatService {
     const target = await this.userService.findOne(dto.targetId);
     const historyId = MessageHistory.createHistoryId(user.id, target.id);
 
-    let whereCondition = 'message.historyId = :historyId ';
+    let whereCondition = 'message.history_id = :historyId ';
     if (dto.cursorId) whereCondition += 'AND message.id < :cursorId';
 
     const messageData = await this.messageRepository
@@ -114,14 +118,15 @@ export class ChatService {
     const historyId = MessageHistory.createHistoryId(userId, beforeFocus);
     const lastMessage = await this.messageRepository
       .createQueryBuilder('message')
-      .select('message.id')
+      .select('message.id AS id')
       .where('history_id = :historyId', { historyId: historyId })
       .orderBy('message.id', 'DESC')
       .getRawOne();
 
-    await this.messageHistoryRepository.update(
-      { id: historyId },
-      { lastReadMessageId: lastMessage.message_id },
-    );
+    if (lastMessage)
+      await this.messageHistoryRepository.update(
+        { id: historyId },
+        { lastReadMessageId: lastMessage.id },
+      );
   }
 }
