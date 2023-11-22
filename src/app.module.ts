@@ -28,6 +28,7 @@ import { QueueModule } from './queue/queue.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Message } from './chat/entity/message.entity';
+import { MessageHistory } from './chat/entity/messageHistory.entity';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { Message } from './chat/entity/message.entity';
       Follow,
       FollowRequest,
       Message,
+      MessageHistory,
     ]),
     ChatModule,
     UserModule,
@@ -86,7 +88,7 @@ import { Message } from './chat/entity/message.entity';
 })
 export class AppModule implements OnApplicationBootstrap {
   constructor(private readonly appService: AppService) {}
-  onApplicationBootstrap() {
-    this.appService.init();
+  async onApplicationBootstrap() {
+    await this.appService.initDB();
   }
 }

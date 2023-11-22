@@ -1,21 +1,25 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ChatGateway } from '../chat/chat.gateway';
 import { OnEvent } from '@nestjs/event-emitter';
 import { UserData } from '../room/data/user.data';
 import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { RoomRepository } from '../room/room.repository';
+import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
 export class ClientListener {
+  private readonly logger: Logger = new Logger('ClientListener');
   constructor(
     private readonly chatGateWay: ChatGateway,
+    @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
   ) {}
 
   @OnEvent('update.profile')
   async handleUpdateProfileEvent(profile: UserData) {
+    this.logger.debug('<update.profile> event is triggered!');
     await this.chatGateWay.sendProfileUpdateToFriends(profile);
     const roomId = await this.roomRepository.findRoomIdByUserId(profile.id);
     if (!roomId) return;
@@ -35,6 +39,7 @@ export class ClientListener {
 
   @OnEvent('new.friend')
   async handleNewFriendEvent(followerId: number, followingId: number) {
+    this.logger.debug('<new.friend> event is triggered!');
     const follower = await this.userRepository.findOneBy({ id: followerId });
     const following = await this.userRepository.findOneBy({ id: followingId });
     await this.chatGateWay.sendNewFriend(
@@ -45,16 +50,25 @@ export class ClientListener {
 
   @OnEvent('delete.friend')
   async handleDeleteFriendEvent(followerId: number, followingId: number) {
+    this.logger.debug('<delete.friend> event is triggered!');
     await this.chatGateWay.sendDeleteFriend(followerId, followingId);
+  }
+
+  @OnEvent('delete.room')
+  async handleDeleteRoomEvent(roomId: string) {
+    this.logger.debug('<delete.room> event is triggered!');
+    await this.chatGateWay.handleDeleteRoom(roomId);
   }
 
   @OnEvent('add.block')
   async handleBlockUserEvent(blockerId: number, blockedId: number) {
+    this.logger.debug('<add.block> event is triggered!');
     await this.chatGateWay.sendBlockUser(blockerId, blockedId);
   }
 
   @OnEvent('delete.block')
   async handleUnBlockUserEvent(blockerId: number, unBlockedId: number) {
+    this.logger.debug('<delete.block> event is triggered!');
     await this.chatGateWay.sendUnBlockUser(blockerId, unBlockedId);
   }
 }

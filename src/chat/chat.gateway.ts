@@ -320,4 +320,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const client = await this.getClientByUserId(blockerId);
     if (client) client.join('block-' + unBlockedId);
   }
+
+  async handleDeleteRoom(roomId: string) {
+    this.server.to('room-lobby').emit('room-delete', { id: roomId });
+  }
 }

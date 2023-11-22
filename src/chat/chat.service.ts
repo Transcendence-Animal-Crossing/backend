@@ -50,7 +50,7 @@ export class ChatService {
       .addSelect('message.text AS text')
       .addSelect('message.created_at AS date')
       .where('message.history_id = :historyId', { historyId: history.id })
-      .andWhere('message.id > :lastReadMessageId', {
+      .andWhere('id > :lastReadMessageId', {
         lastReadMessageId: history.lastReadMessageId,
       })
       .getRawMany();
@@ -66,7 +66,7 @@ export class ChatService {
     const target = await this.userService.findOne(dto.targetId);
     const historyId = MessageHistory.createHistoryId(user.id, target.id);
 
-    let whereCondition = 'message.historyId = :historyId ';
+    let whereCondition = 'message.history_id = :historyId ';
     if (dto.cursorId) whereCondition += 'AND message.id < :cursorId';
 
     const messageData = await this.messageRepository
