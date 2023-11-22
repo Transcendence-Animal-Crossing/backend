@@ -26,6 +26,7 @@ import { FollowService } from './folllow/follow.service';
 import { Follow } from './folllow/entities/follow.entity';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Message } from './chat/entity/message.entity';
+import { MessageHistory } from './chat/entity/messageHistory.entity';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { Message } from './chat/entity/message.entity';
       Follow,
       FollowRequest,
       Message,
+      MessageHistory,
     ]),
     ChatModule,
     UserModule,

@@ -9,6 +9,7 @@ import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
 import { Message } from './chat/entity/message.entity';
+import { MessageHistory } from './chat/entity/messageHistory.entity';
 
 @Injectable()
 export class AppService {
@@ -27,6 +28,8 @@ export class AppService {
     private readonly userService: UserService,
     @InjectRepository(Message)
     private readonly messageRepository: Repository<Message>,
+    @InjectRepository(MessageHistory)
+    private readonly messageHistoryRepository: Repository<MessageHistory>,
   ) {}
 
   private readonly logger: Logger = new Logger(AppService.name);
@@ -203,9 +206,10 @@ export class AppService {
   }
 
   private async initDM() {
+    if ((await this.messageRepository.count()) > 20) return;
     for (let i = 0; i < 5; i++) {
       for (let j = 0; j < 5; j++) {
-        if (i !== j) continue;
+        if (i === j) continue;
         for (let k = 0; k < 20; k++) {
           const message = this.messageRepository.create({
             history_id: `${i}-${j}`,
@@ -213,6 +217,17 @@ export class AppService {
           });
           await this.messageRepository.save(message);
         }
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 5; j++) {
+        if (i === j) continue;
+        const messageHistory = this.messageHistoryRepository.create({
+          id: `${i}-${j}`,
+          lastReadMessageId: j,
+        });
+        await this.messageHistoryRepository.save(messageHistory);
       }
     }
   }
