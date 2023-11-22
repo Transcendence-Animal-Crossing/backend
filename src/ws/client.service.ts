@@ -44,6 +44,7 @@ export class ClientService {
     await this.sendUpdateToFriends(server, user, Status.OFFLINE);
     const dmFocus: number = await this.getDMFocus(user.id);
     if (dmFocus) await this.updateLastRead(user.id, dmFocus);
+    await this.clientRepository.deleteDMFocus(user.id);
     return user;
   }
 
