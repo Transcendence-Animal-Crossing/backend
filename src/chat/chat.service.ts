@@ -63,9 +63,14 @@ export class ChatService {
   async loadWithPagination(userId: number, dto: LoadMessageDto) {
     const user = await this.userService.findOne(userId);
     const target = await this.userService.findOne(dto.targetId);
-    const historyId = MessageHistory.createHistoryId(user.id, target.id);
+    const receivedHistoryId = MessageHistory.createHistoryId(
+      user.id,
+      target.id,
+    );
+    const sendHistoryId = MessageHistory.createHistoryId(target.id, user.id);
 
-    let whereCondition = 'message.history_id = :historyId ';
+    let whereCondition =
+      '(message.history_id = :receivedHistoryId OR message.history_id = :sendHistoryId)';
     if (dto.cursorId) whereCondition += 'AND message.id < :cursorId';
 
     const messageData = await this.messageRepository
@@ -76,7 +81,8 @@ export class ChatService {
         'message.created_at AS date',
       ])
       .where(whereCondition, {
-        historyId: historyId,
+        receivedHistoryId: receivedHistoryId,
+        sendHistoryId: sendHistoryId,
         cursorId: dto.cursorId,
       })
       .orderBy('messageId', 'DESC')
