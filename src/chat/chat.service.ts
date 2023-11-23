@@ -26,10 +26,6 @@ export class ChatService {
     const sender = await this.userService.findOne(dto.senderId);
     const receiver = await this.userService.findOne(dto.receiverId);
     const historyId = MessageHistory.createHistoryId(receiver.id, sender.id);
-    const history = MessageHistory.create(historyId);
-    await this.messageHistoryRepository.upsert(history, ['id']);
-
-    // const message = this.messageRepository.create(historyId, dto.text);
     const message = Message.create(historyId, dto.text);
     return await this.messageRepository.save(message);
   }
@@ -77,7 +73,7 @@ export class ChatService {
       .createQueryBuilder('message')
       .select([
         'message.id AS id',
-        'message.history_id AS historyId',
+        'message.history_id AS history_id',
         'message.text AS text',
         'message.created_at AS date',
       ])
@@ -92,7 +88,7 @@ export class ChatService {
 
     return messageData.map((data) => ({
       id: data.id,
-      senderId: data.historyId.split('-')[1],
+      senderId: data.history_id.split('-')[1],
       date: data.date,
       text: data.text,
     }));
