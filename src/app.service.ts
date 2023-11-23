@@ -1,14 +1,15 @@
-import { Inject, Injectable, Logger } from '@nestjs/common';
-import { ILike, Repository } from 'typeorm';
+import { Injectable, Logger } from '@nestjs/common';
+import { Repository } from 'typeorm';
 import { User } from './user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRecord } from './gameRecord/entities/game-record';
 import { Game } from './game/entities/game.entity';
 import { Follow } from './folllow/entities/follow.entity';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
-import { GameService } from './game/game.service';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
+import { Message } from './chat/entity/message.entity';
+import { MessageHistory } from './chat/entity/messageHistory.entity';
 
 @Injectable()
 export class AppService {
@@ -25,15 +26,20 @@ export class AppService {
     private readonly followRequestRepository: Repository<FollowRequest>,
     private readonly gameRecordService: GameRecordService,
     private readonly userService: UserService,
+    @InjectRepository(Message)
+    private readonly messageRepository: Repository<Message>,
+    @InjectRepository(MessageHistory)
+    private readonly messageHistoryRepository: Repository<MessageHistory>,
   ) {}
 
   private readonly logger: Logger = new Logger(AppService.name);
 
-  async init() {
+  async initDB() {
     try {
       await this.initUser();
       await this.initFollow();
       await this.initBlock();
+      await this.initDM();
       const count = await this.gameRepository.count();
       const user0GameCount = await this.gameRepository
         .createQueryBuilder('game')
@@ -51,8 +57,7 @@ export class AppService {
       this.logger.log('Application Init Fail by ' + e);
       return;
     }
-
-    this.logger.log('Application Init Success');
+    this.logger.log('Application DataBase Init Success');
   }
   async initUser() {
     for (let i = 0; i < 20; i++) {
@@ -128,7 +133,7 @@ export class AppService {
     const userIds = Array.from({ length: 20 }, (_, index) => index); // 0부터 19까지의 사용자 ID 배열
 
     for (let gameIndex = 0; gameIndex < totalGames; gameIndex++) {
-      let playerIndices = this.getRandomPlayerIndices(userIds);
+      const playerIndices = this.getRandomPlayerIndices(userIds);
       const winnerId = userIds[playerIndices[0]];
       const loserId = userIds[playerIndices[1]];
       const winnerScore = Math.floor(Math.random() * (60 - 50 + 1)); // 0~50
@@ -154,9 +159,9 @@ export class AppService {
     }
   }
   getRandomPlayerIndices(userIds: number[]): number[] {
-    let indexSet = new Set<number>();
+    const indexSet = new Set<number>();
     while (indexSet.size < 2) {
-      let randomIndex = Math.floor(Math.random() * userIds.length);
+      const randomIndex = Math.floor(Math.random() * userIds.length);
       indexSet.add(randomIndex);
     }
     return Array.from(indexSet);
@@ -197,6 +202,33 @@ export class AppService {
         newGame.loserId,
         newGame.isRank,
       );
+    }
+  }
+
+  private async initDM() {
+    if ((await this.messageRepository.count()) > 20) return;
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 5; j++) {
+        if (i === j) continue;
+        for (let k = 0; k < 20; k++) {
+          const message = this.messageRepository.create({
+            history_id: `${i}-${j}`,
+            text: `Hello, this is from ${i} to ${j}, ${k}`,
+          });
+          await this.messageRepository.save(message);
+        }
+      }
+    }
+
+    for (let i = 0; i < 5; i++) {
+      for (let j = 0; j < 5; j++) {
+        if (i === j) continue;
+        const messageHistory = this.messageHistoryRepository.create({
+          id: `${i}-${j}`,
+          lastReadMessageId: j,
+        });
+        await this.messageHistoryRepository.save(messageHistory);
+      }
     }
   }
 }

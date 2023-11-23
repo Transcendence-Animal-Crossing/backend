@@ -31,16 +31,6 @@ export class ClientRepository {
     return await this.cacheManager.get('client-' + clientId);
   }
 
-  async connectedUserIds(): Promise<number[]> {
-    return this.server.allSockets().then((clientIds) => {
-      const userIds = [];
-      for (const clientId of clientIds) {
-        userIds.push(this.findUserId(clientId));
-      }
-      return userIds;
-    });
-  }
-
   async getUserStatus(userId) {
     const status = await this.cacheManager.get('user-status-' + userId);
     if (status) return status;

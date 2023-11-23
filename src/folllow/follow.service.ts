@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Follow } from './entities/follow.entity';
 import { Brackets, Repository } from 'typeorm';
@@ -44,7 +44,7 @@ export class FollowService {
         if (follow1.deletedAt && follow2.deletedAt) {
           await this.followRepository.restore(follow1.id);
           await this.followRepository.restore(follow2.id);
-          return 'restore friends';
+          return HttpStatus.CREATED;
         } else {
           throw new HttpException(
             'something wrong with follow',
@@ -63,7 +63,7 @@ export class FollowService {
         const user = await this.userRepository.findOneBy({ id: sendTo });
         await this.achievementService.addFiveFriendsAchievement(user);
       }
-      return 'new freinds';
+      return HttpStatus.CREATED;
     }
     const existingRequest = await this.isAnyRequestExisted(sendBy, sendTo);
     if (existingRequest) {
@@ -81,7 +81,7 @@ export class FollowService {
       followRequest.sendTo = { id: sendTo } as User;
       await this.followRequestRepository.save(followRequest);
     }
-    return 'follow request success';
+    return HttpStatus.OK;
   }
 
   async isRequestExisted(sendBy: number, sendTo: number) {
@@ -140,14 +140,14 @@ export class FollowService {
   async deleteFollow(sendBy: number, sendTo: number) {
     const follow1 = await this.findFollowWithDeleted(sendBy, sendTo);
     const follow2 = await this.findFollowWithDeleted(sendTo, sendBy);
-    if (follow1 && follow2) {
-      if (!follow1.deletedAt && !follow2.deletedAt) {
-        await this.followRepository.softDelete(follow1.id);
-        await this.followRepository.softDelete(follow2.id);
-        return;
-      }
+    if (!follow1 || !follow2)
+      throw new HttpException('not found', HttpStatus.NOT_FOUND);
+
+    if (!follow1.deletedAt && !follow2.deletedAt) {
+      await this.followRepository.softDelete(follow1.id);
+      await this.followRepository.softDelete(follow2.id);
+      return;
     }
-    throw new HttpException('delete failed', HttpStatus.CONFLICT);
   }
 
   async findAllSentTo(userId: number) {

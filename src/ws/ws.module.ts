@@ -5,15 +5,23 @@ import { AuthModule } from '../auth/auth.module';
 import { UserModule } from '../user/user.module';
 import { RoomModule } from '../room/room.module';
 import { FollowModule } from '../folllow/follow.module';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Message } from '../chat/entity/message.entity';
+import { MessageHistory } from '../chat/entity/messageHistory.entity';
+import { ClientListener } from './client.listener';
+import { ChatModule } from '../chat/chat.module';
+import { User } from '../user/entities/user.entity';
 
 @Module({
   imports: [
+    TypeOrmModule.forFeature([User, Message, MessageHistory]),
     AuthModule,
     forwardRef(() => UserModule),
     forwardRef(() => RoomModule),
     FollowModule,
+    forwardRef(() => ChatModule),
   ],
-  providers: [ClientRepository, ClientService],
+  providers: [ClientRepository, ClientService, ClientListener],
   exports: [ClientRepository, ClientService],
 })
 export class WSModule {}
