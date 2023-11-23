@@ -260,7 +260,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async sendProfileUpdateToFriends(profile) {
-    this.server.to('friend-' + profile.id).emit('profile-update', profile);
+    profile.status = await this.clientRepository.getUserStatus(profile.id);
+    this.server.to('friend-' + profile.id).emit('friend-update', profile);
   }
 
   async sendNewFriend(userA: UserData, userB: UserData) {
