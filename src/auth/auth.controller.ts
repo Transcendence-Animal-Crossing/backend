@@ -211,7 +211,7 @@ export class AuthController {
 
     res.cookie('jwt', token);
 
-    res.redirect('http://localhost:8080/chat?token=' + token);
+    res.redirect('http://localhost:8080/queue?token=' + token);
   }
 
   @Public()
