@@ -76,7 +76,8 @@ export class ChatService {
     const messageData = await this.messageRepository
       .createQueryBuilder('message')
       .select([
-        'message.id AS messageId',
+        'message.id AS id',
+        'message.history_id AS historyId',
         'message.text AS text',
         'message.created_at AS date',
       ])
@@ -85,13 +86,13 @@ export class ChatService {
         sendHistoryId: sendHistoryId,
         cursorId: dto.cursorId,
       })
-      .orderBy('messageId', 'DESC')
+      .orderBy('id', 'DESC')
       .take(20)
       .getRawMany();
 
     return messageData.map((data) => ({
-      id: data.messageid,
-      senderId: target.id,
+      id: data.id,
+      senderId: data.historyId.split('-')[1],
       date: data.date,
       text: data.text,
     }));
