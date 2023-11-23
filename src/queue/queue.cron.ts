@@ -50,8 +50,12 @@ export class QueueCron {
 
   private async generalMatch(manager: EntityManager, queue) {
     while (queue.length >= 2) {
-      const matched = queue.splice(0, 2);
-      await this.processMatchedUser(manager, matched[0], matched[1]);
+      try {
+        const matched = queue.splice(0, 2);
+        await this.processMatchedUser(manager, matched[0], matched[1]);
+      } catch (e) {
+        console.log(e);
+      }
     }
   }
 

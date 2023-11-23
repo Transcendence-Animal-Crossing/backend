@@ -1,4 +1,4 @@
-import { Logger, UseFilters, UsePipes, ValidationPipe } from '@nestjs/common';
+import { HttpStatus, Logger, UseFilters } from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -14,7 +14,7 @@ import { Namespace } from '../ws/const/namespace';
 import { JoinQueueDto } from './dto/join-queue.dto';
 import { QueueService } from './queue.service';
 
-@UsePipes(new ValidationPipe())
+// @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.QUEUE })
 @UseFilters(new CustomSocketFilter())
 export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -47,19 +47,17 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('queue-join')
   async onQueueJoin(client: Socket, dto: JoinQueueDto) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.QUEUE,
-      client.id,
-    );
+    this.logger.debug('Client Send Event <queue-join>');
+    const userId = await this.clientService.findUserIdByClientId(client.id);
     await this.queueService.join(userId, dto);
+    return { status: HttpStatus.OK };
   }
 
   @SubscribeMessage('queue-leave')
   async onQueueLeave(client: Socket) {
-    const userId = await this.clientService.findUserIdByClientId(
-      Namespace.QUEUE,
-      client.id,
-    );
+    this.logger.debug('Client Send Event <queue-leave>');
+    const userId = await this.clientService.findUserIdByClientId(client.id);
     await this.queueService.leave(userId);
+    return { status: HttpStatus.OK };
   }
 }

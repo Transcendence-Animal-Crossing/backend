@@ -93,10 +93,7 @@ export class ChatService {
   }
 
   async send(client: Socket, dto: DirectMessageDto) {
-    dto.senderId = await this.clientService.findUserIdByClientId(
-      Namespace.CHAT,
-      client.id,
-    );
+    dto.senderId = await this.clientService.findUserIdByClientId(client.id);
     if (!(await this.followService.isFollow(dto.senderId, dto.receiverId)))
       return;
     const message = await this.save(dto);

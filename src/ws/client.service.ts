@@ -88,7 +88,7 @@ export class ClientService {
       userId,
     );
     if (!clientId) return null;
-    return server.sockets.sockets.get(clientId);
+    return server.sockets[clientId];
   }
 
   async listenFriendsStatus(client: Socket, user: User) {
@@ -108,7 +108,7 @@ export class ClientService {
     });
   }
 
-  async findUserIdByClientId(namespace, id: string): Promise<number> {
+  async findUserIdByClientId(id: string): Promise<number> {
     return await this.clientRepository.findUserId(id);
   }
 

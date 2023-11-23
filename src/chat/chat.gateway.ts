@@ -252,7 +252,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
     );
     if (!clientId) return null;
-    return this.server.sockets.sockets.get(clientId);
+    return this.server.sockets[clientId];
   }
 
   async sendProfileUpdateToRoom(profile: UserData, roomId: string) {
@@ -273,7 +273,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userB.id,
     );
     if (userAClientId) {
-      const client = this.server.sockets.sockets.get(userAClientId);
+      const client = this.server.sockets[userAClientId];
       client.join('friend-' + userB.id);
       const userBWithStatus = {
         ...userB,
@@ -282,7 +282,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('new-friend', userBWithStatus);
     }
     if (userBClientId) {
-      const client = this.server.sockets.sockets.get(userBClientId);
+      const client = this.server.sockets[userBClientId];
       client.join('friend-' + userA.id);
       const userAWithStatus = {
         ...userA,
@@ -302,11 +302,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userBId,
     );
     if (userAClientId) {
-      const client = this.server.sockets.sockets.get(userAClientId);
+      const client = this.server.sockets[userAClientId];
       client.leave('friend-' + userBId);
     }
     if (userBClientId) {
-      const client = this.server.sockets.sockets.get(userBClientId);
+      const client = this.server.sockets[userBClientId];
       client.leave('friend-' + userAId);
     }
   }
