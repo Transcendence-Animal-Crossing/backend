@@ -7,7 +7,7 @@ import { RoomModule } from '../room/room.module';
 import { FollowModule } from '../folllow/follow.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from '../chat/entity/message.entity';
-import { MessageHistory } from '../chat/entity/messageHistory.entity';
+import { MessageHistory } from '../chat/entity/message-history.entity';
 import { ClientListener } from './client.listener';
 import { ChatModule } from '../chat/chat.module';
 import { User } from '../user/entities/user.entity';

@@ -28,7 +28,7 @@ import { QueueModule } from './queue/queue.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Message } from './chat/entity/message.entity';
-import { MessageHistory } from './chat/entity/messageHistory.entity';
+import { MessageHistory } from './chat/entity/message-history.entity';
 
 @Module({
   imports: [

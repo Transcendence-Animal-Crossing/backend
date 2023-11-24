@@ -8,7 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from './entity/message.entity';
 import { WSModule } from '../ws/ws.module';
 import { FollowModule } from '../folllow/follow.module';
-import { MessageHistory } from './entity/messageHistory.entity';
+import { MessageHistory } from './entity/message-history.entity';
 
 @Module({
   imports: [

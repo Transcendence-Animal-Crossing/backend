@@ -10,7 +10,7 @@ import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
 import { GameType } from './game/const/game.type';
 import { Message } from './chat/entity/message.entity';
-import { MessageHistory } from './chat/entity/messageHistory.entity';
+import { MessageHistory } from './chat/entity/message-history.entity';
 
 @Injectable()
 export class AppService {
