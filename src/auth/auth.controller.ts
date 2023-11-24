@@ -66,7 +66,9 @@ export class AuthController {
       }
       if (user.two_factor_auth) {
         await this.emailService.sendEmailVerification(user);
-        return res.redirect('/2fa');
+        //return res.redirect('http://localhost:3000/login/twofactor');
+        res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
+        return;
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -120,7 +122,9 @@ export class AuthController {
       }
       if (user.two_factor_auth) {
         await this.emailService.sendEmailVerification(user);
-        return res.redirect('/2fa');
+        //return res.redirect('http://localhost:3000/login/twofactor');
+        res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
+        return;
       }
       tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
@@ -230,7 +234,9 @@ export class AuthController {
 
     if (user.two_factor_auth) {
       await this.emailService.sendEmailVerification(user);
-      return res.redirect('/2fa');
+      //return res.redirect('http://localhost:3000/login/twofactor');
+      res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
+      return;
     }
 
     res.cookie('refreshToken', tokens.refreshToken, {
@@ -277,8 +283,8 @@ export class AuthController {
 
   @Public() //todo 예외처리 해야함
   @HttpCode(HttpStatus.OK)
-  @Get('email/token')
-  async verifiyPassword(
+  @Post('email/token')
+  async verifyEmailToken(
     @Body('intraName') intraName: string,
     @Body('token') token: string,
     @Res({ passthrough: true }) res: Response,
