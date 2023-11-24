@@ -11,7 +11,7 @@ import {
 import { GameType } from '../const/game.type';
 
 @Entity()
-export class Game {
+export class GameHistory {
   @PrimaryGeneratedColumn()
   id: number;
 
@@ -55,7 +55,7 @@ export class Game {
     playTime: number,
     type: GameType,
   ) {
-    const game = new Game();
+    const game = new GameHistory();
     game.winnerId = winnerId;
     game.loserId = loserId;
     game.winnerScore = winnerScore;
@@ -66,7 +66,7 @@ export class Game {
   }
 
   static init(type: GameType) {
-    const game = new Game();
+    const game = new GameHistory();
     game.winnerId = 0;
     game.loserId = 0;
     game.winnerScore = 0;

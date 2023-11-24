@@ -4,7 +4,7 @@ import { GameRecord } from './entities/game-record';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { PAGINATION_LIMIT } from 'src/common/constants';
-import { GameType, GAMETYPE_RANK } from '../game/const/game.type';
+import { GameType } from '../game/const/game.type';
 
 @Injectable()
 export class GameRecordService {
@@ -58,7 +58,7 @@ export class GameRecordService {
       },
     });
 
-    if (type === GAMETYPE_RANK) {
+    if (type === GameType.RANK) {
       await this.updateRankRecord(winnerGameRecord, loserGameRecord);
     } else {
       await this.updateGeneralRecord(winnerGameRecord, loserGameRecord);

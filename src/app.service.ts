@@ -3,7 +3,7 @@ import { Repository } from 'typeorm';
 import { User } from './user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRecord } from './gameRecord/entities/game-record';
-import { Game } from './game/entities/game.entity';
+import { GameHistory } from './game/entities/game-history.entity';
 import { Follow } from './folllow/entities/follow.entity';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { GameRecordService } from './gameRecord/game-record.service';
@@ -19,8 +19,8 @@ export class AppService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
-    @InjectRepository(Game)
-    private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameHistory)
+    private readonly gameRepository: Repository<GameHistory>,
     @InjectRepository(Follow)
     private readonly followRepository: Repository<Follow>,
     @InjectRepository(FollowRequest)
@@ -141,7 +141,11 @@ export class AppService {
       const playTime = Math.floor(Math.random() * (3600 - 300 + 1)) + 300; // 게임 시간: 300초(5분) ~ 3600초(1시간)
       const randType = Math.floor(Math.random() * 3); // 게임 타입: 0~2
       const type: GameType =
-        randType === 0 ? 'RANK' : randType === 1 ? 'CLASSIC' : 'SPECIAL';
+        randType === 0
+          ? GameType.RANK
+          : randType === 1
+          ? GameType.NORMAL
+          : GameType.HARD;
 
       const newGame = await this.gameRepository.create({
         winnerId,
@@ -189,7 +193,11 @@ export class AppService {
       const playTime = Math.floor(Math.random() * (3600 - 300 + 1)) + 300;
       const randType = Math.floor(Math.random() * 3); // 게임 타입: 0~2
       const type: GameType =
-        randType === 0 ? 'RANK' : randType === 1 ? 'CLASSIC' : 'SPECIAL';
+        randType === 0
+          ? GameType.RANK
+          : randType === 1
+          ? GameType.NORMAL
+          : GameType.HARD;
 
       const newGame = await this.gameRepository.create({
         winnerId,

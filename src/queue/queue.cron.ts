@@ -3,28 +3,25 @@ import { DataSource, EntityManager, ObjectLiteral } from 'typeorm';
 import { Standby } from './entities/standby.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueueGateway } from './queue.gateway';
-import { GameService } from '../game/game.service';
-import {
-  GameType,
-  GAMETYPE_CLASSIC,
-  GAMETYPE_RANK,
-  GAMETYPE_SPECIAL,
-} from '../game/const/game.type';
+import { GameType } from '../game/const/game.type';
+import { User } from '../user/entities/user.entity';
+import { Game } from '../game/model/game.model';
+import { GameRepository } from '../game/game.repository';
 
 @Injectable()
 export class QueueCron {
   constructor(
     private readonly dataSource: DataSource,
     private readonly queueGateWay: QueueGateway,
-    private readonly gameService: GameService,
+    private readonly gameRepository: GameRepository,
   ) {}
 
   @Cron(CronExpression.EVERY_5_SECONDS)
   async matchCron(): Promise<void> {
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
-      await this.match(manager, GAMETYPE_RANK);
-      await this.match(manager, GAMETYPE_CLASSIC);
-      await this.match(manager, GAMETYPE_SPECIAL);
+      await this.match(manager, GameType.RANK);
+      await this.match(manager, GameType.NORMAL);
+      await this.match(manager, GameType.HARD);
     });
   }
 
@@ -42,7 +39,7 @@ export class QueueCron {
       return Standby.createWithDate(d.id, type, d.rankScore, d.createdAt);
     });
 
-    if (type === GAMETYPE_RANK) await this.rankMatch(manager, queue);
+    if (type === GameType.RANK) await this.rankMatch(manager, queue);
     else await this.generalMatch(manager, queue);
   }
 
@@ -95,7 +92,17 @@ export class QueueCron {
     userA: Standby,
     userB: Standby,
   ) {
-    const game = await this.gameService.initGame(userA.type);
+    const leftUser = await manager
+      .getRepository(User)
+      .findOneBy({ id: userA.id });
+    const rightUser = await manager
+      .getRepository(User)
+      .findOneBy({ id: userA.id });
+
+    const game = Game.create(leftUser, rightUser, userA.type);
+    await this.gameRepository.save(game);
+    await this.gameRepository.userJoin(game.id, userA.id);
+    await this.gameRepository.userJoin(game.id, userB.id);
     await this.sendMatchedEvent(userA, game);
     await this.sendMatchedEvent(userB, game);
     await manager.getRepository(Standby).remove(userA);

@@ -13,7 +13,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { GameService } from './game.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameRecordService } from 'src/gameRecord/game-record.service';
-import { GAMETYPE_CLASSIC, GAMETYPE_RANK } from './const/game.type';
+import { GameType } from './const/game.type';
 
 @Controller('games')
 @UseGuards(JwtAuthGuard)
@@ -27,7 +27,7 @@ export class GameController {
     @Query('id') id: number,
     @Query('offset') offset: number,
   ) {
-    return this.gameService.getAllGamesById(id, GAMETYPE_RANK, offset);
+    return this.gameService.getAllGamesById(id, GameType.RANK, offset);
   }
 
   @Get('general')
@@ -35,7 +35,7 @@ export class GameController {
     @Query('id') id: number,
     @Query('offset') offset: number,
   ) {
-    return this.gameService.getAllGamesById(id, GAMETYPE_CLASSIC, offset);
+    return this.gameService.getAllGamesById(id, GameType.NORMAL, offset);
   }
 
   @Post('game')
