@@ -32,6 +32,19 @@ export class ClientListener {
     );
   }
 
+  @OnEvent('new.friend.request')
+  async handleNewFriendRequestEvent(senderId: number, receiverId: number) {
+    this.logger.debug('<new.friend.request> event is triggered!');
+    const sender = await this.userRepository.findOneBy({ id: senderId });
+    await this.chatGateWay.handleNewFriendRequest(sender, receiverId);
+  }
+
+  @OnEvent('delete.friend.request')
+  async handleDeleteFriendRequestEvent(senderId: number, receiverId: number) {
+    this.logger.debug('<delete.friend.request> event is triggered!');
+    await this.chatGateWay.handleDeleteFriendRequest(senderId, receiverId);
+  }
+
   @OnEvent('delete.friend')
   async handleDeleteFriendEvent(followerId: number, followingId: number) {
     this.logger.debug('<delete.friend> event is triggered!');

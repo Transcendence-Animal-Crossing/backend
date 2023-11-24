@@ -299,4 +299,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async handleDeleteRoom(roomId: string) {
     this.server.to('room-lobby').emit('room-delete', { id: roomId });
   }
+
+  async handleNewFriendRequest(sender: UserData, receiverId: number) {
+    const client = await this.getClientByUserId(receiverId);
+    if (client) client.emit('new-friend-request', sender);
+  }
+
+  async handleDeleteFriendRequest(senderId: number, receiverId: number) {
+    const client = await this.getClientByUserId(receiverId);
+    if (client) client.emit('delete-friend-request', { senderId: senderId });
+  }
 }

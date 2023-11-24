@@ -45,6 +45,7 @@ export class FollowController {
     const result = await this.followService.createRequest(req.user.id, id);
     if (result == HttpStatus.CREATED)
       this.eventEmitter.emit('new.friend', req.user.id, id);
+    else this.eventEmitter.emit('new.friend.request', req.user.id, id);
     await this.achievementService.addFollowRequestAchievement(user);
   }
 
@@ -52,6 +53,7 @@ export class FollowController {
   @HttpCode(HttpStatus.OK)
   async deleteRequest(@Body('sendTo') id: number, @Req() req) {
     await this.followService.deleteRequest(req.user.id, id);
+    this.eventEmitter.emit('delete.friend.request', req.user.id, id);
   }
 
   @Delete('requested')
