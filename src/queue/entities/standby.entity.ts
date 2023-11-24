@@ -33,4 +33,15 @@ export class Standby {
   static create(id: number, type: GameType, rankScore: number) {
     return new Standby(id, type, rankScore);
   }
+
+  static createWithDate(
+    id: number,
+    type: GameType,
+    rankScore: number,
+    createdAt: Date,
+  ) {
+    const standby = new Standby(id, type, rankScore);
+    standby.createdAt = createdAt;
+    return standby;
+  }
 }

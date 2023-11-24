@@ -32,12 +32,13 @@ socket.on('game-matched', (body) => {
 export async function joinQueue() {
   const radio_classic = document.getElementById('type_classic');
   const radio_rank = document.getElementById('type_rank');
+  const radio_special = document.getElementById('type_special');
 
   const game_type = radio_classic.checked
-    ? 'CLASSIC'
+    ? radio_classic.value
     : radio_rank.checked
-    ? 'RANK'
-    : 'SPECIAL';
+    ? radio_rank.value
+    : radio_special.value;
 
   const response = await socket.emitWithAck('queue-join', {
     type: game_type,

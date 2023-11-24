@@ -34,11 +34,12 @@ export class QueueCron {
       .createQueryBuilder('standby')
       .select('standby.id')
       .addSelect('standby.rankScore')
+      .addSelect('standby.createdAt')
       .where('standby.type = :type', { type })
       .orderBy('standby.createdAt', 'ASC')
       .getMany();
     const queue: Standby[] = data.map((d) => {
-      return Standby.create(d.id, type, d.rankScore);
+      return Standby.createWithDate(d.id, type, d.rankScore, d.createdAt);
     });
 
     if (type === GAMETYPE_RANK) await this.rankMatch(manager, queue);
@@ -108,18 +109,22 @@ export class QueueCron {
   }
 
   private isMatchable(a: ObjectLiteral, b: ObjectLiteral): boolean {
-    return a.matchableMinRank <= b.rank && a.matchableMaxRank >= b.rank;
+    return (
+      a.matchableMinRank <= b.rankScore && a.matchableMaxRank >= b.rankScore
+    );
   }
 
   private cacheMatchableRank(queue: ObjectLiteral[]) {
     for (let i = 0; i < queue.length; ++i) {
       const matchableDistance = this.matchableDistance(queue[i].createdAt);
-      queue[i].matchableMinRank = queue[i].rank - matchableDistance;
-      queue[i].matchableMaxRank = queue[i].rank + matchableDistance;
+      console.log('matchableDistance: ', matchableDistance);
+      queue[i].matchableMinRank = queue[i].rankScore - matchableDistance;
+      queue[i].matchableMaxRank = queue[i].rankScore + matchableDistance;
     }
   }
 
-  private matchableDistance(createdAt: number): number {
-    return 20 + Math.max(1, Math.log2(Date.now() - createdAt) * 10);
+  private matchableDistance(createdAt: Date): number {
+    const waitTime = (new Date().getTime() - createdAt.getTime()) / 1000;
+    return 20 + Math.max(1, Math.floor(Math.log2(waitTime) * 10));
   }
 }
