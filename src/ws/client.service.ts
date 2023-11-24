@@ -7,7 +7,7 @@ import { UserService } from '../user/user.service';
 import { FollowService } from '../folllow/follow.service';
 import { Status } from './const/client.status';
 import { Namespace } from './const/namespace';
-import { MessageHistory } from '../chat/entity/messageHistory.entity';
+import { MessageHistory } from '../chat/entity/message-history.entity';
 import { Repository } from 'typeorm';
 import { Message } from '../chat/entity/message.entity';
 import { InjectRepository } from '@nestjs/typeorm';

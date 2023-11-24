@@ -8,7 +8,7 @@ import { LoadMessageDto } from './dto/load-message.dto';
 import { Socket } from 'socket.io';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
-import { MessageHistory } from './entity/messageHistory.entity';
+import { MessageHistory } from './entity/message-history.entity';
 import { Namespace } from '../ws/const/namespace';
 
 @Injectable()
