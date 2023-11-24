@@ -18,6 +18,9 @@ import { FollowService } from './folllow/follow.service';
 import { ChatService } from './chat/chat.service';
 import { ClientService } from './ws/client.service';
 import { QueueService } from './queue/queue.service';
+import { GameRecord } from './gameRecord/entities/game-record';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Controller()
 export class AppController {
@@ -30,6 +33,8 @@ export class AppController {
     private readonly chatService: ChatService,
     private readonly clientService: ClientService,
     private readonly queueService: QueueService,
+    @InjectRepository(GameRecord)
+    private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
   /*
@@ -67,8 +72,8 @@ export class AppController {
   @Render('queue')
   async queue(@Query('token') token: string) {
     const userId = this.authService.verifyAccessToken(token).id;
-    const user = await this.userService.findOne(userId);
-    return { user: user, token: token };
+    const record = await this.gameRecordRepository.findOneBy({ id: userId });
+    return { record: record, token: token };
   }
 
   @Public()

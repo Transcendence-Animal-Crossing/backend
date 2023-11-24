@@ -11,7 +11,19 @@
   <title>Game Queue TEST</title>
 </head>
 <body>
-<!-- Test page have two buttons and print response interface, button1 is <join-queue>, button2 is <leave-queue>-->
+<div>
+  <h1>Game Queue TEST</h1>
+  <h2>Player: {{ record.id }}</h2>
+  <h2>RankScore: {{ record.rankScore }}</h2>
+
+</div>
+  <input type="radio" id="type_classic" name="game-type" value="classic" checked>
+  <label for="classic">Classic</label>
+  <input type="radio" id="type_special" name="game-type" value="special">
+  <label for="special">Special</label>
+  <input type="radio" id="type_rank" name="game-type" value="rank">
+  <label for="rank">Rank</label>
+  <br>
   <button id="join-queue" onclick='joinQueue()'>Join Queue</button>
   <button id="leave-queue" onclick='leaveQueue()'>Leave Queue</button>
   <div id="response">

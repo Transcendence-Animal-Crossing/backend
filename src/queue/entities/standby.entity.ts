@@ -15,13 +15,13 @@ export class Standby {
   @Column()
   type: GameType;
 
-  @Column()
+  @Column({ name: 'rank_score' })
   rankScore: number;
 
-  @UpdateDateColumn()
+  @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
 
-  @CreateDateColumn()
+  @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   constructor(id: number, type: GameType, rankScore: number) {

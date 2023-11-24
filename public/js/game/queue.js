@@ -21,12 +21,31 @@ socket.on('disconnect', () => {
   responseElement.appendChild(newElement);
 });
 
+socket.on('game-matched', (body) => {
+  console.log('game-matched');
+  const time = new Date().getMinutes() + ':' + new Date().getSeconds();
+  const newElement = document.createElement('div');
+  newElement.innerText = 'game-matched' + JSON.stringify(body) + ' ' + time;
+  responseElement.appendChild(newElement);
+});
+
 export async function joinQueue() {
+  const radio_classic = document.getElementById('type_classic');
+  const radio_rank = document.getElementById('type_rank');
+
+  const game_type = radio_classic.checked
+    ? 'CLASSIC'
+    : radio_rank.checked
+    ? 'RANK'
+    : 'SPECIAL';
+
   const response = await socket.emitWithAck('queue-join', {
-    type: 'CLASSIC',
+    type: game_type,
   });
   const newElement = document.createElement('div');
-  newElement.innerText = 'joinQueue' + JSON.stringify(response);
+  const time = new Date().getMinutes() + ':' + new Date().getSeconds();
+  newElement.innerText = 'joinQueue' + JSON.stringify(response) + ' ' + time;
+
   responseElement.appendChild(newElement);
 }
 

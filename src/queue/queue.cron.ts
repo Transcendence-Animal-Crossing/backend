@@ -3,7 +3,6 @@ import { DataSource, EntityManager, ObjectLiteral } from 'typeorm';
 import { Standby } from './entities/standby.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueueGateway } from './queue.gateway';
-import { ClientService } from '../ws/client.service';
 import { GameService } from '../game/game.service';
 import {
   GameType,
@@ -11,14 +10,12 @@ import {
   GAMETYPE_RANK,
   GAMETYPE_SPECIAL,
 } from '../game/const/game.type';
-import { Namespace } from '../ws/const/namespace';
 
 @Injectable()
 export class QueueCron {
   constructor(
     private readonly dataSource: DataSource,
     private readonly queueGateWay: QueueGateway,
-    private readonly clientService: ClientService,
     private readonly gameService: GameService,
   ) {}
 
@@ -105,12 +102,9 @@ export class QueueCron {
   }
 
   private async sendMatchedEvent(user, game) {
-    const client = await this.clientService.getClientByUserId(
-      this.queueGateWay.server,
-      Namespace.QUEUE,
-      user.id,
-    );
-    this.queueGateWay.server.to(client).emit('game-matched', { id: game.id });
+    await this.queueGateWay.sendEventToClient(user.id, 'game-matched', {
+      id: game.id,
+    });
   }
 
   private isMatchable(a: ObjectLiteral, b: ObjectLiteral): boolean {

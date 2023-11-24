@@ -58,6 +58,16 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.debug('Client Send Event <queue-leave>');
     const userId = await this.clientService.findUserIdByClientId(client.id);
     await this.queueService.leave(userId);
+    // 실패도 만들어야 함 (이미 매칭이 되었거나, 매칭 대기열에 없는 경우)
     return { status: HttpStatus.OK };
+  }
+
+  async sendEventToClient(userId: number, event: string, data: any) {
+    const client = await this.clientService.getClientByUserId(
+      this.server,
+      Namespace.QUEUE,
+      userId,
+    );
+    client.emit(event, data);
   }
 }

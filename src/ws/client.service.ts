@@ -88,7 +88,7 @@ export class ClientService {
       userId,
     );
     if (!clientId) return null;
-    return server.sockets[clientId];
+    return server.sockets.get(clientId);
   }
 
   async listenFriendsStatus(client: Socket, user: User) {

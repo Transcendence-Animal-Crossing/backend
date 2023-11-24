@@ -81,8 +81,7 @@ export class AppService {
       });
       if (!gameRecord) {
         gameRecord = GameRecord.create(newUser);
-        gameRecord.rankScore =
-          Math.floor(Math.random() * (10000 - 100 + 1)) + 100;
+        gameRecord.rankScore = Math.floor(Math.random() * 200) + 1000;
       }
       await this.gameRecordRepository.save(gameRecord);
     }
