@@ -2,16 +2,11 @@ import { User } from '../../user/entities/user.entity';
 import { ParticipantData } from './participant.data';
 
 export class UserData {
-  protected constructor(
-    id: number,
-    nickName: string,
-    intraName: string,
-    avatar: string,
-  ) {
-    this.id = id;
-    this.nickName = nickName;
-    this.intraName = intraName;
-    this.avatar = avatar;
+  protected constructor(user: User) {
+    this.id = user.id;
+    this.nickName = user.nickName;
+    this.intraName = user.intraName;
+    this.avatar = user.avatar;
   }
 
   id: number;
@@ -25,11 +20,16 @@ export class UserData {
     intraName: string,
     avatar: string,
   ) {
-    return new UserData(id, nickName, intraName, avatar);
+    const user = new User();
+    user.id = id;
+    user.nickName = nickName;
+    user.intraName = intraName;
+    user.avatar = avatar;
+    return new UserData(user);
   }
 
   public static from(user: User): UserData {
-    return new UserData(user.id, user.nickName, user.intraName, user.avatar);
+    return new UserData(user);
   }
 
   public static compressToParticipant(participant: ParticipantData): UserData {

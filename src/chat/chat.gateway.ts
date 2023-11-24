@@ -246,8 +246,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleProfileChange(profile) {
-    profile.status = await this.clientRepository.getUserStatus(profile.id);
-    this.server.to('friend-' + profile.id).emit('friend-update', profile);
+    this.server.to('friend-' + profile.id).emit('profile-update', profile);
   }
 
   async handleNewFriend(userA: UserData, userB: UserData) {

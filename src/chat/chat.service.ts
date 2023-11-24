@@ -26,6 +26,10 @@ export class ChatService {
     const sender = await this.userService.findOne(dto.senderId);
     const receiver = await this.userService.findOne(dto.receiverId);
     const historyId = MessageHistory.createHistoryId(receiver.id, sender.id);
+    const history = MessageHistory.create(historyId);
+    await this.messageHistoryRepository.upsert(history, ['id']);
+
+    // const message = this.messageRepository.create(historyId, dto.text);
     const message = Message.create(historyId, dto.text);
     return await this.messageRepository.save(message);
   }
@@ -59,36 +63,29 @@ export class ChatService {
   async loadWithPagination(userId: number, dto: LoadMessageDto) {
     const user = await this.userService.findOne(userId);
     const target = await this.userService.findOne(dto.targetId);
-    const receivedHistoryId = MessageHistory.createHistoryId(
-      user.id,
-      target.id,
-    );
-    const sendHistoryId = MessageHistory.createHistoryId(target.id, user.id);
+    const historyId = MessageHistory.createHistoryId(user.id, target.id);
 
-    let whereCondition =
-      '(message.history_id = :receivedHistoryId OR message.history_id = :sendHistoryId)';
+    let whereCondition = 'message.history_id = :historyId ';
     if (dto.cursorId) whereCondition += 'AND message.id < :cursorId';
 
     const messageData = await this.messageRepository
       .createQueryBuilder('message')
       .select([
-        'message.id AS id',
-        'message.history_id AS history_id',
+        'message.id AS messageId',
         'message.text AS text',
         'message.created_at AS date',
       ])
       .where(whereCondition, {
-        receivedHistoryId: receivedHistoryId,
-        sendHistoryId: sendHistoryId,
+        historyId: historyId,
         cursorId: dto.cursorId,
       })
-      .orderBy('id', 'DESC')
+      .orderBy('messageId', 'DESC')
       .take(20)
       .getRawMany();
 
     return messageData.map((data) => ({
-      id: data.id,
-      senderId: MessageHistory.getSenderIdFromHistoryId(data.history_id),
+      id: data.messageid,
+      senderId: target.id,
       date: data.date,
       text: data.text,
     }));
