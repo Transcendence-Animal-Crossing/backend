@@ -88,7 +88,7 @@ export class ChatService {
 
     return messageData.map((data) => ({
       id: data.id,
-      senderId: data.history_id.split('-')[1],
+      senderId: MessageHistory.getSenderIdFromHistoryId(data.history_id),
       date: data.date,
       text: data.text,
     }));
