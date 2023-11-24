@@ -3,7 +3,7 @@ import { UserData } from './user.data';
 
 export class ParticipantData extends UserData {
   private constructor(user: User, grade: number) {
-    super(user);
+    super(user.id, user.nickName, user.intraName, user.avatar);
     this.grade = grade;
     this.muteStartTime = null;
     this.joinTime = new Date();
