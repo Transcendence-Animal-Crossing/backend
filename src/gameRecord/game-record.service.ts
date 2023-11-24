@@ -4,6 +4,7 @@ import { GameRecord } from './entities/game-record';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { PAGINATION_LIMIT } from 'src/common/constants';
+import { GameType } from '../game/const/game.type';
 
 @Injectable()
 export class GameRecordService {
@@ -44,7 +45,7 @@ export class GameRecordService {
     await this.gameRecordRepository.save(GameRecord.create(user));
   }
 
-  async updateGameRecord(winnerId: number, loserId: number, isRank: boolean) {
+  async updateGameRecord(winnerId: number, loserId: number, type: GameType) {
     const winnerGameRecord = await this.gameRecordRepository.findOne({
       where: {
         user: { id: winnerId },
@@ -57,7 +58,7 @@ export class GameRecordService {
       },
     });
 
-    if (isRank) {
+    if (type === GameType.RANK) {
       await this.updateRankRecord(winnerGameRecord, loserGameRecord);
     } else {
       await this.updateGeneralRecord(winnerGameRecord, loserGameRecord);
@@ -90,12 +91,16 @@ export class GameRecordService {
     });
   }
 
-  async findRecord(id: number, isRank: boolean) {
-    const gameRecord = await this.gameRecordRepository.findOne({
+  async findOneById(id: number) {
+    return await this.gameRecordRepository.findOne({
       where: {
         user: { id: id },
       },
     });
+  }
+
+  async findRecord(id: number, isRank: boolean) {
+    const gameRecord = await this.findOneById(id);
     let winRate;
 
     if (isRank) {

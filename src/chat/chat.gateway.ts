@@ -15,7 +15,7 @@ import { DirectMessageDto } from './dto/direct-message.dto';
 import { RoomService } from '../room/room.service';
 import { ActionRoomDto } from './dto/action-room.dto';
 import { ConfigRoomDto } from '../room/dto/config-room.dto';
-import { WsExceptionFilter } from '../ws/filter/WsExceptionFilter';
+import { CustomSocketFilter } from '../ws/filter/custom-socket.filter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
 import { ChatService } from './chat.service';
 import { LoadMessageDto } from './dto/load-message.dto';
@@ -23,11 +23,12 @@ import { Room } from '../room/data/room.data';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
+import { Namespace } from '../ws/const/namespace';
 import { UserData } from '../room/data/user.data';
 
 // @UsePipes(new ValidationPipe())
-@WebSocketGateway()
-@UseFilters(new WsExceptionFilter())
+@WebSocketGateway({ namespace: Namespace.CHAT })
+@UseFilters(new CustomSocketFilter())
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server;
@@ -42,19 +43,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
-    const user = await this.clientService.connect(this.server, client);
-    this.logger.debug(
-      '[WebSocket Connected!] nickName: ' +
-        user.nickName +
-        ', socketId: ' +
-        client.id,
+    const user = await this.clientService.connect(
+      this.server,
+      Namespace.CHAT,
+      client,
     );
+    client.data.userId = user.id;
+    this.logger.log('[Chat WebSocket Connected!]: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
-    await this.roomService.leave(this.server, client);
-    await this.clientService.disconnect(this.server, client);
-    this.logger.debug('[WebSocket Disconnected!] socketId: ' + client.id);
+    console.log('[TEST] userId', client.data.userId);
+    const user = await this.clientService.disconnect(
+      this.server,
+      Namespace.CHAT,
+      client,
+    );
+    const room = await this.roomService.getJoinedRoom(user.id);
+    if (room) await this.roomService.leave(this.server, client);
+    await this.clientService.disconnect(this.server, Namespace.CHAT, client);
+    this.logger.log('[Chat WebSocket Disconnected!]: ' + user.nickName);
   }
 
   @SubscribeMessage('room-lobby')
@@ -134,9 +142,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-kick')
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-kick>');
-    const userId = await this.clientRepository.findUserId(client.id);
 
-    await this.roomService.kick(this.server, userId, dto);
+    await this.roomService.kick(this.server, client, dto);
     return { status: HttpStatus.OK };
   }
 
@@ -240,21 +247,34 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async getClientByUserId(userId: number): Promise<Socket> {
-    const clientId = await this.clientRepository.findClientId(userId);
+    const clientId = await this.clientRepository.findClientId(
+      Namespace.CHAT,
+      userId,
+    );
     if (!clientId) return null;
-    return this.server.sockets.sockets.get(clientId);
+    return this.server.sockets[clientId];
   }
 
-  async handleProfileChange(profile) {
+  async sendProfileUpdateToRoom(profile: UserData, roomId: string) {
+    this.server.to(roomId).emit('room-user-update', profile);
+  }
+
+  async sendProfileUpdateToFriends(profile) {
     profile.status = await this.clientRepository.getUserStatus(profile.id);
     this.server.to('friend-' + profile.id).emit('friend-update', profile);
   }
 
-  async handleNewFriend(userA: UserData, userB: UserData) {
-    const userAClientId = await this.clientRepository.findClientId(userA.id);
-    const userBClientId = await this.clientRepository.findClientId(userB.id);
+  async sendNewFriend(userA: UserData, userB: UserData) {
+    const userAClientId = await this.clientRepository.findClientId(
+      Namespace.CHAT,
+      userA.id,
+    );
+    const userBClientId = await this.clientRepository.findClientId(
+      Namespace.CHAT,
+      userB.id,
+    );
     if (userAClientId) {
-      const client = this.server.sockets.sockets.get(userAClientId);
+      const client = this.server.sockets[userAClientId];
       client.join('friend-' + userB.id);
       const userBWithStatus = {
         ...userB,
@@ -263,7 +283,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('new-friend', userBWithStatus);
     }
     if (userBClientId) {
-      const client = this.server.sockets.sockets.get(userBClientId);
+      const client = this.server.sockets[userBClientId];
       client.join('friend-' + userA.id);
       const userAWithStatus = {
         ...userA,
@@ -273,25 +293,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  async handleDeleteFriend(userAId: number, userBId: number) {
-    const userAClientId = await this.clientRepository.findClientId(userAId);
-    const userBClientId = await this.clientRepository.findClientId(userBId);
+  async sendDeleteFriend(userAId: number, userBId: number) {
+    const userAClientId = await this.clientRepository.findClientId(
+      Namespace.CHAT,
+      userAId,
+    );
+    const userBClientId = await this.clientRepository.findClientId(
+      Namespace.CHAT,
+      userBId,
+    );
     if (userAClientId) {
-      const client = this.server.sockets.sockets.get(userAClientId);
+      const client = this.server.sockets[userAClientId];
       client.leave('friend-' + userBId);
     }
     if (userBClientId) {
-      const client = this.server.sockets.sockets.get(userBClientId);
+      const client = this.server.sockets[userBClientId];
       client.leave('friend-' + userAId);
     }
   }
 
-  async handleBlockUser(blockerId: number, blockedId: number) {
+  async sendBlockUser(blockerId: number, blockedId: number) {
     const client = await this.getClientByUserId(blockerId);
     if (client) client.join('block-' + blockedId);
   }
 
-  async handleUnBlockUser(blockerId: number, unBlockedId: number) {
+  async sendUnBlockUser(blockerId: number, unBlockedId: number) {
     const client = await this.getClientByUserId(blockerId);
     if (client) client.join('block-' + unBlockedId);
   }

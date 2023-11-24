@@ -17,19 +17,22 @@ import { WSModule } from './ws/ws.module';
 import { User } from './user/entities/user.entity';
 import { UserService } from './user/user.service';
 import { GameService } from './game/game.service';
-import { Game } from './game/entities/game.entity';
+import { GameHistory } from './game/entities/game-history.entity';
 import { GameRecord } from './gameRecord/entities/game-record';
 import { GameRecordModule } from './gameRecord/game-record.module';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { FollowService } from './folllow/follow.service';
 import { Follow } from './folllow/entities/follow.entity';
+import { QueueModule } from './queue/queue.module';
+import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Message } from './chat/entity/message.entity';
-import { MessageHistory } from './chat/entity/messageHistory.entity';
+import { MessageHistory } from './chat/entity/message-history.entity';
 
 @Module({
   imports: [
+    ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     CacheModule.register({
       ttl: null,
@@ -54,7 +57,7 @@ import { MessageHistory } from './chat/entity/messageHistory.entity';
     }),
     TypeOrmModule.forFeature([
       User,
-      Game,
+      GameHistory,
       GameRecord,
       Follow,
       FollowRequest,
@@ -71,6 +74,7 @@ import { MessageHistory } from './chat/entity/messageHistory.entity';
     GameModule,
     GameRecordModule,
     GameModule,
+    QueueModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

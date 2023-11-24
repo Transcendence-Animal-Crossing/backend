@@ -4,6 +4,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { UserData } from '../room/data/user.data';
 import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
+import { RoomRepository } from '../room/room.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
@@ -13,12 +14,27 @@ export class ClientListener {
     private readonly chatGateWay: ChatGateway,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    private readonly roomRepository: RoomRepository,
   ) {}
 
   @OnEvent('update.profile')
   async handleUpdateProfileEvent(profile: UserData) {
     this.logger.debug('<update.profile> event is triggered!');
-    await this.chatGateWay.handleProfileChange(profile);
+    await this.chatGateWay.sendProfileUpdateToFriends(profile);
+    const roomId = await this.roomRepository.findRoomIdByUserId(profile.id);
+    if (!roomId) return;
+    const room = await this.roomRepository.find(roomId);
+    if (!room) return;
+
+    for (const participant of room.participants) {
+      if (participant.id === profile.id) {
+        participant.nickName = profile.nickName;
+        participant.avatar = profile.avatar;
+        break;
+      }
+    }
+    await this.roomRepository.update(room);
+    await this.chatGateWay.sendProfileUpdateToRoom(profile, roomId);
   }
 
   @OnEvent('new.friend')
@@ -26,7 +42,7 @@ export class ClientListener {
     this.logger.debug('<new.friend> event is triggered!');
     const follower = await this.userRepository.findOneBy({ id: followerId });
     const following = await this.userRepository.findOneBy({ id: followingId });
-    await this.chatGateWay.handleNewFriend(
+    await this.chatGateWay.sendNewFriend(
       UserData.from(follower),
       UserData.from(following),
     );
@@ -35,7 +51,7 @@ export class ClientListener {
   @OnEvent('delete.friend')
   async handleDeleteFriendEvent(followerId: number, followingId: number) {
     this.logger.debug('<delete.friend> event is triggered!');
-    await this.chatGateWay.handleDeleteFriend(followerId, followingId);
+    await this.chatGateWay.sendDeleteFriend(followerId, followingId);
   }
 
   @OnEvent('delete.room')
@@ -47,12 +63,12 @@ export class ClientListener {
   @OnEvent('add.block')
   async handleBlockUserEvent(blockerId: number, blockedId: number) {
     this.logger.debug('<add.block> event is triggered!');
-    await this.chatGateWay.handleBlockUser(blockerId, blockedId);
+    await this.chatGateWay.sendBlockUser(blockerId, blockedId);
   }
 
   @OnEvent('delete.block')
   async handleUnBlockUserEvent(blockerId: number, unBlockedId: number) {
     this.logger.debug('<delete.block> event is triggered!');
-    await this.chatGateWay.handleUnBlockUser(blockerId, unBlockedId);
+    await this.chatGateWay.sendUnBlockUser(blockerId, unBlockedId);
   }
 }

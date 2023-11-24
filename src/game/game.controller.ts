@@ -13,6 +13,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { GameService } from './game.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameRecordService } from 'src/gameRecord/game-record.service';
+import { GameType } from './const/game.type';
 
 @Controller('games')
 @UseGuards(JwtAuthGuard)
@@ -26,7 +27,7 @@ export class GameController {
     @Query('id') id: number,
     @Query('offset') offset: number,
   ) {
-    return this.gameService.getAllGamesById(id, true, offset);
+    return this.gameService.getAllGamesById(id, GameType.RANK, offset);
   }
 
   @Get('general')
@@ -34,7 +35,7 @@ export class GameController {
     @Query('id') id: number,
     @Query('offset') offset: number,
   ) {
-    return this.gameService.getAllGamesById(id, false, offset);
+    return this.gameService.getAllGamesById(id, GameType.NORMAL, offset);
   }
 
   @Post('game')
@@ -44,7 +45,7 @@ export class GameController {
     await this.gameRecordService.updateGameRecord(
       createGameDto.winnerId,
       createGameDto.loserId,
-      createGameDto.isRank,
+      createGameDto.type,
     );
   }
   //삭제 예정

@@ -15,7 +15,7 @@ import {
   DetailResponseUserDto,
   toDetailResponseUserDto,
 } from './dto/detailResponse-user.dto';
-import { Game } from 'src/game/entities/game.entity';
+import { GameHistory } from 'src/game/entities/game-history.entity';
 import { GameRecord } from 'src/gameRecord/entities/game-record';
 import { PAGINATION_LIMIT } from 'src/common/constants';
 import { FollowService } from 'src/folllow/follow.service';
@@ -25,7 +25,8 @@ import { AchievementService } from 'src/achievement/achievement.service';
 export class UserService {
   constructor(
     @InjectRepository(User) private readonly userRepository: Repository<User>,
-    @InjectRepository(Game) private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameHistory)
+    private readonly gameRepository: Repository<GameHistory>,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
     private readonly followService: FollowService,

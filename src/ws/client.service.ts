@@ -6,7 +6,8 @@ import { AuthService } from '../auth/auth.service';
 import { UserService } from '../user/user.service';
 import { FollowService } from '../folllow/follow.service';
 import { Status } from './const/client.status';
-import { MessageHistory } from '../chat/entity/messageHistory.entity';
+import { Namespace } from './const/namespace';
+import { MessageHistory } from '../chat/entity/message-history.entity';
 import { Repository } from 'typeorm';
 import { Message } from '../chat/entity/message.entity';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -26,10 +27,11 @@ export class ClientService {
     private readonly messageHistoryRepository: Repository<MessageHistory>,
   ) {}
 
-  async connect(server, client: Socket) {
+  async connect(server, namespace, client: Socket) {
     this.logger.log('Trying to connect WebSocket...');
     const user = await this.findUserByToken(client);
-    await this.clientRepository.connect(client.id, user.id);
+    client.data.userId = user.id;
+    await this.clientRepository.connect(namespace, client.id, user.id);
     user.blockIds.map((id) => {
       client.join('block-' + id);
     });
@@ -38,10 +40,13 @@ export class ClientService {
     return user;
   }
 
-  async disconnect(server, client: Socket) {
+  async disconnect(server, namespace, client: Socket) {
     const user = await this.findUserByToken(client);
-    await this.clientRepository.disconnect(client.id);
-    await this.sendUpdateToFriends(server, user, Status.OFFLINE);
+    await this.clientRepository.disconnect(namespace, client.id);
+    if (namespace === Namespace.CHAT) {
+      await this.sendUpdateToFriends(server, user, Status.OFFLINE);
+      return user;
+    }
     const dmFocus: number = await this.getDMFocus(user.id);
     if (dmFocus) await this.updateLastRead(user.id, dmFocus);
     await this.clientRepository.deleteDMFocus(user.id);
@@ -77,15 +82,14 @@ export class ClientService {
     client.disconnect(true);
   }
 
-  // async ignoreUser(userId: number, targetId: number) {
-  //   const client = await this.getClientByUserId(userId);
-  //   if (client) client.join('block-' + targetId);
-  // }
-  //
-  // async unIgnoreUser(userId: number, targetId: number) {
-  //   const client = await this.getClientByUserId(userId);
-  //   if (client) client.leave('block-' + targetId);
-  // }
+  async getClientByUserId(server, namespace, userId: number): Promise<Socket> {
+    const clientId = await this.clientRepository.findClientId(
+      namespace,
+      userId,
+    );
+    if (!clientId) return null;
+    return server.sockets.get(clientId);
+  }
 
   async listenFriendsStatus(client: Socket, user: User) {
     const friends = await this.followService.getSimpleFriends(user.id);
@@ -108,8 +112,8 @@ export class ClientService {
     return await this.clientRepository.findUserId(id);
   }
 
-  async findClientIdByUserId(id: number): Promise<string> {
-    return await this.clientRepository.findClientId(id);
+  async findClientIdByUserId(namespace, id: number): Promise<string> {
+    return await this.clientRepository.findClientId(namespace, id);
   }
 
   async getDMFocus(userId: number) {

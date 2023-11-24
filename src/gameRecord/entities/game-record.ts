@@ -12,19 +12,19 @@ export class GameRecord {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ name: 'rank_total_count' })
   rankTotalCount: number;
 
-  @Column()
+  @Column({ name: 'rank_win_count' })
   rankWinCount: number;
 
-  @Column()
+  @Column({ name: 'general_total_count' })
   generalTotalCount: number;
 
-  @Column()
+  @Column({ name: 'general_win_count' })
   generalWinCount: number;
 
-  @Column()
+  @Column({ name: 'rank_score' })
   rankScore: number;
 
   @OneToOne(() => User)

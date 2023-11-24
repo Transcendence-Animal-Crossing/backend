@@ -8,7 +8,7 @@ import {
 import { Socket } from 'socket.io';
 
 @Catch(HttpException)
-export class WsExceptionFilter implements ExceptionFilter {
+export class CustomSocketFilter implements ExceptionFilter {
   catch(exception: HttpException, host: ArgumentsHost) {
     const ctx = host.switchToWs();
     const client: Socket = ctx.getClient();

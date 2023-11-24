@@ -17,6 +17,10 @@ import { AuthService } from './auth/auth.service';
 import { FollowService } from './folllow/follow.service';
 import { ChatService } from './chat/chat.service';
 import { ClientService } from './ws/client.service';
+import { QueueService } from './queue/queue.service';
+import { GameRecord } from './gameRecord/entities/game-record';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Controller()
 export class AppController {
@@ -28,6 +32,9 @@ export class AppController {
     private readonly followService: FollowService,
     private readonly chatService: ChatService,
     private readonly clientService: ClientService,
+    private readonly queueService: QueueService,
+    @InjectRepository(GameRecord)
+    private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
   /*
@@ -58,6 +65,15 @@ export class AppController {
     const userId = this.authService.verifyAccessToken(token).id;
     const user = await this.userService.findOne(userId);
     return { user: user, token: token };
+  }
+
+  @Public()
+  @Get('/queue')
+  @Render('queue')
+  async queue(@Query('token') token: string) {
+    const userId = this.authService.verifyAccessToken(token).id;
+    const record = await this.gameRecordRepository.findOneBy({ id: userId });
+    return { record: record, token: token };
   }
 
   @Public()
@@ -113,6 +129,14 @@ export class AppController {
     if (beforeFocus) await this.chatService.updateLastRead(userId, beforeFocus);
 
     await this.clientService.changeDMFocus(userId, targetId);
+    return { status: HttpStatus.OK };
+  }
+
+  // queue 테스트 용도
+  @Public()
+  @Post('/queue')
+  async postQueue(@Body('userId') userId, @Body() body) {
+    await this.queueService.join(userId, { ...body });
     return { status: HttpStatus.OK };
   }
 }

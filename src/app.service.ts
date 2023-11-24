@@ -3,13 +3,14 @@ import { Repository } from 'typeorm';
 import { User } from './user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRecord } from './gameRecord/entities/game-record';
-import { Game } from './game/entities/game.entity';
+import { GameHistory } from './game/entities/game-history.entity';
 import { Follow } from './folllow/entities/follow.entity';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
+import { GameType } from './game/const/game.type';
 import { Message } from './chat/entity/message.entity';
-import { MessageHistory } from './chat/entity/messageHistory.entity';
+import { MessageHistory } from './chat/entity/message-history.entity';
 
 @Injectable()
 export class AppService {
@@ -18,8 +19,8 @@ export class AppService {
     private readonly userRepository: Repository<User>,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
-    @InjectRepository(Game)
-    private readonly gameRepository: Repository<Game>,
+    @InjectRepository(GameHistory)
+    private readonly gameRepository: Repository<GameHistory>,
     @InjectRepository(Follow)
     private readonly followRepository: Repository<Follow>,
     @InjectRepository(FollowRequest)
@@ -80,8 +81,7 @@ export class AppService {
       });
       if (!gameRecord) {
         gameRecord = GameRecord.create(newUser);
-        gameRecord.rankScore =
-          Math.floor(Math.random() * (10000 - 100 + 1)) + 100;
+        gameRecord.rankScore = Math.floor(Math.random() * 200) + 1000;
       }
       await this.gameRecordRepository.save(gameRecord);
     }
@@ -139,7 +139,13 @@ export class AppService {
       const winnerScore = Math.floor(Math.random() * (60 - 50 + 1)); // 0~50
       const loserScore = Math.floor(Math.random() * winnerScore); // 패자 점수: 0 ~ winnerScore - 1
       const playTime = Math.floor(Math.random() * (3600 - 300 + 1)) + 300; // 게임 시간: 300초(5분) ~ 3600초(1시간)
-      const isRank = Math.random() > 0.5; // 랭크 게임 여부: 50% 확률
+      const randType = Math.floor(Math.random() * 3); // 게임 타입: 0~2
+      const type: GameType =
+        randType === 0
+          ? GameType.RANK
+          : randType === 1
+          ? GameType.NORMAL
+          : GameType.HARD;
 
       const newGame = await this.gameRepository.create({
         winnerId,
@@ -147,14 +153,14 @@ export class AppService {
         winnerScore,
         loserScore,
         playTime,
-        isRank,
+        type,
       });
 
       await this.gameRepository.save(newGame);
       await this.gameRecordService.updateGameRecord(
         newGame.winnerId,
         newGame.loserId,
-        newGame.isRank,
+        newGame.type,
       );
     }
   }
@@ -185,7 +191,13 @@ export class AppService {
       const winnerScore = Math.floor(Math.random() * (60 - 50 + 1));
       const loserScore = Math.floor(Math.random() * winnerScore); //여기서는 패자 점수 설정해줌
       const playTime = Math.floor(Math.random() * (3600 - 300 + 1)) + 300;
-      const isRank = Math.random() > 0.5;
+      const randType = Math.floor(Math.random() * 3); // 게임 타입: 0~2
+      const type: GameType =
+        randType === 0
+          ? GameType.RANK
+          : randType === 1
+          ? GameType.NORMAL
+          : GameType.HARD;
 
       const newGame = await this.gameRepository.create({
         winnerId,
@@ -193,14 +205,14 @@ export class AppService {
         winnerScore,
         loserScore,
         playTime,
-        isRank,
+        type,
       });
 
       await this.gameRepository.save(newGame);
       await this.gameRecordService.updateGameRecord(
         newGame.winnerId,
         newGame.loserId,
-        newGame.isRank,
+        newGame.type,
       );
     }
   }
