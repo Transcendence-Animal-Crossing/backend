@@ -20,7 +20,7 @@ export class AppService {
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
     @InjectRepository(GameHistory)
-    private readonly gameRepository: Repository<GameHistory>,
+    private readonly gameHistoryRepository: Repository<GameHistory>,
     @InjectRepository(Follow)
     private readonly followRepository: Repository<Follow>,
     @InjectRepository(FollowRequest)
@@ -41,8 +41,8 @@ export class AppService {
       await this.initFollow();
       await this.initBlock();
       await this.initDM();
-      const count = await this.gameRepository.count();
-      const user0GameCount = await this.gameRepository
+      const count = await this.gameHistoryRepository.count();
+      const user0GameCount = await this.gameHistoryRepository
         .createQueryBuilder('game')
         .leftJoinAndSelect('game.loser', 'loser')
         .leftJoinAndSelect('game.winner', 'winner')
@@ -147,7 +147,7 @@ export class AppService {
           ? GameType.NORMAL
           : GameType.HARD;
 
-      const newGame = await this.gameRepository.create({
+      const newGame = await this.gameHistoryRepository.create({
         winnerId,
         loserId,
         winnerScore,
@@ -156,7 +156,7 @@ export class AppService {
         type,
       });
 
-      await this.gameRepository.save(newGame);
+      await this.gameHistoryRepository.save(newGame);
       await this.gameRecordService.updateGameRecord(
         newGame.winnerId,
         newGame.loserId,
@@ -199,7 +199,7 @@ export class AppService {
           ? GameType.NORMAL
           : GameType.HARD;
 
-      const newGame = await this.gameRepository.create({
+      const newGame = await this.gameHistoryRepository.create({
         winnerId,
         loserId,
         winnerScore,
@@ -208,7 +208,7 @@ export class AppService {
         type,
       });
 
-      await this.gameRepository.save(newGame);
+      await this.gameHistoryRepository.save(newGame);
       await this.gameRecordService.updateGameRecord(
         newGame.winnerId,
         newGame.loserId,

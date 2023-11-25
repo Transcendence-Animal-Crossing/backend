@@ -16,7 +16,7 @@ import { FollowModule } from './folllow/follow.module';
 import { WSModule } from './ws/ws.module';
 import { User } from './user/entities/user.entity';
 import { UserService } from './user/user.service';
-import { GameService } from './game/game.service';
+import { GameHistoryService } from './game/game-history.service';
 import { GameHistory } from './game/entities/game-history.entity';
 import { GameRecord } from './gameRecord/entities/game-record';
 import { GameRecordModule } from './gameRecord/game-record.module';
@@ -81,7 +81,7 @@ import { MessageHistory } from './chat/entity/message-history.entity';
     AppService,
     UserService,
     GameRecordService,
-    GameService,
+    GameHistoryService,
     FollowService,
   ],
   controllers: [AppController],
