@@ -1,20 +1,15 @@
-import { Column } from 'typeorm';
 import { GameType } from '../const/game.type';
 import { Map } from '../enum/map.enum';
 
 export class Players {
   id: string;
 
-  @Column('double')
   leftX: number;
 
-  @Column('double')
   leftY: number;
 
-  @Column('double')
   rightX: number;
 
-  @Column('double')
   rightY: number;
 
   leftDx: number;
@@ -27,8 +22,8 @@ export class Players {
 
   bar: number;
 
-  private constructor(gameUuid: string, bar: number) {
-    this.id = gameUuid;
+  private constructor(id: string, bar: number) {
+    this.id = id;
     this.leftX = Map.FIRST_X;
     this.leftY = Map.HEIGHT / 2 + bar / 2;
     this.rightX = Map.WIDTH - Map.FIRST_X - Map.THICKNESS;
@@ -40,8 +35,8 @@ export class Players {
     this.bar = bar;
   }
 
-  static create(gameUuid: string, type: GameType) {
-    if (type == GameType.HARD) return new Players(gameUuid, Map.HARDBAR);
-    return new Players(gameUuid, Map.NORMALBAR);
+  static create(id: string, type: GameType) {
+    if (type == GameType.HARD) return new Players(id, Map.HARDBAR);
+    return new Players(id, Map.NORMALBAR);
   }
 }
