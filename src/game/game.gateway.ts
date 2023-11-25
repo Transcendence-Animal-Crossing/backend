@@ -89,7 +89,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (game.leftScore !== -1 && game.rightScore !== -1) {
       game.startTime = new Date();
       await this.gameRepository.update(game);
-      this.server.to(gameId).emit('game-start', game);
+      this.server.to(gameId).emit('game-start');
     }
 
     return { status: HttpStatus.OK };

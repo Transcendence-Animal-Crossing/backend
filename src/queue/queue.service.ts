@@ -22,7 +22,11 @@ export class QueueService {
 
   async leave(userId: number) {
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
-      if (!(await this.isAlreadyInQueue(manager, userId))) return;
+      if (!(await this.isAlreadyInQueue(manager, userId)))
+        throw new HttpException(
+          '대기열에 유저가 없습니다.',
+          HttpStatus.NOT_FOUND,
+        );
 
       await manager.getRepository(Standby).delete(userId);
     });

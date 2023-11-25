@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager, ObjectLiteral } from 'typeorm';
 import { Standby } from './entities/standby.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -15,6 +15,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class QueueCron {
+  private readonly logger = new Logger(QueueCron.name);
   constructor(
     private readonly dataSource: DataSource,
     private readonly queueGateWay: QueueGateway,
@@ -105,7 +106,7 @@ export class QueueCron {
       .findOneBy({ id: userA.id });
     const rightUser = await manager
       .getRepository(User)
-      .findOneBy({ id: userA.id });
+      .findOneBy({ id: userB.id });
 
     const game = Game.create(leftUser, rightUser, userA.type);
     await this.gameRepository.save(game);
@@ -123,7 +124,7 @@ export class QueueCron {
   }
 
   private async sendMatchedEvent(user: User, game) {
-    await this.queueGateWay.sendEventToClient(user.id, 'game-matched', {
+    await this.queueGateWay.sendEventToClient(user.id, 'queue-matched', {
       id: game.id,
     });
     await this.chatGateWay.sendProfileUpdateToFriends(UserData.from(user));
@@ -138,7 +139,6 @@ export class QueueCron {
   private cacheMatchableRank(queue: ObjectLiteral[]) {
     for (let i = 0; i < queue.length; ++i) {
       const matchableDistance = this.matchableDistance(queue[i].createdAt);
-      console.log('matchableDistance: ', matchableDistance);
       queue[i].matchableMinRank = queue[i].rankScore - matchableDistance;
       queue[i].matchableMaxRank = queue[i].rankScore + matchableDistance;
     }

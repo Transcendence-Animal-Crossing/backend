@@ -77,6 +77,15 @@ export class AppController {
   }
 
   @Public()
+  @Get('/game')
+  @Render('game')
+  async game(@Query('token') token: string) {
+    const userId = this.authService.verifyAccessToken(token).id;
+    const user = await this.userService.findOne(userId);
+    return { user: user, token: token };
+  }
+
+  @Public()
   @Get('/me')
   async me(@Req() req) {
     const userId = this.authService.verifyAccessToken(req.cookies.jwt).id;

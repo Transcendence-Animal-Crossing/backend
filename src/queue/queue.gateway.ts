@@ -63,7 +63,8 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async sendEventToClient(userId: number, event: string, data: any) {
-    const client = await this.clientService.getClientByUserId(
+    this.logger.debug('Server Send Event to Client: ' + event);
+    const client: Socket = await this.clientService.getClientByUserId(
       this.server,
       Namespace.QUEUE,
       userId,

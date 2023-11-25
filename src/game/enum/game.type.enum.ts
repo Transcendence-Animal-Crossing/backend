@@ -1,5 +1,5 @@
 export enum GameType {
-  RANK,
-  NORMAL,
-  HARD,
+  RANK = 'RANK',
+  NORMAL = 'NORMAL',
+  HARD = 'HARD',
 }
