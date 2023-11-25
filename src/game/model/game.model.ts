@@ -17,9 +17,9 @@ export class Game {
     this.leftUser = leftUser;
     this.rightUser = rightUser;
     this.type = type;
-    this.leftScore = 0;
-    this.rightScore = 0;
-    this.startTime = new Date();
+    this.leftScore = -1;
+    this.rightScore = -1;
+    this.startTime = null;
   }
 
   static create(leftUser: User, rightUser: User, type: GameType) {
