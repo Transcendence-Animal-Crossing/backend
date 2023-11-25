@@ -43,6 +43,15 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.GAME,
       client,
     );
+    const gameId = await this.gameRepository.findGameIdByUserId(user.id);
+    if (gameId) {
+      const game = await this.gameRepository.find(gameId);
+      if (game) {
+        if (game.leftUser.id === user.id) game.leftScore = -1;
+        if (game.rightUser.id === user.id) game.rightScore = -1;
+        await this.gameRepository.update(game);
+      }
+    }
     this.logger.log('[Game WebSocket Disconnected!]: ' + user.nickName);
   }
 

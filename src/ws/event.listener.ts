@@ -6,15 +6,17 @@ import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { RoomRepository } from '../room/room.repository';
 import { InjectRepository } from '@nestjs/typeorm';
+import { GameRepository } from '../game/game.repository';
 
 @Injectable()
-export class ClientListener {
-  private readonly logger: Logger = new Logger('ClientListener');
+export class EventListener {
+  private readonly logger: Logger = new Logger('EventListener');
   constructor(
     private readonly chatGateWay: ChatGateway,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
+    private readonly gameRepository: GameRepository,
   ) {}
 
   @OnEvent('update.profile')
@@ -83,5 +85,16 @@ export class ClientListener {
   async handleUnBlockUserEvent(blockerId: number, unBlockedId: number) {
     this.logger.debug('<delete.block> event is triggered!');
     await this.chatGateWay.sendUnBlockUser(blockerId, unBlockedId);
+  }
+
+  @OnEvent('validate.game')
+  async handleValidateGameEvent(gameId: string) {
+    this.logger.debug('<validate.game> event is triggered!');
+    const game = await this.gameRepository.find(gameId);
+    if (!game) return;
+    // 게임이 시작되었으면 return
+    if (game.leftScore === -1 && game.rightScore === -1)
+      return await this.gameRepository.delete(gameId);
+    // 둘 중 하나만 준비했다면 준비한 사람이 승리
   }
 }

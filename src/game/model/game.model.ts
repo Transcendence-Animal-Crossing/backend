@@ -1,7 +1,8 @@
 import { v1 as uuid } from 'uuid';
-import { GameType } from '../const/game.type';
+import { GameType } from '../enum/game.type.enum';
 import { UserData } from '../../room/data/user.data';
 import { User } from '../../user/entities/user.entity';
+import { GameStatus } from '../enum/game.status.enum';
 
 export class Game {
   id: string;
@@ -11,6 +12,7 @@ export class Game {
   rightScore: number;
   startTime: Date;
   type: GameType;
+  status: GameStatus;
 
   constructor(leftUser: UserData, rightUser: UserData, type: GameType) {
     this.id = uuid();

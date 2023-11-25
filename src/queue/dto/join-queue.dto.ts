@@ -1,5 +1,5 @@
 import { IsString } from 'class-validator';
-import { GameType } from '../../game/const/game.type';
+import { GameType } from '../../game/enum/game.type.enum';
 
 export class JoinQueueDto {
   @IsString()

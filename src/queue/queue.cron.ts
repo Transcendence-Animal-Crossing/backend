@@ -3,17 +3,25 @@ import { DataSource, EntityManager, ObjectLiteral } from 'typeorm';
 import { Standby } from './entities/standby.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { QueueGateway } from './queue.gateway';
-import { GameType } from '../game/const/game.type';
+import { GameType } from '../game/enum/game.type.enum';
 import { User } from '../user/entities/user.entity';
 import { Game } from '../game/model/game.model';
 import { GameRepository } from '../game/game.repository';
+import { ClientRepository } from '../ws/client.repository';
+import { Status } from '../ws/const/client.status';
+import { ChatGateway } from '../chat/chat.gateway';
+import { UserData } from '../room/data/user.data';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @Injectable()
 export class QueueCron {
   constructor(
     private readonly dataSource: DataSource,
     private readonly queueGateWay: QueueGateway,
+    private readonly chatGateWay: ChatGateway,
     private readonly gameRepository: GameRepository,
+    private readonly clientRepository: ClientRepository,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   @Cron(CronExpression.EVERY_5_SECONDS)
@@ -103,16 +111,22 @@ export class QueueCron {
     await this.gameRepository.save(game);
     await this.gameRepository.userJoin(game.id, userA.id);
     await this.gameRepository.userJoin(game.id, userB.id);
-    await this.sendMatchedEvent(userA, game);
-    await this.sendMatchedEvent(userB, game);
+    await this.clientRepository.saveUserStatus(userA.id, Status.IN_GAME);
+    await this.sendMatchedEvent(leftUser, game);
+    await this.sendMatchedEvent(rightUser, game);
     await manager.getRepository(Standby).remove(userA);
     await manager.getRepository(Standby).remove(userB);
+
+    setTimeout(async () => {
+      this.eventEmitter.emit('validate.game', game.id);
+    }, 5000);
   }
 
-  private async sendMatchedEvent(user, game) {
+  private async sendMatchedEvent(user: User, game) {
     await this.queueGateWay.sendEventToClient(user.id, 'game-matched', {
       id: game.id,
     });
+    await this.chatGateWay.sendProfileUpdateToFriends(UserData.from(user));
   }
 
   private isMatchable(a: ObjectLiteral, b: ObjectLiteral): boolean {

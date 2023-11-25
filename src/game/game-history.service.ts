@@ -5,7 +5,7 @@ import { GameHistory } from './entities/game-history.entity';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameRecord } from '../gameRecord/entities/game-record';
 import { PAGINATION_LIMIT } from 'src/common/constants';
-import { GameType } from './const/game.type';
+import { GameType } from './enum/game.type.enum';
 
 @Injectable()
 export class GameHistoryService {

@@ -8,9 +8,10 @@ import { FollowModule } from '../folllow/follow.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Message } from '../chat/entity/message.entity';
 import { MessageHistory } from '../chat/entity/message-history.entity';
-import { ClientListener } from './client.listener';
+import { EventListener } from './event.listener';
 import { ChatModule } from '../chat/chat.module';
 import { User } from '../user/entities/user.entity';
+import { GameModule } from '../game/game.module';
 
 @Module({
   imports: [
@@ -20,8 +21,9 @@ import { User } from '../user/entities/user.entity';
     forwardRef(() => RoomModule),
     FollowModule,
     forwardRef(() => ChatModule),
+    GameModule,
   ],
-  providers: [ClientRepository, ClientService, ClientListener],
+  providers: [ClientRepository, ClientService, EventListener],
   exports: [ClientRepository, ClientService],
 })
 export class WSModule {}

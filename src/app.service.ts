@@ -8,7 +8,7 @@ import { Follow } from './folllow/entities/follow.entity';
 import { FollowRequest } from './folllow/entities/follow-request.entity';
 import { GameRecordService } from './gameRecord/game-record.service';
 import { UserService } from './user/user.service';
-import { GameType } from './game/const/game.type';
+import { GameType } from './game/enum/game.type.enum';
 import { Message } from './chat/entity/message.entity';
 import { MessageHistory } from './chat/entity/message-history.entity';
 

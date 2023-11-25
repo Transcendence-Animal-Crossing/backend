@@ -1,5 +1,5 @@
 import { IsNumber, IsString } from 'class-validator';
-import { GameType } from '../const/game.type';
+import { GameType } from '../enum/game.type.enum';
 
 export class CreateGameDto {
   @IsNumber()

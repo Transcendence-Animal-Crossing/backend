@@ -7,11 +7,13 @@ import { WSModule } from '../ws/ws.module';
 import { QueueCron } from './queue.cron';
 import { GameModule } from '../game/game.module';
 import { GameRecordModule } from '../gameRecord/game-record.module';
+import { ChatModule } from '../chat/chat.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Standby]),
     WSModule,
+    ChatModule,
     GameModule,
     GameRecordModule,
   ],

@@ -1,4 +1,4 @@
-import { GameType } from '../const/game.type';
+import { GameType } from '../enum/game.type.enum';
 import { Map } from '../enum/map.enum';
 
 export class Players {

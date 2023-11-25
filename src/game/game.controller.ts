@@ -13,7 +13,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { GameHistoryService } from './game-history.service';
 import { CreateGameDto } from './dto/create-game.dto';
 import { GameRecordService } from 'src/gameRecord/game-record.service';
-import { GameType } from './const/game.type';
+import { GameType } from './enum/game.type.enum';
 
 @Controller('games')
 @UseGuards(JwtAuthGuard)

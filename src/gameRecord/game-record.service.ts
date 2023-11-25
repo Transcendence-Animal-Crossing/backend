@@ -4,7 +4,7 @@ import { GameRecord } from './entities/game-record';
 import { Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
 import { PAGINATION_LIMIT } from 'src/common/constants';
-import { GameType } from '../game/const/game.type';
+import { GameType } from '../game/enum/game.type.enum';
 
 @Injectable()
 export class GameRecordService {
