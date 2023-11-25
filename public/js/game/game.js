@@ -43,14 +43,66 @@ export async function gameReady() {
   responseElement.appendChild(newElement);
 }
 
+let arrow_down = false;
+let arrow_up = false;
+let arrow_left = false;
+let arrow_right = false;
+
 // listen keyboard event
 document.addEventListener('keydown', (event) => {
-  const newElement = document.createElement('div');
-  newElement.innerText = 'keydown: ' + event.key;
-  responseElement.appendChild(newElement);
+  if (!event.key.startsWith('Arrow')) return;
+  if (event.key === 'ArrowDown') {
+    if (arrow_down) return;
+    arrow_down = true;
+    const newElement = document.createElement('div');
+    newElement.innerText = 'keydown: ' + event.key;
+    responseElement.appendChild(newElement);
+    socket.emit('game-key-press', { key: 'down' });
+  }
+  if (event.key === 'ArrowUp') {
+    if (arrow_up) return;
+    arrow_up = true;
+    const newElement = document.createElement('div');
+    newElement.innerText = 'keydown: ' + event.key;
+    responseElement.appendChild(newElement);
+    socket.emit('game-key-press', { key: 'up' });
+  }
+  if (event.key === 'ArrowLeft') {
+    if (arrow_left) return;
+    arrow_left = true;
+    const newElement = document.createElement('div');
+    newElement.innerText = 'keydown: ' + event.key;
+    responseElement.appendChild(newElement);
+    socket.emit('game-key-press', { key: 'left' });
+  }
+  if (event.key === 'ArrowRight') {
+    if (arrow_right) return;
+    arrow_right = true;
+    const newElement = document.createElement('div');
+    newElement.innerText = 'keydown: ' + event.key;
+    responseElement.appendChild(newElement);
+    socket.emit('game-key-press', { key: 'right' });
+  }
 });
 
 document.addEventListener('keyup', (event) => {
+  if (!event.key.startsWith('Arrow')) return;
+  if (event.key === 'ArrowDown') {
+    arrow_down = false;
+    socket.emit('game-key-release', { key: 'down' });
+  }
+  if (event.key === 'ArrowUp') {
+    arrow_up = false;
+    socket.emit('game-key-release', { key: 'up' });
+  }
+  if (event.key === 'ArrowLeft') {
+    arrow_left = false;
+    socket.emit('game-key-release', { key: 'left' });
+  }
+  if (event.key === 'ArrowRight') {
+    arrow_right = false;
+    socket.emit('game-key-release', { key: 'right' });
+  }
   const newElement = document.createElement('div');
   newElement.innerText = 'keyup: ' + event.key;
   responseElement.appendChild(newElement);
