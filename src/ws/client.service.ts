@@ -32,11 +32,13 @@ export class ClientService {
     const user = await this.findUserByToken(client);
     client.data.userId = user.id;
     await this.clientRepository.connect(namespace, client.id, user.id);
-    user.blockIds.map((id) => {
-      client.join('block-' + id);
-    });
-    await this.listenFriendsStatus(client, user);
-    await this.sendUpdateToFriends(server, user, Status.ONLINE);
+    if (namespace === Namespace.CHAT) {
+      user.blockIds.map((id) => {
+        client.join('block-' + id);
+      });
+      await this.listenFriendsStatus(client, user);
+      await this.sendUpdateToFriends(server, user, Status.ONLINE);
+    }
     return user;
   }
 
@@ -45,11 +47,11 @@ export class ClientService {
     await this.clientRepository.disconnect(namespace, client.id);
     if (namespace === Namespace.CHAT) {
       await this.sendUpdateToFriends(server, user, Status.OFFLINE);
+      const dmFocus: number = await this.getDMFocus(user.id);
+      if (dmFocus) await this.updateLastRead(user.id, dmFocus);
+      await this.clientRepository.deleteDMFocus(user.id);
       return user;
     }
-    const dmFocus: number = await this.getDMFocus(user.id);
-    if (dmFocus) await this.updateLastRead(user.id, dmFocus);
-    await this.clientRepository.deleteDMFocus(user.id);
     return user;
   }
 

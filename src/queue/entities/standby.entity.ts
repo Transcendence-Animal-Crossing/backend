@@ -5,7 +5,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { GameType } from '../../game/const/game.type';
+import { GameType } from '../../game/enum/game.type.enum';
 
 @Entity()
 export class Standby {

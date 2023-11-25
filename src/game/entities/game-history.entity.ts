@@ -8,7 +8,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { GameType } from '../const/game.type';
+import { GameType } from '../enum/game.type.enum';
 
 @Entity()
 export class GameHistory {

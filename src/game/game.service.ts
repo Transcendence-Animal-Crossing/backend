@@ -1,72 +1,35 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { GameHistory } from './entities/game-history.entity';
-import { CreateGameDto } from './dto/create-game.dto';
-import { GameRecord } from '../gameRecord/entities/game-record';
-import { PAGINATION_LIMIT } from 'src/common/constants';
-import { GameType } from './const/game.type';
+import { Injectable } from '@nestjs/common';
+import { GameRepository } from './game.repository';
+import { GameKey } from './enum/game.key.enum';
+import { PlayersRepository } from './players.repository';
+import { Players } from './model/players.model';
+import { Game } from './model/game.model';
+import { Side } from './enum/side.enum';
 
 @Injectable()
 export class GameService {
   constructor(
-    @InjectRepository(GameHistory)
-    private readonly gameRepository: Repository<GameHistory>,
-    @InjectRepository(GameRecord)
-    private readonly gameRecordRepository: Repository<GameRecord>,
+    private readonly gameRepository: GameRepository,
+    private readonly playersRepository: PlayersRepository,
   ) {}
 
-  async findAll(): Promise<GameHistory[]> {
-    return this.gameRepository.find();
+  async onGameKeyPress(gameId: string, userId: number, key: GameKey) {
+    const game: Game = await this.gameRepository.find(gameId);
+    const players: Players = await this.playersRepository.find(gameId);
+    if (!players) return;
+    if (game.leftUser.id === userId) players.move(Side.LEFT, key);
+    if (game.rightUser.id === userId) players.move(Side.RIGHT, key);
+
+    await this.playersRepository.update(players);
   }
 
-  async findByUserId(id: number) {
-    return this.gameRepository.find({
-      where: [{ winner: { id: id } }, { loser: { id: id } }],
-    });
-  }
+  async onGameKeyRelease(gameId: string, userId: number, key: GameKey) {
+    const game: Game = await this.gameRepository.find(gameId);
+    const players: Players = await this.playersRepository.find(gameId);
+    if (!players) return;
+    if (game.leftUser.id === userId) players.stop(Side.LEFT, key);
+    if (game.rightUser.id === userId) players.stop(Side.RIGHT, key);
 
-  async createGame(createGameDto: CreateGameDto) {
-    try {
-      await this.gameRepository.save(createGameDto);
-    } catch (error) {
-      throw new HttpException(
-        'Failed to generate game data',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
-
-  async getAllGamesById(id: number, type: GameType, offset: number) {
-    const games = await this.gameRepository
-      .createQueryBuilder('game')
-      .leftJoinAndSelect('game.loser', 'loser')
-      .leftJoinAndSelect('game.winner', 'winner')
-      .select([
-        'game.id',
-        'game.winnerScore',
-        'game.loserScore',
-        'game.playTime',
-        'winner.id',
-        'winner.nickName',
-        'winner.intraName',
-        'winner.avatar',
-        'loser.id',
-        'loser.nickName',
-        'loser.intraName',
-        'loser.avatar',
-      ])
-      .where('(loser.id = :id OR winner.id = :id) AND game.type = :type', {
-        id,
-        type,
-      })
-      .orderBy('game.id', 'DESC')
-      .offset(offset)
-      .limit(PAGINATION_LIMIT)
-      .getMany();
-
-    return {
-      games,
-    };
+    await this.playersRepository.update(players);
   }
 }

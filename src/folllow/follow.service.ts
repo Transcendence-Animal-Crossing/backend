@@ -190,13 +190,6 @@ export class FollowService {
         fr.following.avatar,
       ),
     );
-
-    // return friends.map((fr) => ({
-    //   id: fr.following.id,
-    //   freindNickName: fr.following.nickName,
-    //   freindIntraName: fr.following.intraName,
-    //   freindProfile: fr.following.avatar,
-    // }));
   }
 
   async findFriendsByName(id: number, name: string) {

@@ -37,6 +37,10 @@ export class ClientRepository {
     return Status.OFFLINE;
   }
 
+  async saveUserStatus(userId, status) {
+    await this.cacheManager.set('user-status-' + userId, status);
+  }
+
   async saveDMFocus(userId, targetId) {
     await this.cacheManager.set('dm-focus-' + userId, targetId);
   }
