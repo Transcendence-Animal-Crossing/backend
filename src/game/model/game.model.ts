@@ -3,6 +3,9 @@ import { GameType } from '../enum/game.type.enum';
 import { UserData } from '../../room/data/user.data';
 import { User } from '../../user/entities/user.entity';
 import { GameStatus } from '../enum/game.status.enum';
+import { Ball } from './ball.model';
+import { Players } from './players.model';
+import { Side } from '../enum/side.enum';
 
 export class Game {
   public static readonly MAX_SCORE = 10;
@@ -15,6 +18,8 @@ export class Game {
   startTime: Date;
   type: GameType;
   status: GameStatus;
+  ball: Ball;
+  players: Players;
 
   constructor(leftUser: UserData, rightUser: UserData, type: GameType) {
     this.id = uuid();
@@ -25,6 +30,8 @@ export class Game {
     this.rightScore = -1;
     this.startTime = null;
     this.status = GameStatus.WAITING;
+    this.ball = Ball.create(this.id);
+    this.players = Players.create(this.id, this.type);
   }
 
   static create(leftUser: User, rightUser: User, type: GameType) {
@@ -65,5 +72,13 @@ export class Game {
       this.leftScore = Game.MAX_SCORE;
     }
     this.status = GameStatus.EARLY_FINISHED;
+  }
+
+  updateScore(collisionSide: Side) {
+    if (collisionSide === Side.LEFT) {
+      this.rightScore++;
+    } else if (collisionSide === Side.RIGHT) {
+      this.leftScore++;
+    }
   }
 }

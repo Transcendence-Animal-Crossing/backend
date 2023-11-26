@@ -16,6 +16,8 @@ import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
 import { Game } from './model/game.model';
+import { GameStatus } from './enum/game.status.enum';
+import { Map } from './enum/map.enum';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.GAME })
@@ -106,5 +108,41 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
     await this.gameService.onGameKeyRelease(gameId, userId, dto.key);
     return { status: HttpStatus.OK };
+  }
+
+  async gameLoop(game: Game) {
+    if (game.status != GameStatus.PLAYING) return;
+    const collisionSide = game.ball.updatePositionAndCheckCollision(
+      game.players,
+    );
+    if (collisionSide !== null) {
+      game.updateScore(collisionSide);
+      game.ball.initBall();
+      this.server
+        .to(game.id)
+        .emit('score-update', { left: game.leftScore, right: game.rightScore });
+    } else {
+      game.players.updatePlayersPosition();
+      game.ball.updateBallPosition();
+      this.server.to(game.id).emit('position-update', {
+        ball: {
+          x: game.ball.x,
+          y: game.ball.y,
+        },
+        players: {
+          left: {
+            x: game.players.leftX,
+            y: game.players.leftY,
+          },
+          right: {
+            x: game.players.rightX,
+            y: game.players.rightY,
+          },
+        },
+      });
+    }
+    setTimeout(() => {
+      this.gameLoop(game);
+    }, 1000 / Map.GAME_FRAME);
   }
 }
