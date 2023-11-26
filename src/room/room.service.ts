@@ -8,20 +8,17 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-
 import { Repository } from 'typeorm';
-
 import { UserService } from 'src/user/user.service';
-
-import { Room } from './data/room.data';
+import { Room } from './model/room.model';
 import { User } from '../user/entities/user.entity';
 import { RoomRepository } from './room.repository';
 import { ConfigRoomDto } from './dto/config-room.dto';
 import { ActionRoomDto } from '../chat/dto/action-room.dto';
-import { Grade } from './data/user.grade';
+import { Grade } from './enum/user.grade.enum';
 import { SimpleRoomDto } from './dto/simple.room.dto';
-import { UserData } from './data/user.data';
-import { ParticipantData } from './data/participant.data';
+import { UserProfile } from '../user/model/user.profile.model';
+import { Participant } from './model/participant.model';
 import { Socket } from 'socket.io';
 import { JoinRoomDto } from '../chat/dto/join-room.dto';
 import { RoomMessageDto } from '../chat/dto/room-message.dto';
@@ -29,6 +26,7 @@ import { Namespace } from '../ws/const/namespace';
 import { ClientRepository } from '../ws/client.repository';
 import { AchievementService } from 'src/achievement/achievement.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MutexManager } from '../mutex/mutex.manager';
 
 @Injectable()
 export class RoomService {
@@ -37,6 +35,7 @@ export class RoomService {
   private readonly logger: Logger = new Logger('ChatGateway');
 
   constructor(
+    private readonly mutexManager: MutexManager,
     @InjectRepository(User) private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
     private readonly userService: UserService,
@@ -75,17 +74,17 @@ export class RoomService {
     const user = await this.userService.findOne(userId);
     const room: Room = await this.findById(dto.roomId);
 
-    if (this.isParticipant(userId, room))
+    if (room.isParticipant(userId))
       throw new ConflictException('해당 방에 이미 들어가 있습니다.');
-    if (this.isBanned(userId, room))
+    if (room.isBanned(userId))
       throw new ForbiddenException('해당 방으로의 입장이 금지되었습니다.');
-    if (room.mode === 'PROTECTED' && room.password !== dto.password)
+    if (room.isProtected() && !room.validatePassword(dto.password))
       throw new ForbiddenException('비밀번호가 틀렸습니다.');
-    if (room.mode === 'PRIVATE' && !this.isInvited(userId, room))
+    if (room.isPrivate() && !room.isInvited(userId))
       throw new UnauthorizedException('해당 방에 초대되지 않았습니다.');
 
     await this.roomRepository.userJoin(dto.roomId, userId);
-    room.participants.push(ParticipantData.of(user, Grade.PARTICIPANT));
+    room.participants.push(Participant.of(user, Grade.PARTICIPANT));
     await this.roomRepository.update(room);
 
     await this.achievementService.addChattingJoin(user);
@@ -93,7 +92,7 @@ export class RoomService {
     client.join(dto.roomId);
     server
       .to(dto.roomId)
-      .emit('room-join', ParticipantData.of(user, Grade.PARTICIPANT));
+      .emit('room-join', Participant.of(user, Grade.PARTICIPANT));
     server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
     return room;
   }
@@ -202,7 +201,7 @@ export class RoomService {
         break;
       }
     }
-    room.bannedUsers.push(UserData.from(target));
+    room.bannedUsers.push(UserProfile.fromUser(target));
 
     await this.roomRepository.userLeave(dto.targetId);
     await this.roomRepository.update(room);
@@ -233,7 +232,7 @@ export class RoomService {
     const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.getJoinedRoom(userId);
     if (!room) return;
-    if (!this.isParticipant(userId, room))
+    if (!room.isParticipant(userId))
       throw new BadRequestException('방 안에 있지 않습니다.');
     if (room.participants.length === 1) {
       client.leave(room.id);
@@ -257,7 +256,7 @@ export class RoomService {
     client.leave(room.id);
     // userId 만 전송하도록 바꾸고 싶음
     const user = await this.userService.findOne(userId);
-    server.to(room.id).emit('room-leave', UserData.from(user));
+    server.to(room.id).emit('room-leave', UserProfile.fromUser(user));
     server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
   }
 
@@ -326,7 +325,7 @@ export class RoomService {
   async invite(client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
     const room = await this.findById(dto.roomId);
-    if (!this.isParticipant(userId, room))
+    if (!room.isParticipant(userId))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
     if (this.isParticipant(dto.targetId, room))
       throw new ConflictException('해당 유저는 이미 방에 있습니다.');
@@ -334,7 +333,7 @@ export class RoomService {
       throw new ConflictException('해당 유저는 이미 초대되었습니다.');
 
     const target = await this.userService.findOne(dto.targetId);
-    room.invitedUsers.push(UserData.from(target));
+    room.invitedUsers.push(UserProfile.fromUser(target));
     await this.roomRepository.update(room);
 
     const invitedClientId = await this.clientRepository.findClientId(
@@ -392,7 +391,7 @@ export class RoomService {
     roomMessageDto.senderId = userId;
 
     const room = await this.findById(roomMessageDto.roomId);
-    if (!this.isParticipant(userId, room))
+    if (!room.isParticipant(userId))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
     const muteDuration = await this.isMuted(userId, room);
     if (muteDuration > 0)

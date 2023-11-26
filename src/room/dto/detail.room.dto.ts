@@ -1,6 +1,6 @@
-import { Room } from '../data/room.data';
-import { UserData } from '../data/user.data';
-import { ParticipantData } from '../data/participant.data';
+import { Room } from '../model/room.model';
+import { UserProfile } from '../../user/model/user.profile.model';
+import { Participant } from '../model/participant.model';
 
 export class DetailRoomDto {
   private constructor(room: Room) {
@@ -13,9 +13,9 @@ export class DetailRoomDto {
   }
   id: string;
   title: string;
-  participants: ParticipantData[];
-  bannedUsers: UserData[];
-  invitedUsers: UserData[];
+  participants: Participant[];
+  bannedUsers: UserProfile[];
+  invitedUsers: UserProfile[];
   mode: string;
 
   public static from(room: Room): DetailRoomDto {

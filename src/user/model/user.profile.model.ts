@@ -1,7 +1,7 @@
-import { User } from '../../user/entities/user.entity';
-import { ParticipantData } from './participant.data';
+import { User } from '../entities/user.entity';
+import { Participant } from '../../room/model/participant.model';
 
-export class UserData {
+export class UserProfile {
   protected constructor(
     id: number,
     nickName: string,
@@ -25,14 +25,14 @@ export class UserData {
     intraName: string,
     avatar: string,
   ) {
-    return new UserData(id, nickName, intraName, avatar);
+    return new UserProfile(id, nickName, intraName, avatar);
   }
 
-  public static from(user: User): UserData {
-    return new UserData(user.id, user.nickName, user.intraName, user.avatar);
+  public static fromUser(user: User): UserProfile {
+    return new UserProfile(user.id, user.nickName, user.intraName, user.avatar);
   }
 
-  public static compressToParticipant(participant: ParticipantData): UserData {
+  public static fromParticipant(participant: Participant): UserProfile {
     return {
       id: participant.id,
       nickName: participant.nickName,

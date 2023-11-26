@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
-import { Room } from './data/room.data';
+import { Room } from './model/room.model';
 
 @Injectable()
 export class RoomRepository {

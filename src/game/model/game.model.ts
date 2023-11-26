@@ -1,21 +1,21 @@
 import { v1 as uuid } from 'uuid';
 import { GameType } from '../enum/game.type.enum';
-import { UserData } from '../../room/data/user.data';
+import { UserProfile } from '../../user/model/user.profile.model';
 import { User } from '../../user/entities/user.entity';
 import { GameStatus } from '../enum/game.status.enum';
 
 export class Game {
   public static readonly MAX_SCORE = 10;
   id: string;
-  leftUser: UserData;
-  rightUser: UserData;
+  leftUser: UserProfile;
+  rightUser: UserProfile;
   leftScore: number;
   rightScore: number;
   startTime: Date;
   type: GameType;
   status: GameStatus;
 
-  constructor(leftUser: UserData, rightUser: UserData, type: GameType) {
+  constructor(leftUser: UserProfile, rightUser: UserProfile, type: GameType) {
     this.id = uuid();
     this.leftUser = leftUser;
     this.rightUser = rightUser;
@@ -27,7 +27,11 @@ export class Game {
   }
 
   static create(leftUser: User, rightUser: User, type: GameType) {
-    return new Game(UserData.from(leftUser), UserData.from(rightUser), type);
+    return new Game(
+      UserProfile.fromUser(leftUser),
+      UserProfile.fromUser(rightUser),
+      type,
+    );
   }
 
   setUserReady(userId: number) {

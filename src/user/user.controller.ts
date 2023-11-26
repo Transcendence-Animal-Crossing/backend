@@ -21,7 +21,7 @@ import { multerOptions } from 'src/config/multer.config';
 import { FollowService } from 'src/folllow/follow.service';
 import { Public } from 'src/auth/guards/public';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { UserData } from '../room/data/user.data';
+import { UserProfile } from './model/user.profile.model';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -68,7 +68,7 @@ export class UserController {
       nickName,
       file.filename,
     );
-    const profile = UserData.create(
+    const profile = UserProfile.create(
       req.user.id,
       nickName,
       req.user.intraName,
@@ -86,7 +86,7 @@ export class UserController {
   ) {
     await this.userService.checkNickName(req.user.id, nickName);
     await this.userService.saveUrlImage(req.user.id, nickName, avatar);
-    const profile = UserData.create(
+    const profile = UserProfile.create(
       req.user.id,
       nickName,
       req.user.intraName,
