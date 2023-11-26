@@ -109,12 +109,12 @@ export class ChatService {
         date: message.created_at,
         text: message.text,
       });
-    client.emit('dm', {
+    return {
       id: message.id,
       senderId: dto.senderId,
       date: message.created_at,
       text: message.text,
-    });
+    };
   }
 
   async updateLastRead(userId: number, beforeFocus: number) {

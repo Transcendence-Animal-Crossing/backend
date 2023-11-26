@@ -183,9 +183,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('dm')
   async onDirectMessageSend(client: Socket, dto: DirectMessageDto) {
     this.logger.debug('Client Send Event <dm-send>');
-    await this.chatService.send(client, dto);
+    const message = await this.chatService.send(client, dto);
 
-    return { status: HttpStatus.OK };
+    return { status: HttpStatus.OK, body: message };
   }
 
   @SubscribeMessage('dm-load')
