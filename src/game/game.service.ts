@@ -5,6 +5,7 @@ import { PlayersRepository } from './players.repository';
 import { Players } from './model/players.model';
 import { Game } from './model/game.model';
 import { Side } from './enum/side.enum';
+import { GameStatus } from './enum/game.status.enum';
 
 @Injectable()
 export class GameService {
@@ -12,6 +13,17 @@ export class GameService {
     private readonly gameRepository: GameRepository,
     private readonly playersRepository: PlayersRepository,
   ) {}
+
+  async disconnect(userId: number) {
+    const gameId = await this.gameRepository.findGameIdByUserId(userId);
+    if (!gameId) return;
+    const game = await this.gameRepository.find(gameId);
+    if (!game) return;
+    if (game.status === GameStatus.WAITING) {
+      game.setUserUnready(userId);
+    }
+    await this.gameRepository.update(game);
+  }
 
   async onGameKeyPress(gameId: string, userId: number, key: GameKey) {
     const game: Game = await this.gameRepository.find(gameId);
