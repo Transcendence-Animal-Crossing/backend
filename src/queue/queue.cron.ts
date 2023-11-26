@@ -124,7 +124,7 @@ export class QueueCron {
 
     setTimeout(async () => {
       this.eventEmitter.emit('validate.game', game.id);
-    }, 5000);
+    }, Game.READY_TIMEOUT);
   }
 
   private async sendMatchedEvent(user: User, game) {

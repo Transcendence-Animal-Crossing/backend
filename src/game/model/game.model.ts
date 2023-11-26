@@ -6,6 +6,7 @@ import { GameStatus } from '../enum/game.status.enum';
 
 export class Game {
   public static readonly MAX_SCORE = 10;
+  public static readonly READY_TIMEOUT = 30000;
   id: string;
   leftUser: UserData;
   rightUser: UserData;
