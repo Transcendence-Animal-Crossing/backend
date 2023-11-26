@@ -39,7 +39,11 @@ export class UserService {
 
   async findOne(id: number): Promise<User> {
     const user = this.userRepository.findOneBy({ id: id });
-    if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
+    if (!user)
+      throw new HttpException(
+        '해당 유저가 존재하지 않습니다.',
+        HttpStatus.NOT_FOUND,
+      );
     return user;
   }
 
