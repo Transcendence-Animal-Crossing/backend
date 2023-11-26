@@ -5,6 +5,7 @@ import { User } from '../../user/entities/user.entity';
 import { GameStatus } from '../enum/game.status.enum';
 
 export class Game {
+  public static readonly MAX_SCORE = 10;
   id: string;
   leftUser: UserData;
   rightUser: UserData;
@@ -22,6 +23,7 @@ export class Game {
     this.leftScore = -1;
     this.rightScore = -1;
     this.startTime = null;
+    this.status = GameStatus.WAITING;
   }
 
   static create(leftUser: User, rightUser: User, type: GameType) {
@@ -38,11 +40,29 @@ export class Game {
     if (this.rightUser.id === userId) this.rightScore = -1;
   }
 
-  setStartTime() {
+  setStart() {
     this.startTime = new Date();
+    this.status = GameStatus.PLAYING;
   }
 
   isEveryoneReady() {
     return this.leftScore !== -1 && this.rightScore !== -1;
+  }
+
+  getPlayTime() {
+    if (this.status === GameStatus.EARLY_FINISHED) return 0;
+    return (new Date().getTime() - this.startTime.getTime()) / 1000;
+  }
+
+  loseByDisconnect(userId: number) {
+    if (this.leftUser.id === userId) {
+      this.leftScore = Game.MAX_SCORE;
+      this.rightScore = 10;
+    }
+    if (this.rightUser.id === userId) {
+      this.rightScore = 0;
+      this.leftScore = Game.MAX_SCORE;
+    }
+    this.status = GameStatus.EARLY_FINISHED;
   }
 }

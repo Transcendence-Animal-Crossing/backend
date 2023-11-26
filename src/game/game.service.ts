@@ -6,12 +6,17 @@ import { Players } from './model/players.model';
 import { Game } from './model/game.model';
 import { Side } from './enum/side.enum';
 import { GameStatus } from './enum/game.status.enum';
+import { GameHistory } from './entities/game-history.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class GameService {
   constructor(
     private readonly gameRepository: GameRepository,
     private readonly playersRepository: PlayersRepository,
+    @InjectRepository(GameHistory)
+    private readonly gameHistoryRepository: Repository<GameHistory>,
   ) {}
 
   async disconnect(userId: number) {
@@ -21,8 +26,10 @@ export class GameService {
     if (!game) return;
     if (game.status === GameStatus.WAITING) {
       game.setUserUnready(userId);
+      await this.gameRepository.update(game);
     }
-    await this.gameRepository.update(game);
+    if (game.status === GameStatus.PLAYING)
+      await this.loseByDisconnect(game, userId);
   }
 
   async onGameKeyPress(gameId: string, userId: number, key: GameKey) {
@@ -43,5 +50,13 @@ export class GameService {
     if (game.rightUser.id === userId) players.stop(Side.RIGHT, key);
 
     await this.playersRepository.update(players);
+  }
+
+  private async loseByDisconnect(game: Game, userId: number) {
+    game.loseByDisconnect(userId);
+    await this.gameHistoryRepository.save(GameHistory.from(game));
+    await this.gameRepository.delete(game.id);
+    await this.playersRepository.delete(game.id);
+    // await this.ballRepository.delete(game.id);
   }
 }

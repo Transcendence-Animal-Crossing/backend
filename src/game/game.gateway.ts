@@ -15,6 +15,7 @@ import { ClientRepository } from '../ws/client.repository';
 import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
+import { Game } from './model/game.model';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.GAME })
@@ -57,7 +58,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    const game = await this.gameRepository.find(gameId);
+    const game: Game = await this.gameRepository.find(gameId);
     if (!game)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
     return { status: 200, game };
@@ -70,14 +71,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    const game = await this.gameRepository.find(gameId);
+    const game: Game = await this.gameRepository.find(gameId);
     if (!game)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
     game.setUserReady(userId);
     client.join(gameId);
 
     if (game.isEveryoneReady()) {
-      game.setStartTime();
+      game.setStart();
       this.server.to(gameId).emit('game-start');
     }
     await this.gameRepository.update(game);

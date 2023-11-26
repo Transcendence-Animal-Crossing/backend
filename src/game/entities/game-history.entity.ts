@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { GameType } from '../enum/game.type.enum';
+import { Game } from '../model/game.model';
 
 @Entity()
 export class GameHistory {
@@ -47,6 +48,8 @@ export class GameHistory {
   @UpdateDateColumn()
   updatedAt: Date;
 
+  private constructor() {}
+
   static create(
     winnerId: number,
     loserId: number,
@@ -65,14 +68,14 @@ export class GameHistory {
     return game;
   }
 
-  static init(type: GameType) {
-    const game = new GameHistory();
-    game.winnerId = 0;
-    game.loserId = 0;
-    game.winnerScore = 0;
-    game.loserScore = 0;
-    game.playTime = 0;
-    game.type = type;
-    return game;
+  static from(game: Game) {
+    return GameHistory.create(
+      game.leftUser.id,
+      game.rightUser.id,
+      game.leftScore,
+      game.rightScore,
+      game.getPlayTime(),
+      game.type,
+    );
   }
 }
