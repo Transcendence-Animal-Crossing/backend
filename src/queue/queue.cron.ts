@@ -12,12 +12,14 @@ import { Status } from '../ws/const/client.status';
 import { ChatGateway } from '../chat/chat.gateway';
 import { UserData } from '../room/data/user.data';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MutexManager } from '../mutex/mutex.manager';
 
 @Injectable()
 export class QueueCron {
   private readonly logger = new Logger(QueueCron.name);
   constructor(
     private readonly dataSource: DataSource,
+    private readonly mutexManager: MutexManager,
     private readonly queueGateWay: QueueGateway,
     private readonly chatGateWay: ChatGateway,
     private readonly gameRepository: GameRepository,
@@ -35,21 +37,23 @@ export class QueueCron {
   }
 
   private async match(manager: EntityManager, type: GameType) {
-    const data = await manager
-      .getRepository(Standby)
-      .createQueryBuilder('standby')
-      .select('standby.id')
-      .addSelect('standby.rankScore')
-      .addSelect('standby.createdAt')
-      .where('standby.type = :type', { type })
-      .orderBy('standby.createdAt', 'ASC')
-      .getMany();
-    const queue: Standby[] = data.map((d) => {
-      return Standby.createWithDate(d.id, type, d.rankScore, d.createdAt);
-    });
+    await this.mutexManager.getMutex('queue' + type).runExclusive(async () => {
+      const data = await manager
+        .getRepository(Standby)
+        .createQueryBuilder('standby')
+        .select('standby.id')
+        .addSelect('standby.rankScore')
+        .addSelect('standby.createdAt')
+        .where('standby.type = :type', { type })
+        .orderBy('standby.createdAt', 'ASC')
+        .getMany();
+      const queue: Standby[] = data.map((d) => {
+        return Standby.createWithDate(d.id, type, d.rankScore, d.createdAt);
+      });
 
-    if (type === GameType.RANK) await this.rankMatch(manager, queue);
-    else await this.generalMatch(manager, queue);
+      if (type === GameType.RANK) await this.rankMatch(manager, queue);
+      else await this.generalMatch(manager, queue);
+    });
   }
 
   private async generalMatch(manager: EntityManager, queue) {
