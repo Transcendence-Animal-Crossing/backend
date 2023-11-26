@@ -30,8 +30,6 @@ import { MutexManager } from '../mutex/mutex.manager';
 
 @Injectable()
 export class RoomService {
-  SECOND = 1000;
-  MUTE_DURATION = 600 * this.SECOND;
   private readonly logger: Logger = new Logger('ChatGateway');
 
   constructor(
@@ -118,7 +116,7 @@ export class RoomService {
 
     if (userGrade <= targetGrade)
       throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
-    if (await this.isMuted(dto.targetId, room))
+    if (room.getMutedTime(dto.targetId) > 0)
       throw new ConflictException('해당 유저는 이미 채팅금지 상태입니다.');
 
     for (const participant of room.participants) {
@@ -260,27 +258,9 @@ export class RoomService {
     server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
   }
 
-  isParticipant(userId: number, room: Room) {
-    for (const participant of room.participants)
-      if (participant.id === userId) return true;
-    return false;
-  }
-
-  isBanned(userId: number, room: Room) {
-    for (const bannedUser of room.bannedUsers)
-      if (bannedUser.id === userId) return true;
-    return false;
-  }
-
-  isInvited(userId: number, room: Room) {
-    for (const invitedUser of room.invitedUsers)
-      if (invitedUser.id === userId) return true;
-    return false;
-  }
-
   getGrade(userId: number, room: Room): number {
-    for (const participant of room.participants)
-      if (participant.id === userId) return participant.grade;
+    const grade = room.findUserGrade(userId);
+    if (grade) return grade;
     throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 
@@ -292,13 +272,8 @@ export class RoomService {
     if (this.getGrade(dto.targetId, room) > Grade.PARTICIPANT)
       throw new ConflictException('해당 유저는 이미 관리자입니다.');
 
-    for (const participant of room.participants) {
-      if (participant.id === dto.targetId) {
-        participant.grade = Grade.ADMIN;
-        break;
-      }
-    }
-    this.sortParticipants(room);
+    room.promoteUser(dto.targetId);
+    room.sortParticipants();
     await this.roomRepository.update(room);
     server.to(dto.roomId).emit('add-admin', dto);
   }
@@ -311,13 +286,8 @@ export class RoomService {
     if (this.getGrade(dto.targetId, room) != Grade.ADMIN)
       throw new ConflictException('해당 유저는 방장이거나, 관리자가 아닙니다.');
 
-    for (const participant of room.participants) {
-      if (participant.id === dto.targetId) {
-        participant.grade = Grade.PARTICIPANT;
-        break;
-      }
-    }
-    this.sortParticipants(room);
+    room.demoteUser(dto.targetId);
+    room.sortParticipants();
     await this.roomRepository.update(room);
     server.to(dto.roomId).emit('remove-admin', dto);
   }
@@ -327,13 +297,13 @@ export class RoomService {
     const room = await this.findById(dto.roomId);
     if (!room.isParticipant(userId))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
-    if (this.isParticipant(dto.targetId, room))
+    if (room.isParticipant(dto.targetId))
       throw new ConflictException('해당 유저는 이미 방에 있습니다.');
-    if (this.isInvited(dto.targetId, room))
+    if (room.isInvited(dto.targetId))
       throw new ConflictException('해당 유저는 이미 초대되었습니다.');
 
     const target = await this.userService.findOne(dto.targetId);
-    room.invitedUsers.push(UserProfile.fromUser(target));
+    room.inviteUser(target);
     await this.roomRepository.update(room);
 
     const invitedClientId = await this.clientRepository.findClientId(
@@ -346,46 +316,6 @@ export class RoomService {
     return room;
   }
 
-  sortParticipants(room: Room) {
-    room.participants.sort((a, b) => {
-      if (a.grade > b.grade) return -1;
-      else if (a.grade < b.grade) return 1;
-      else {
-        if (a.grade === Grade.ADMIN) {
-          if (a.adminTime > b.adminTime) return -1;
-          else if (a.adminTime < b.adminTime) return 1;
-          else return 0;
-        } else {
-          if (a.joinTime > b.joinTime) return -1;
-          else if (a.joinTime < b.joinTime) return 1;
-          else return 0;
-        }
-      }
-    });
-    console.log('Sorted participants: ', room.participants);
-  }
-
-  async isMuted(userId: number, room: Room) {
-    for (const participant of room.participants)
-      if (participant.id === userId) {
-        if (participant.muteStartTime != null) {
-          const now = new Date();
-          const muteEndTime = new Date(
-            participant.muteStartTime.getTime() + this.MUTE_DURATION,
-          );
-          if (now < muteEndTime)
-            return Math.ceil((muteEndTime.getTime() - now.getTime()) / 1000);
-          else {
-            participant.muteStartTime = null;
-            await this.roomRepository.update(room);
-            return 0;
-          }
-        }
-        return 0;
-      }
-    throw new BadRequestException('해당 유저가 방에 없습니다.');
-  }
-
   async sendMessage(client: Socket, roomMessageDto: RoomMessageDto) {
     const userId = await this.clientRepository.findUserId(client.id);
     roomMessageDto.senderId = userId;
@@ -393,7 +323,7 @@ export class RoomService {
     const room = await this.findById(roomMessageDto.roomId);
     if (!room.isParticipant(userId))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
-    const muteDuration = await this.isMuted(userId, room);
+    const muteDuration = room.getMutedTime(userId);
     if (muteDuration > 0)
       throw new ForbiddenException(
         `${muteDuration}초 동안 채팅이 금지되었습니다.`,
