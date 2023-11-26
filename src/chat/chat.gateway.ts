@@ -279,10 +279,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (userAClientId) {
       const client = this.server.sockets.sockets.get(userAClientId);
       client.leave('friend-' + userBId);
+      client.emit('delete-friend', { id: userBId });
     }
     if (userBClientId) {
       const client = this.server.sockets.sockets.get(userBClientId);
       client.leave('friend-' + userAId);
+      client.emit('delete-friend', { id: userAId });
     }
   }
 
@@ -302,11 +304,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async handleNewFriendRequest(sender: UserData, receiverId: number) {
     const client = await this.getClientByUserId(receiverId);
-    if (client) client.emit('new-friend-request', sender);
+    if (client) {
+      client.emit('new-friend-request', {
+        sendBy: sender.id,
+        nickName: sender.nickName,
+        intraName: sender.intraName,
+      });
+    }
   }
 
   async handleDeleteFriendRequest(senderId: number, receiverId: number) {
     const client = await this.getClientByUserId(receiverId);
-    if (client) client.emit('delete-friend-request', { senderId: senderId });
+    if (client) client.emit('delete-friend-request', { sendBy: senderId });
   }
 }
