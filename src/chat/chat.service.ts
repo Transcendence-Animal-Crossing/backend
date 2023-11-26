@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Message } from './entity/message.entity';
@@ -97,7 +97,7 @@ export class ChatService {
   async send(client: Socket, dto: DirectMessageDto) {
     dto.senderId = await this.clientService.findUserIdByClientId(client.id);
     if (!(await this.followService.isFollow(dto.senderId, dto.receiverId)))
-      return;
+      throw new BadRequestException('친구간에만 메시지를 보낼 수 있습니다.');
     const message = await this.save(dto);
     const receiverClient = await this.clientService.findClientIdByUserId(
       dto.receiverId,
