@@ -24,8 +24,7 @@ export class EmailService {
     if (
       emailVerification &&
       emailVerification.emailToken &&
-      (new Date().getTime() - emailVerification.timestamp.getTime()) / 60000 <
-        15
+      (new Date().getTime() - emailVerification.timestamp.getTime()) / 60000 < 1 //todo :시간 바꿔야함
     ) {
       throw new HttpException(
         '유효기간이 끝나지 않은 이메일 토큰이 있습니다.',
