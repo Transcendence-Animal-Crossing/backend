@@ -119,41 +119,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK };
   }
 
-  async gameLoop(game: Game) {
-    if (game.status != GameStatus.PLAYING) return;
-    const collisionSide = game.ball.updatePositionAndCheckCollision(
-      game.players,
-    );
-    if (collisionSide !== null) {
-      game.updateScore(collisionSide);
-      game.ball.init();
-      game.players.init();
-      this.server
-        .to(game.id)
-        .emit('game-score', { left: game.leftScore, right: game.rightScore });
-    } else {
-      game.players.updatePlayersPosition();
-      game.ball.updateBallPosition();
-      this.server.to(game.id).emit('game-ball', {
-        x: game.ball.x,
-        y: game.ball.y,
-      });
-      this.server.to(game.id).emit('game-player', {
-        left: {
-          x: game.players.leftX,
-          y: game.players.leftY,
-        },
-        right: {
-          x: game.players.rightX,
-          y: game.players.rightY,
-        },
-      });
-    }
-    setTimeout(() => {
-      this.gameLoop(game);
-    }, 1000 / Map.GAME_FRAME);
-  }
-  sendEventToGameParticipant(gameId: number, event: string, data: any) {
+  sendEventToGameParticipant(gameId: string, event: string, data: any) {
     this.logger.debug('Server Send Event <' + event + '>');
     if (data) this.server.to(gameId).emit(event, data);
     else this.server.to(gameId).emit(event);
