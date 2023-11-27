@@ -7,12 +7,14 @@ import { User } from '../user/entities/user.entity';
 import { RoomRepository } from '../room/room.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRepository } from '../game/game.repository';
+import { GameGateway } from '../game/game.gateway';
 
 @Injectable()
 export class EventListener {
   private readonly logger: Logger = new Logger('EventListener');
   constructor(
     private readonly chatGateWay: ChatGateway,
+    private readonly gameGateway: GameGateway,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,

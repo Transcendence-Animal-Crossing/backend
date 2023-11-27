@@ -21,11 +21,11 @@ socket.on('disconnect', () => {
   responseElement.appendChild(newElement);
 });
 
-socket.on('game-matched', (body) => {
-  console.log('game-matched');
+socket.on('queue-matched', (body) => {
+  console.log('queue-matched');
   const time = new Date().getMinutes() + ':' + new Date().getSeconds();
   const newElement = document.createElement('div');
-  newElement.innerText = 'game-matched' + JSON.stringify(body) + ' ' + time;
+  newElement.innerText = 'queue-matched' + JSON.stringify(body) + ' ' + time;
   responseElement.appendChild(newElement);
 });
 

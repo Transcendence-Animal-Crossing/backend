@@ -21,7 +21,7 @@ import { GameModule } from '../game/game.module';
     forwardRef(() => RoomModule),
     FollowModule,
     forwardRef(() => ChatModule),
-    GameModule,
+    forwardRef(() => GameModule),
   ],
   providers: [ClientRepository, ClientService, EventListener],
   exports: [ClientRepository, ClientService],

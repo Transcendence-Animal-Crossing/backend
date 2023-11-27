@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { DataSource, EntityManager, ObjectLiteral } from 'typeorm';
 import { Standby } from './entities/standby.entity';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -12,14 +12,19 @@ import { Status } from '../ws/const/client.status';
 import { ChatGateway } from '../chat/chat.gateway';
 import { UserData } from '../room/data/user.data';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MutexManager } from '../mutex/mutex.manager';
+import { GameService } from '../game/game.service';
 
 @Injectable()
 export class QueueCron {
+  private readonly logger = new Logger(QueueCron.name);
   constructor(
     private readonly dataSource: DataSource,
+    private readonly mutexManager: MutexManager,
     private readonly queueGateWay: QueueGateway,
     private readonly chatGateWay: ChatGateway,
     private readonly gameRepository: GameRepository,
+    private readonly gameService: GameService,
     private readonly clientRepository: ClientRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -34,21 +39,23 @@ export class QueueCron {
   }
 
   private async match(manager: EntityManager, type: GameType) {
-    const data = await manager
-      .getRepository(Standby)
-      .createQueryBuilder('standby')
-      .select('standby.id')
-      .addSelect('standby.rankScore')
-      .addSelect('standby.createdAt')
-      .where('standby.type = :type', { type })
-      .orderBy('standby.createdAt', 'ASC')
-      .getMany();
-    const queue: Standby[] = data.map((d) => {
-      return Standby.createWithDate(d.id, type, d.rankScore, d.createdAt);
-    });
+    await this.mutexManager.getMutex('queue' + type).runExclusive(async () => {
+      const data = await manager
+        .getRepository(Standby)
+        .createQueryBuilder('standby')
+        .select('standby.id')
+        .addSelect('standby.rankScore')
+        .addSelect('standby.createdAt')
+        .where('standby.type = :type', { type })
+        .orderBy('standby.createdAt', 'ASC')
+        .getMany();
+      const queue: Standby[] = data.map((d) => {
+        return Standby.createWithDate(d.id, type, d.rankScore, d.createdAt);
+      });
 
-    if (type === GameType.RANK) await this.rankMatch(manager, queue);
-    else await this.generalMatch(manager, queue);
+      if (type === GameType.RANK) await this.rankMatch(manager, queue);
+      else await this.generalMatch(manager, queue);
+    });
   }
 
   private async generalMatch(manager: EntityManager, queue) {
@@ -97,33 +104,32 @@ export class QueueCron {
 
   private async processMatchedUser(
     manager: EntityManager,
-    userA: Standby,
-    userB: Standby,
+    standbyA: Standby,
+    standbyB: Standby,
   ) {
     const leftUser = await manager
       .getRepository(User)
-      .findOneBy({ id: userA.id });
+      .findOneBy({ id: standbyA.id });
     const rightUser = await manager
       .getRepository(User)
-      .findOneBy({ id: userA.id });
+      .findOneBy({ id: standbyB.id });
 
-    const game = Game.create(leftUser, rightUser, userA.type);
-    await this.gameRepository.save(game);
-    await this.gameRepository.userJoin(game.id, userA.id);
-    await this.gameRepository.userJoin(game.id, userB.id);
-    await this.clientRepository.saveUserStatus(userA.id, Status.IN_GAME);
+    const gameType = standbyA.type;
+    const game = await this.gameService.initGame(leftUser, rightUser, gameType);
+
+    await this.clientRepository.saveUserStatus(standbyA.id, Status.IN_GAME);
     await this.sendMatchedEvent(leftUser, game);
     await this.sendMatchedEvent(rightUser, game);
-    await manager.getRepository(Standby).remove(userA);
-    await manager.getRepository(Standby).remove(userB);
+    await manager.getRepository(Standby).remove(standbyA);
+    await manager.getRepository(Standby).remove(standbyB);
 
     setTimeout(async () => {
       this.eventEmitter.emit('validate.game', game.id);
-    }, 5000);
+    }, Game.READY_TIMEOUT);
   }
 
   private async sendMatchedEvent(user: User, game) {
-    await this.queueGateWay.sendEventToClient(user.id, 'game-matched', {
+    await this.queueGateWay.sendEventToClient(user.id, 'queue-matched', {
       id: game.id,
     });
     await this.chatGateWay.sendProfileUpdateToFriends(UserData.from(user));
@@ -138,7 +144,6 @@ export class QueueCron {
   private cacheMatchableRank(queue: ObjectLiteral[]) {
     for (let i = 0; i < queue.length; ++i) {
       const matchableDistance = this.matchableDistance(queue[i].createdAt);
-      console.log('matchableDistance: ', matchableDistance);
       queue[i].matchableMinRank = queue[i].rankScore - matchableDistance;
       queue[i].matchableMaxRank = queue[i].rankScore + matchableDistance;
     }

@@ -15,6 +15,11 @@ import { ClientRepository } from '../ws/client.repository';
 import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
+import { Game } from './model/game.model';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { GameInfoDto } from './dto/game-info.dto';
+import { Position } from './model/position.model';
+import { Side } from './enum/side.enum';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.GAME })
@@ -29,6 +34,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly clientRepository: ClientRepository,
     private readonly gameRepository: GameRepository,
     private readonly gameService: GameService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -46,15 +52,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.GAME,
       client,
     );
-    const gameId = await this.gameRepository.findGameIdByUserId(user.id);
-    if (gameId) {
-      const game = await this.gameRepository.find(gameId);
-      if (game) {
-        if (game.leftUser.id === user.id) game.leftScore = -1;
-        if (game.rightUser.id === user.id) game.rightScore = -1;
-        await this.gameRepository.update(game);
-      }
-    }
+    await this.gameService.disconnect(user.id);
     this.logger.log('[Game WebSocket Disconnected!]: ' + user.nickName);
   }
 
@@ -65,10 +63,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    const game = await this.gameRepository.find(gameId);
-    if (!game)
-      return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    return { status: 200, game };
+    const game: Game = await this.gameRepository.find(gameId);
+    const gameInfo = GameInfoDto.from(game);
+
+    const ball = Position.fromBall(game.ball);
+    const leftPlayer = Position.fromPlayers(game.players, Side.LEFT);
+    const rightPlayer = Position.fromPlayers(game.players, Side.RIGHT);
+
+    return { status: 200, body: { gameInfo, ball, leftPlayer, rightPlayer } };
   }
 
   @SubscribeMessage('game-ready')
@@ -78,19 +80,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    const game = await this.gameRepository.find(gameId);
+    const game: Game = await this.gameRepository.find(gameId);
     if (!game)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    if (game.leftUser.id === userId) game.leftScore = 0;
-    if (game.rightUser.id === userId) game.rightScore = 0;
-    await this.gameRepository.update(game);
+    game.setUserReady(userId);
     client.join(gameId);
 
-    if (game.leftScore !== -1 && game.rightScore !== -1) {
-      game.startTime = new Date();
-      await this.gameRepository.update(game);
-      this.server.to(gameId).emit('game-start', game);
+    if (game.isEveryoneReady()) {
+      game.setStart();
+      this.eventEmitter.emit('start.game', game.id);
     }
+    await this.gameRepository.update(game);
 
     return { status: HttpStatus.OK };
   }
@@ -115,5 +115,11 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
     await this.gameService.onGameKeyRelease(gameId, userId, dto.key);
     return { status: HttpStatus.OK };
+  }
+
+  sendEventToGameParticipant(gameId: number, event: string, data: any) {
+    this.logger.debug('Server Send Event <' + event + '>');
+    if (data) this.server.to(gameId).emit(event, data);
+    else this.server.to(gameId).emit(event);
   }
 }

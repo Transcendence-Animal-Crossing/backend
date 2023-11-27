@@ -8,6 +8,7 @@ import { QueueCron } from './queue.cron';
 import { GameModule } from '../game/game.module';
 import { GameRecordModule } from '../gameRecord/game-record.module';
 import { ChatModule } from '../chat/chat.module';
+import { MutexModule } from '../mutex/mutex.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { ChatModule } from '../chat/chat.module';
     ChatModule,
     GameModule,
     GameRecordModule,
+    MutexModule,
   ],
   providers: [QueueService, QueueGateway, QueueCron],
   exports: [QueueService],
