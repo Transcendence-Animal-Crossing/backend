@@ -109,4 +109,15 @@ export class Players {
     this.rightY = Math.max(this.rightY, this.bar);
     this.rightY = Math.min(this.rightY, Map.HEIGHT);
   }
+
+  init() {
+    this.leftX = Map.FIRST_X;
+    this.leftY = Map.HEIGHT / 2 + this.bar / 2;
+    this.rightX = Map.WIDTH - Map.FIRST_X - Map.THICKNESS;
+    this.rightY = Map.HEIGHT / 2 + this.bar / 2;
+    this.leftDx = 0;
+    this.leftDy = 0;
+    this.rightDx = 0;
+    this.rightDy = 0;
+  }
 }

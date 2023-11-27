@@ -117,27 +117,26 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     );
     if (collisionSide !== null) {
       game.updateScore(collisionSide);
-      game.ball.initBall();
+      game.ball.init();
+      game.players.init();
       this.server
         .to(game.id)
-        .emit('score-update', { left: game.leftScore, right: game.rightScore });
+        .emit('game-score', { left: game.leftScore, right: game.rightScore });
     } else {
       game.players.updatePlayersPosition();
       game.ball.updateBallPosition();
-      this.server.to(game.id).emit('position-update', {
-        ball: {
-          x: game.ball.x,
-          y: game.ball.y,
+      this.server.to(game.id).emit('game-ball', {
+        x: game.ball.x,
+        y: game.ball.y,
+      });
+      this.server.to(game.id).emit('game-player', {
+        left: {
+          x: game.players.leftX,
+          y: game.players.leftY,
         },
-        players: {
-          left: {
-            x: game.players.leftX,
-            y: game.players.leftY,
-          },
-          right: {
-            x: game.players.rightX,
-            y: game.players.rightY,
-          },
+        right: {
+          x: game.players.rightX,
+          y: game.players.rightY,
         },
       });
     }

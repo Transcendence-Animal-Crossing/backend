@@ -94,7 +94,7 @@ export class Ball {
     );
   }
 
-  initBall() {
+  init() {
     this.x = Map.WIDTH / 2;
     this.y = Map.HEIGHT / 2;
     if (this.nextOwner == Side.LEFT) this.dx = Map.BALL_SPEED;
