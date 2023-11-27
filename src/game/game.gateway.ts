@@ -16,6 +16,10 @@ import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
 import { Game } from './model/game.model';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { Ball } from './model/ball.model';
+import { Players } from './model/players.model';
+import { Side } from './enum/side.enum';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.GAME })
@@ -30,6 +34,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly clientRepository: ClientRepository,
     private readonly gameRepository: GameRepository,
     private readonly gameService: GameService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -58,10 +63,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    const game: Game = await this.gameRepository.find(gameId);
-    if (!game)
-      return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    return { status: 200, game };
+    const data = await this.gameService.findGameInfo(gameId);
+    return { status: 200, body: data };
   }
 
   @SubscribeMessage('game-ready')
@@ -79,7 +82,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     if (game.isEveryoneReady()) {
       game.setStart();
-      this.server.to(gameId).emit('game-start');
+      this.eventEmitter.emit('start.game', game.id);
     }
     await this.gameRepository.update(game);
 
@@ -106,5 +109,17 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
     await this.gameService.onGameKeyRelease(gameId, userId, dto.key);
     return { status: HttpStatus.OK };
+  }
+
+  startGame(gameId: string) {
+    this.server.to(gameId).emit('game-start');
+  }
+
+  updateScore(gameId: string, side: Side) {
+    this.server.to(gameId).emit('game-goal', side);
+  }
+
+  sendGameInfo(gameId: string, game: Game, players: Players, ball: Ball) {
+    this.server.to(gameId).emit('game-info', { game, players, ball });
   }
 }

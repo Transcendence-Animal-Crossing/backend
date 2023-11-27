@@ -7,16 +7,26 @@ import { User } from '../user/entities/user.entity';
 import { RoomRepository } from '../room/room.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRepository } from '../game/game.repository';
+import { GameGateway } from '../game/game.gateway';
+import { BallRepository } from '../game/ball.repository';
+import { PlayersRepository } from '../game/players.repository';
+import { Side } from '../game/enum/side.enum';
+import { Players } from '../game/model/players.model';
+import { Ball } from '../game/model/ball.model';
+import { Game } from '../game/model/game.model';
 
 @Injectable()
 export class EventListener {
   private readonly logger: Logger = new Logger('EventListener');
   constructor(
     private readonly chatGateWay: ChatGateway,
+    private readonly gameGateway: GameGateway,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     private readonly roomRepository: RoomRepository,
     private readonly gameRepository: GameRepository,
+    private readonly ballRepository: BallRepository,
+    private readonly playersRepository: PlayersRepository,
   ) {}
 
   @OnEvent('update.profile')
@@ -96,5 +106,41 @@ export class EventListener {
     if (game.leftScore === -1 && game.rightScore === -1)
       return await this.gameRepository.delete(gameId);
     // 둘 중 하나만 준비했다면 준비한 사람이 승리
+  }
+
+  @OnEvent('start.game')
+  async handleStartGameEvent(gameId: string) {
+    this.logger.debug('<start.game> event is triggered!');
+    await this.gameGateway.startGame(gameId);
+
+    setTimeout(async () => {
+      await this.gameLoop(gameId);
+    }, 3000);
+  }
+
+  async gameLoop(gameId: string) {
+    let loopInterval = 1000 / 60;
+    const game: Game = await this.gameRepository.find(gameId);
+    const ball: Ball = await this.ballRepository.find(gameId);
+    const players: Players = await this.playersRepository.find(gameId);
+
+    players.update();
+    ball.update();
+    ball.processCollision(players);
+    const side: Side = ball.checkGoal();
+    if (side) {
+      game.updateScore(side);
+      ball.reset(side);
+      players.reset();
+      this.gameGateway.updateScore(gameId, side);
+      loopInterval = Game.GOAL_INTERVAL;
+    }
+    this.gameGateway.sendGameInfo(gameId, game, players, ball);
+    await this.ballRepository.update(ball);
+    await this.playersRepository.update(players);
+    await this.gameRepository.update(game);
+    setTimeout(async () => {
+      await this.gameLoop(gameId);
+    }, loopInterval);
   }
 }

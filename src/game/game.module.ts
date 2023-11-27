@@ -10,6 +10,7 @@ import { GameGateway } from './game.gateway';
 import { WSModule } from '../ws/ws.module';
 import { GameService } from './game.service';
 import { PlayersRepository } from './players.repository';
+import { BallRepository } from './ball.repository';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GameHistory, GameRecord]),
@@ -20,10 +21,18 @@ import { PlayersRepository } from './players.repository';
     GameHistoryService,
     GameRepository,
     PlayersRepository,
+    BallRepository,
     GameGateway,
     GameService,
   ],
   controllers: [GameController],
-  exports: [GameHistoryService, GameRepository],
+  exports: [
+    GameHistoryService,
+    GameRepository,
+    BallRepository,
+    PlayersRepository,
+    GameGateway,
+    GameService,
+  ],
 })
 export class GameModule {}

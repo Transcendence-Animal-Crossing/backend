@@ -9,12 +9,17 @@ import { GameStatus } from './enum/game.status.enum';
 import { GameHistory } from './entities/game-history.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { User } from '../user/entities/user.entity';
+import { GameType } from './enum/game.type.enum';
+import { Ball } from './model/ball.model';
+import { BallRepository } from './ball.repository';
 
 @Injectable()
 export class GameService {
   constructor(
     private readonly gameRepository: GameRepository,
     private readonly playersRepository: PlayersRepository,
+    private readonly ballRepository: BallRepository,
     @InjectRepository(GameHistory)
     private readonly gameHistoryRepository: Repository<GameHistory>,
   ) {}
@@ -52,11 +57,36 @@ export class GameService {
     await this.playersRepository.update(players);
   }
 
-  private async loseByDisconnect(game: Game, userId: number) {
+  async initGame(
+    leftUser: User,
+    rightUser: User,
+    gameType: GameType,
+  ): Promise<Game> {
+    const game = Game.create(leftUser, rightUser, gameType);
+    await this.gameRepository.save(game);
+    const ball = Ball.create(game.id);
+    await this.ballRepository.save(ball);
+    const players = Players.create(game.id, gameType);
+    await this.playersRepository.save(players);
+    await this.gameRepository.userJoin(game.id, leftUser.id);
+    await this.gameRepository.userJoin(game.id, rightUser.id);
+
+    return game;
+  }
+
+  async loseByDisconnect(game: Game, userId: number) {
     game.loseByDisconnect(userId);
     await this.gameHistoryRepository.save(GameHistory.from(game));
     await this.gameRepository.delete(game.id);
     await this.playersRepository.delete(game.id);
-    // await this.ballRepository.delete(game.id);
+    await this.ballRepository.delete(game.id);
+  }
+
+  async findGameInfo(gameId: string) {
+    const game = await this.gameRepository.find(gameId);
+    const players = await this.playersRepository.find(gameId);
+    const ball = await this.ballRepository.find(gameId);
+
+    return { game, players, ball };
   }
 }

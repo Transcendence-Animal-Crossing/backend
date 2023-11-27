@@ -3,10 +3,12 @@ import { GameType } from '../enum/game.type.enum';
 import { UserData } from '../../room/data/user.data';
 import { User } from '../../user/entities/user.entity';
 import { GameStatus } from '../enum/game.status.enum';
+import { Side } from '../enum/side.enum';
 
 export class Game {
   public static readonly MAX_SCORE = 10;
   public static readonly READY_TIMEOUT = 30000;
+  public static readonly GOAL_INTERVAL = 3000;
   id: string;
   leftUser: UserData;
   rightUser: UserData;
@@ -65,5 +67,10 @@ export class Game {
       this.leftScore = Game.MAX_SCORE;
     }
     this.status = GameStatus.EARLY_FINISHED;
+  }
+
+  updateScore(side: Side) {
+    if (side === Side.LEFT) this.leftScore++;
+    if (side === Side.RIGHT) this.rightScore++;
   }
 }

@@ -92,4 +92,16 @@ export class Players {
       }
     }
   }
+
+  update() {
+    /**
+     * TODO: update players position
+     */
+  }
+
+  reset() {
+    /**
+     * TODO: reset players position
+     */
+  }
 }
