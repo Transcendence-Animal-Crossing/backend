@@ -16,6 +16,8 @@ import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
 import { Game } from './model/game.model';
+import { GameStatus } from './enum/game.status.enum';
+import { Map } from './enum/map.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GameInfoDto } from './dto/game-info.dto';
 import { Position } from './model/position.model';
@@ -117,7 +119,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK };
   }
 
-  sendEventToGameParticipant(gameId: number, event: string, data: any) {
+  sendEventToGameParticipant(gameId: string, event: string, data: any) {
     this.logger.debug('Server Send Event <' + event + '>');
     if (data) this.server.to(gameId).emit(event, data);
     else this.server.to(gameId).emit(event);

@@ -92,4 +92,32 @@ export class Players {
       }
     }
   }
+
+  updatePlayersPosition() {
+    this.leftX += this.leftDx;
+    this.leftY += this.leftDy;
+    this.rightX += this.rightDx;
+    this.rightY += this.rightDy;
+
+    this.leftX = Math.max(this.leftX, 0);
+    this.leftX = Math.min(this.leftX, Map.WIDTH / 2 - Map.THICKNESS);
+    this.leftY = Math.max(this.leftY, this.bar);
+    this.leftY = Math.min(this.leftY, Map.HEIGHT);
+
+    this.rightX = Math.max(this.rightX, Map.WIDTH / 2);
+    this.rightX = Math.min(this.rightX, Map.WIDTH - Map.THICKNESS);
+    this.rightY = Math.max(this.rightY, this.bar);
+    this.rightY = Math.min(this.rightY, Map.HEIGHT);
+  }
+
+  init() {
+    this.leftX = Map.FIRST_X;
+    this.leftY = Map.HEIGHT / 2 + this.bar / 2;
+    this.rightX = Map.WIDTH - Map.FIRST_X - Map.THICKNESS;
+    this.rightY = Map.HEIGHT / 2 + this.bar / 2;
+    this.leftDx = 0;
+    this.leftDy = 0;
+    this.rightDx = 0;
+    this.rightDy = 0;
+  }
 }
