@@ -18,7 +18,7 @@ import { GameService } from './game.service';
 import { Game } from './model/game.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GameInfoDto } from './dto/game-info.dto';
-import { Position } from './model/position';
+import { Position } from './model/position.model';
 import { Side } from './enum/side.enum';
 
 // @UsePipes(new ValidationPipe())
