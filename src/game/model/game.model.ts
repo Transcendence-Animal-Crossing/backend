@@ -3,9 +3,13 @@ import { GameType } from '../enum/game.type.enum';
 import { UserProfile } from '../../user/model/user.profile.model';
 import { User } from '../../user/entities/user.entity';
 import { GameStatus } from '../enum/game.status.enum';
+import { Ball } from './ball.model';
+import { Players } from './players.model';
 
 export class Game {
   public static readonly MAX_SCORE = 10;
+  public static readonly READY_TIMEOUT = 30000;
+  public static readonly ROUND_INTERVAL = 3000;
   id: string;
   leftUser: UserProfile;
   rightUser: UserProfile;
@@ -14,6 +18,8 @@ export class Game {
   startTime: Date;
   type: GameType;
   status: GameStatus;
+  ball: Ball;
+  players: Players;
 
   constructor(leftUser: UserProfile, rightUser: UserProfile, type: GameType) {
     this.id = uuid();
@@ -24,6 +30,8 @@ export class Game {
     this.rightScore = -1;
     this.startTime = null;
     this.status = GameStatus.WAITING;
+    this.ball = Ball.create(this.id);
+    this.players = Players.create(this.id, type);
   }
 
   static create(leftUser: User, rightUser: User, type: GameType) {

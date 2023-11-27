@@ -9,21 +9,14 @@ import { GameRepository } from './game.repository';
 import { GameGateway } from './game.gateway';
 import { WSModule } from '../ws/ws.module';
 import { GameService } from './game.service';
-import { PlayersRepository } from './players.repository';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GameHistory, GameRecord]),
     GameRecordModule,
     forwardRef(() => WSModule),
   ],
-  providers: [
-    GameHistoryService,
-    GameRepository,
-    PlayersRepository,
-    GameGateway,
-    GameService,
-  ],
+  providers: [GameHistoryService, GameRepository, GameGateway, GameService],
   controllers: [GameController],
-  exports: [GameHistoryService, GameRepository],
+  exports: [GameHistoryService, GameRepository, GameGateway, GameService],
 })
 export class GameModule {}

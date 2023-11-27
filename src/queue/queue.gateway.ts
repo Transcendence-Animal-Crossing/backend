@@ -42,6 +42,9 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.QUEUE,
       client,
     );
+    try {
+      await this.queueService.leave(user.id);
+    } catch (e) {}
     this.logger.log('[Queue WebSocket Disconnected!]: ' + user.nickName);
   }
 

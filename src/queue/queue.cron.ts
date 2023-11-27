@@ -13,6 +13,7 @@ import { ChatGateway } from '../chat/chat.gateway';
 import { UserProfile } from '../user/model/user.profile.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MutexManager } from '../mutex/mutex.manager';
+import { GameService } from '../game/game.service';
 
 @Injectable()
 export class QueueCron {
@@ -23,6 +24,7 @@ export class QueueCron {
     private readonly queueGateWay: QueueGateway,
     private readonly chatGateWay: ChatGateway,
     private readonly gameRepository: GameRepository,
+    private readonly gameService: GameService,
     private readonly clientRepository: ClientRepository,
     private readonly eventEmitter: EventEmitter2,
   ) {}
@@ -102,29 +104,28 @@ export class QueueCron {
 
   private async processMatchedUser(
     manager: EntityManager,
-    userA: Standby,
-    userB: Standby,
+    standbyA: Standby,
+    standbyB: Standby,
   ) {
     const leftUser = await manager
       .getRepository(User)
-      .findOneBy({ id: userA.id });
+      .findOneBy({ id: standbyA.id });
     const rightUser = await manager
       .getRepository(User)
-      .findOneBy({ id: userB.id });
+      .findOneBy({ id: standbyB.id });
 
-    const game = Game.create(leftUser, rightUser, userA.type);
-    await this.gameRepository.save(game);
-    await this.gameRepository.userJoin(game.id, userA.id);
-    await this.gameRepository.userJoin(game.id, userB.id);
-    await this.clientRepository.saveUserStatus(userA.id, Status.IN_GAME);
+    const gameType = standbyA.type;
+    const game = await this.gameService.initGame(leftUser, rightUser, gameType);
+
+    await this.clientRepository.saveUserStatus(standbyA.id, Status.IN_GAME);
     await this.sendMatchedEvent(leftUser, game);
     await this.sendMatchedEvent(rightUser, game);
-    await manager.getRepository(Standby).remove(userA);
-    await manager.getRepository(Standby).remove(userB);
+    await manager.getRepository(Standby).remove(standbyA);
+    await manager.getRepository(Standby).remove(standbyB);
 
     setTimeout(async () => {
       this.eventEmitter.emit('validate.game', game.id);
-    }, 5000);
+    }, Game.READY_TIMEOUT);
   }
 
   private async sendMatchedEvent(user: User, game) {
