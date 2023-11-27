@@ -279,7 +279,7 @@ export class AuthController {
 
   @Public() //todo 예외처리 해야함
   @HttpCode(HttpStatus.OK)
-  @Get('email/token')
+  @Post('email/token')
   async verifiyPassword(
     @Body('intraName') intraName: string,
     @Body('token') token: string,
