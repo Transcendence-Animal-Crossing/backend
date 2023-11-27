@@ -30,7 +30,7 @@ import { MutexManager } from '../mutex/mutex.manager';
 
 @Injectable()
 export class RoomService {
-  private readonly logger: Logger = new Logger('ChatGateway');
+  private readonly logger: Logger = new Logger(RoomService.name);
 
   constructor(
     private readonly mutexManager: MutexManager,
@@ -70,21 +70,24 @@ export class RoomService {
   async joinRoom(server, client: Socket, dto: JoinRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
     const user = await this.userService.findOne(userId);
-    const room: Room = await this.findById(dto.roomId);
+    let room: Room;
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      room = await this.findById(dto.roomId);
 
-    if (room.isParticipant(userId))
-      throw new ConflictException('해당 방에 이미 들어가 있습니다.');
-    if (room.isBanned(userId))
-      throw new ForbiddenException('해당 방으로의 입장이 금지되었습니다.');
-    if (room.isProtected() && !room.validatePassword(dto.password))
-      throw new ForbiddenException('비밀번호가 틀렸습니다.');
-    if (room.isPrivate() && !room.isInvited(userId))
-      throw new UnauthorizedException('해당 방에 초대되지 않았습니다.');
+      if (room.isParticipant(userId))
+        throw new ConflictException('해당 방에 이미 들어가 있습니다.');
+      if (room.isBanned(userId))
+        throw new ForbiddenException('해당 방으로의 입장이 금지되었습니다.');
+      if (room.isProtected() && !room.validatePassword(dto.password))
+        throw new ForbiddenException('비밀번호가 틀렸습니다.');
+      if (room.isPrivate() && !room.isInvited(userId))
+        throw new UnauthorizedException('해당 방에 초대되지 않았습니다.');
+
+      room.participants.push(Participant.of(user, Grade.PARTICIPANT));
+      await this.roomRepository.update(room);
+    });
 
     await this.roomRepository.userJoin(dto.roomId, userId);
-    room.participants.push(Participant.of(user, Grade.PARTICIPANT));
-    await this.roomRepository.update(room);
-
     await this.achievementService.addChattingJoin(user);
 
     client.join(dto.roomId);
@@ -110,31 +113,33 @@ export class RoomService {
 
   async mute(server, client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    const userGrade = this.getGrade(userId, room);
-    const targetGrade = this.getGrade(dto.targetId, room);
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      const room = await this.findById(dto.roomId);
+      const userGrade = this.getGrade(userId, room);
+      const targetGrade = this.getGrade(dto.targetId, room);
 
-    if (userGrade <= targetGrade)
-      throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
-    if (room.getMutedTime(dto.targetId) > 0)
-      throw new ConflictException('해당 유저는 이미 채팅금지 상태입니다.');
+      if (userGrade <= targetGrade)
+        throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
+      if (room.getMutedTime(dto.targetId) > 0)
+        throw new ConflictException('해당 유저는 이미 채팅금지 상태입니다.');
 
-    for (const participant of room.participants) {
-      if (participant.id === dto.targetId) {
-        participant.muteStartTime = new Date();
-        await this.roomRepository.update(room);
+      for (const participant of room.participants) {
+        if (participant.id === dto.targetId) {
+          participant.muteStartTime = new Date();
+          await this.roomRepository.update(room);
 
-        const timerId = setTimeout(() => {
-          server.to(dto.roomId).emit('room-unmute', {
-            id: dto.targetId,
+          const timerId = setTimeout(() => {
+            server.to(dto.roomId).emit('room-unmute', {
+              id: dto.targetId,
+            });
+            this.roomRepository.deleteMuteTimerId(dto.targetId);
           });
-          this.roomRepository.deleteMuteTimerId(dto.targetId);
-        });
-        await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
-        server.to(dto.roomId).emit('room-mute', dto);
-        return;
+          await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
+          server.to(dto.roomId).emit('room-mute', dto);
+          return;
+        }
       }
-    }
+    });
   }
 
   async unmute(server, client: Socket, dto: ActionRoomDto) {
