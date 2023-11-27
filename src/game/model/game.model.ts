@@ -5,6 +5,7 @@ import { User } from '../../user/entities/user.entity';
 import { GameStatus } from '../enum/game.status.enum';
 import { Ball } from './ball.model';
 import { Players } from './players.model';
+import { Side } from '../enum/side.enum';
 
 export class Game {
   public static readonly MAX_SCORE = 10;
@@ -72,5 +73,13 @@ export class Game {
       this.leftScore = Game.MAX_SCORE;
     }
     this.status = GameStatus.EARLY_FINISHED;
+  }
+
+  updateScore(collisionSide: Side) {
+    if (collisionSide === Side.LEFT) {
+      this.rightScore++;
+    } else if (collisionSide === Side.RIGHT) {
+      this.leftScore++;
+    }
   }
 }
