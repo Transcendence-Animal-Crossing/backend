@@ -10,6 +10,7 @@ import { Side } from '../enum/side.enum';
 export class Game {
   public static readonly MAX_SCORE = 10;
   public static readonly READY_TIMEOUT = 30000;
+  public static readonly ROUND_INTERVAL = 3000;
   id: string;
   leftUser: UserData;
   rightUser: UserData;
@@ -31,7 +32,7 @@ export class Game {
     this.startTime = null;
     this.status = GameStatus.WAITING;
     this.ball = Ball.create(this.id);
-    this.players = Players.create(this.id, this.type);
+    this.players = Players.create(this.id, type);
   }
 
   static create(leftUser: User, rightUser: User, type: GameType) {
