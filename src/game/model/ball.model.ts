@@ -1,6 +1,5 @@
 import { Side } from '../enum/side.enum';
 import { Map } from '../enum/map.enum';
-import { Players } from './players.model';
 
 export class Ball {
   id: string;
@@ -26,30 +25,5 @@ export class Ball {
 
   static create(id: string) {
     return new Ball(id);
-  }
-
-  update() {
-    /**
-     * TODO: update ball position
-     */
-  }
-
-  processCollision(players: Players) {
-    /**
-     * TODO: check collision with players and Walls
-     */
-  }
-
-  checkGoal(): Side {
-    /**
-     * TODO: check goal
-     */
-    return undefined;
-  }
-
-  reset(side: Side) {
-    /**
-     * TODO: reset ball position
-     */
   }
 }

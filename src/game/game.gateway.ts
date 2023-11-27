@@ -17,8 +17,8 @@ import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
 import { Game } from './model/game.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { Ball } from './model/ball.model';
-import { Players } from './model/players.model';
+import { GameInfoDto } from './dto/game-info.dto';
+import { Position } from './model/position';
 import { Side } from './enum/side.enum';
 
 // @UsePipes(new ValidationPipe())
@@ -63,8 +63,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    const data = await this.gameService.findGameInfo(gameId);
-    return { status: 200, body: data };
+    const game: Game = await this.gameRepository.find(gameId);
+    const gameInfo = GameInfoDto.from(game);
+
+    const ball = Position.fromBall(game.ball);
+    const leftPlayer = Position.fromPlayers(game.players, Side.LEFT);
+    const rightPlayer = Position.fromPlayers(game.players, Side.RIGHT);
+
+    return { status: 200, body: { gameInfo, ball, leftPlayer, rightPlayer } };
   }
 
   @SubscribeMessage('game-ready')
@@ -111,15 +117,9 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK };
   }
 
-  startGame(gameId: string) {
-    this.server.to(gameId).emit('game-start');
-  }
-
-  updateScore(gameId: string, side: Side) {
-    this.server.to(gameId).emit('game-goal', side);
-  }
-
-  sendGameInfo(gameId: string, game: Game, players: Players, ball: Ball) {
-    this.server.to(gameId).emit('game-info', { game, players, ball });
+  sendEventToGameParticipant(gameId: number, event: string, data: any) {
+    this.logger.debug('Server Send Event <' + event + '>');
+    if (data) this.server.to(gameId).emit(event, data);
+    else this.server.to(gameId).emit(event);
   }
 }
