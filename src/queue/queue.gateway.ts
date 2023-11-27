@@ -42,6 +42,9 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.QUEUE,
       client,
     );
+    try {
+      await this.queueService.leave(user.id);
+    } catch (e) {}
     this.logger.log('[Queue WebSocket Disconnected!]: ' + user.nickName);
   }
 
@@ -63,7 +66,8 @@ export class QueueGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async sendEventToClient(userId: number, event: string, data: any) {
-    const client = await this.clientService.getClientByUserId(
+    this.logger.debug('Server Send Event to Client: ' + event);
+    const client: Socket = await this.clientService.getClientByUserId(
       this.server,
       Namespace.QUEUE,
       userId,
