@@ -28,21 +28,6 @@ export class Ball {
     return new Ball(id);
   }
 
-  //checkWallCollision(): boolean {
-  //  //벽과 부딪혔는지 계산
-  //  return (
-  //    this.y - Map.BALL_RADIUS <= 0 ||
-  //    this.y + Map.BALL_RADIUS >= Map.HEIGHT ||
-  //    this.x - Map.BALL_RADIUS <= 0 ||
-  //    this.x + Map.BALL_RADIUS >= Map.WIDTH
-  //  );
-  //}
-
-  private checkWallCollision() {
-    //위아래벽은 점수로 안쳤음
-    if (this.y - Map.BALL_RADIUS <= 0 || this.y + Map.BALL_RADIUS >= Map.HEIGHT)
-      this.dy = -this.dy;
-  }
   updatePositionAndCheckCollision(players: Players): Side | null {
     if (this.x - Map.BALL_RADIUS <= 0) return Side.RIGHT;
     if (this.x + Map.BALL_RADIUS >= Map.WIDTH) return Side.LEFT;
@@ -75,25 +60,6 @@ export class Ball {
     return leftCollision || rightCollision;
   }
 
-  private calculateBarCollision(barX: number, barY: number, barHeight: number) {
-    return {
-      top: barY + barHeight / 2 + Map.BALL_RADIUS,
-      bottom: barY - barHeight / 2 - Map.BALL_RADIUS,
-      left: barX - Map.BALL_RADIUS,
-      right: barX + Map.THICKNESS + Map.BALL_RADIUS,
-    };
-  }
-
-  private isColliding(barRange): boolean {
-    //부딪혔는지에 대해 계산
-    return (
-      this.x >= barRange.left &&
-      this.x <= barRange.right &&
-      this.y <= barRange.top &&
-      this.y >= barRange.bottom
-    );
-  }
-
   init() {
     this.x = Map.WIDTH / 2;
     this.y = Map.HEIGHT / 2;
@@ -123,5 +89,30 @@ export class Ball {
     if (this.y + Map.BALL_RADIUS >= Map.HEIGHT) {
       this.y = Map.HEIGHT - Map.BALL_RADIUS;
     }
+  }
+
+  private checkWallCollision() {
+    //위아래벽은 점수로 안쳤음
+    if (this.y - Map.BALL_RADIUS <= 0 || this.y + Map.BALL_RADIUS >= Map.HEIGHT)
+      this.dy = -this.dy;
+  }
+
+  private calculateBarCollision(barX: number, barY: number, barHeight: number) {
+    return {
+      top: barY + barHeight / 2 + Map.BALL_RADIUS,
+      bottom: barY - barHeight / 2 - Map.BALL_RADIUS,
+      left: barX - Map.BALL_RADIUS,
+      right: barX + Map.THICKNESS + Map.BALL_RADIUS,
+    };
+  }
+
+  private isColliding(barRange): boolean {
+    //부딪혔는지에 대해 계산
+    return (
+      this.x >= barRange.left &&
+      this.x <= barRange.right &&
+      this.y <= barRange.top &&
+      this.y >= barRange.bottom
+    );
   }
 }
