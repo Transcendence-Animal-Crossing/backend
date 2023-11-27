@@ -96,21 +96,48 @@ export class Room {
     this.invitedUsers.push(UserProfile.fromUser(user));
   }
 
-  getMutedTime(userId: number): number {
-    for (const participant of this.participants)
+  muteUser(userId: number): void {
+    for (const participant of this.participants) {
       if (participant.id === userId) {
-        if (participant.muteStartTime == null) {
-          return 0;
-        }
-        const now = new Date();
-        const muteEndTime = new Date(
-          participant.muteStartTime.getTime() + this.MUTE_DURATION,
-        );
-        if (now < muteEndTime)
-          return Math.ceil((muteEndTime.getTime() - now.getTime()) / 1000);
+        participant.mute = true;
+        return;
       }
-    return 0;
+    }
   }
+
+  unmuteUser(userId: number): void {
+    for (const participant of this.participants) {
+      if (participant.id === userId) {
+        participant.mute = false;
+        return;
+      }
+    }
+  }
+
+  leaveUser(userId: number): void {
+    for (const participant of this.participants) {
+      if (participant.id === userId) {
+        this.participants.splice(this.participants.indexOf(participant), 1);
+        return;
+      }
+    }
+  }
+
+  // getMutedTime(userId: number): number {
+  //   for (const participant of this.participants)
+  //     if (participant.id === userId) {
+  //       if (participant.muteStartTime == null) {
+  //         return 0;
+  //       }
+  //       const now = new Date();
+  //       const muteEndTime = new Date(
+  //         participant.muteStartTime.getTime() + this.MUTE_DURATION,
+  //       );
+  //       if (now < muteEndTime)
+  //         return Math.ceil((muteEndTime.getTime() - now.getTime()) / 1000);
+  //     }
+  //   return 0;
+  // }
 
   sortParticipants(): void {
     this.participants.sort((a, b) => {
@@ -128,5 +155,14 @@ export class Room {
         }
       }
     });
+  }
+
+  isMuted(targetId: number) {
+    for (const participant of this.participants) {
+      if (participant.id === targetId) {
+        return participant.mute;
+      }
+    }
+    return false;
   }
 }

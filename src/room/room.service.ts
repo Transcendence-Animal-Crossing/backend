@@ -120,25 +120,22 @@ export class RoomService {
 
       if (userGrade <= targetGrade)
         throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
-      if (room.getMutedTime(dto.targetId) > 0)
+      if (room.isMuted(dto.targetId))
         throw new ConflictException('해당 유저는 이미 채팅금지 상태입니다.');
 
-      for (const participant of room.participants) {
-        if (participant.id === dto.targetId) {
-          participant.muteStartTime = new Date();
-          await this.roomRepository.update(room);
-
-          const timerId = setTimeout(() => {
-            server.to(dto.roomId).emit('room-unmute', {
-              id: dto.targetId,
-            });
-            this.roomRepository.deleteMuteTimerId(dto.targetId);
-          });
-          await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
-          server.to(dto.roomId).emit('room-mute', dto);
-          return;
-        }
-      }
+      room.muteUser(dto.targetId);
+      await this.roomRepository.update(room);
+      const timerId: NodeJS.Timeout = setTimeout(async () => {
+        server.to(dto.roomId).emit('room-unmute', {
+          id: dto.targetId,
+        });
+        const room: Room = await this.findById(dto.roomId);
+        room.unmuteUser(dto.targetId);
+        await this.roomRepository.update(room);
+      }, 10000);
+      await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
+      server.to(dto.roomId).emit('room-mute', dto);
+      return;
     });
   }
 
@@ -151,17 +148,12 @@ export class RoomService {
     if (userGrade <= targetGrade)
       throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
 
-    for (const participant of room.participants) {
-      if (participant.id === dto.targetId) {
-        participant.muteStartTime = null;
-        await this.roomRepository.update(room);
-
-        const timerId = await this.roomRepository.findMuteTimerId(dto.targetId);
-        if (timerId) clearTimeout(timerId);
-        server.to(dto.roomId).emit('room-unmute', dto);
-        return;
-      }
-    }
+    room.unmuteUser(dto.targetId);
+    await this.roomRepository.update(room);
+    const timerId = await this.roomRepository.findMuteTimerId(dto.targetId);
+    if (timerId) clearTimeout(timerId);
+    server.to(dto.roomId).emit('room-unmute', dto);
+    return;
   }
 
   async kick(server, client, dto: ActionRoomDto) {
@@ -173,11 +165,9 @@ export class RoomService {
     if (userGrade <= targetGrade)
       throw new ForbiddenException('해당 유저를 강퇴할 권한이 없습니다.');
 
-    room.participants = room.participants.filter(
-      (participant) => participant.id !== dto.targetId,
-    );
-    await this.roomRepository.userLeave(dto.targetId);
+    room.leaveUser(dto.targetId);
     await this.roomRepository.update(room);
+    await this.roomRepository.userLeave(dto.targetId);
 
     server.to(dto.roomId).emit('room-kick', dto);
     const kickedClientId = await this.clientRepository.findClientId(
@@ -265,7 +255,7 @@ export class RoomService {
 
   getGrade(userId: number, room: Room): number {
     const grade = room.findUserGrade(userId);
-    if (grade) return grade;
+    if (grade !== null) return grade;
     throw new BadRequestException('해당 유저가 방에 없습니다.');
   }
 
@@ -328,11 +318,8 @@ export class RoomService {
     const room = await this.findById(roomMessageDto.roomId);
     if (!room.isParticipant(userId))
       throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
-    const muteDuration = room.getMutedTime(userId);
-    if (muteDuration > 0)
-      throw new ForbiddenException(
-        `${muteDuration}초 동안 채팅이 금지되었습니다.`,
-      );
+    if (room.isMuted(userId))
+      throw new ForbiddenException(`채팅이 금지상태입니다.`);
     client
       .to(roomMessageDto.roomId)
       .except('block-' + userId)

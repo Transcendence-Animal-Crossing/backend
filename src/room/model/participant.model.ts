@@ -5,12 +5,12 @@ export class Participant extends UserProfile {
   private constructor(user: User, grade: number) {
     super(user.id, user.nickName, user.intraName, user.avatar);
     this.grade = grade;
-    this.muteStartTime = null;
+    this.mute = false;
     this.joinTime = new Date();
     this.adminTime = new Date();
   }
   grade: number;
-  muteStartTime: Date;
+  mute: boolean;
   joinTime: Date;
   adminTime: Date;
 
