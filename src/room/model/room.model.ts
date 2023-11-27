@@ -114,11 +114,10 @@ export class Room {
     }
   }
 
-  leaveUser(userId: number): void {
-    for (const participant of this.participants) {
-      if (participant.id === userId) {
-        this.participants.splice(this.participants.indexOf(participant), 1);
-        return;
+  leaveUser(userId: number): Participant[] {
+    for (let i = 0; i < this.participants.length; i++) {
+      if (this.participants[i].id === userId) {
+        return this.participants.splice(i, 1);
       }
     }
   }

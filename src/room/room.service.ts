@@ -182,19 +182,12 @@ export class RoomService {
     const room = await this.findById(dto.roomId);
     const userGrade = this.getGrade(userId, room);
     const targetGrade = this.getGrade(dto.targetId, room);
-    let target = null;
 
     if (userGrade <= targetGrade)
       throw new ForbiddenException('해당 유저를 밴할 권한이 없습니다.');
 
-    for (let i = 0; i < room.participants.length; i++) {
-      if (room.participants[i].id === dto.targetId) {
-        target = room.participants[i];
-        room.participants.splice(i, 1);
-        break;
-      }
-    }
-    room.bannedUsers.push(UserProfile.fromUser(target));
+    const target = room.leaveUser(dto.targetId)[0];
+    room.bannedUsers.push(UserProfile.fromParticipant(target));
 
     await this.roomRepository.userLeave(dto.targetId);
     await this.roomRepository.update(room);
@@ -240,9 +233,7 @@ export class RoomService {
       });
     }
 
-    room.participants = room.participants.filter(
-      (participant) => participant.id !== userId,
-    );
+    room.leaveUser(userId);
     await this.roomRepository.update(room);
     await this.roomRepository.userLeave(userId);
 
