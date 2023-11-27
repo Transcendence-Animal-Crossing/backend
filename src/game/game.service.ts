@@ -27,8 +27,9 @@ export class GameService {
       game.setUserUnready(userId);
       await this.gameRepository.update(game);
     }
-    if (game.status === GameStatus.PLAYING)
-      await this.loseByDisconnect(game, userId);
+    // 클라이언트 개발의 편의를 위해서 잠시 주석처리
+    // if (game.status === GameStatus.PLAYING)
+    //   await this.loseByDisconnect(game, userId);
   }
 
   async onGameKeyPress(gameId: string, userId: number, key: GameKey) {
