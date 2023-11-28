@@ -23,6 +23,10 @@ export class Players {
 
   rightDy: number;
 
+  leftDeBounceTime: number;
+
+  rightDeBounceTime: number;
+
   bar: number;
 
   private constructor(id: string, bar: number) {
@@ -37,6 +41,8 @@ export class Players {
     this.rightDx = 0;
     this.rightDy = 0;
     this.bar = bar;
+    this.leftDeBounceTime = Date.now();
+    this.rightDeBounceTime = Date.now();
   }
 
   static create(id: string, type: GameType) {
@@ -103,12 +109,15 @@ export class Players {
     this.leftX = Math.max(this.leftX, 0);
     this.leftX = Math.min(
       this.leftX,
-      GameSetting.WIDTH / 2 - GameSetting.THICKNESS,
+      GameSetting.WIDTH / 2 - GameSetting.THICKNESS - GameSetting.BARRIER,
     );
     this.leftY = Math.max(this.leftY, this.bar);
     this.leftY = Math.min(this.leftY, GameSetting.HEIGHT);
 
-    this.rightX = Math.max(this.rightX, GameSetting.WIDTH / 2);
+    this.rightX = Math.max(
+      this.rightX,
+      GameSetting.WIDTH / 2 + GameSetting.BARRIER,
+    );
     this.rightX = Math.min(
       this.rightX,
       GameSetting.WIDTH - GameSetting.THICKNESS,
