@@ -73,7 +73,6 @@ export class GameService {
       game.setUserReady(userId);
 
       if (game.isEveryoneReady()) {
-        console.log('TEST');
         game.setStart();
         this.eventEmitter.emit('start.game', game.id);
       }
