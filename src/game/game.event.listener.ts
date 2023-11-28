@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameRepository } from './game.repository';
 import { GameService } from './game.service';
+import { GameRecord } from '../gameRecord/entities/game-record';
 
 @Injectable()
 export class GameEventListener {
@@ -20,6 +21,8 @@ export class GameEventListener {
     private readonly gameRepository: GameRepository,
     @InjectRepository(GameHistory)
     private readonly gameHistoryRepository: Repository<GameHistory>,
+    @InjectRepository(GameRecord)
+    private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
   @OnEvent('start.game')
@@ -45,17 +48,29 @@ export class GameEventListener {
       await this.gameRepository.delete(gameId);
       await this.gameRepository.userLeave(game.leftUser.id);
       await this.gameRepository.userLeave(game.rightUser.id);
-      this.gameGateway.findClientByUserId(game.leftUser.id).leave(gameId);
-      this.gameGateway.findClientByUserId(game.rightUser.id).leave(gameId);
+      this.gameGateway.server.socketsLeave(gameId);
       return;
     }
     const unreadyUserId = game.findUnReadyOne();
     if (!unreadyUserId) return;
+    const readyUserId = game.findOpponent(unreadyUserId);
 
     game.loseByDisconnect(unreadyUserId);
     await this.gameHistoryRepository.save(GameHistory.from(game));
+
+    await this.gameRecordRepository.update(readyUserId, {
+      rankTotalCount: () => 'rankTotalCount + 1',
+      rankWinCount: () => 'rankWinCount + 1',
+    });
+    await this.gameRecordRepository.update(unreadyUserId, {
+      rankTotalCount: () => 'rankTotalCount + 1',
+    });
+
     this.gameGateway.sendEventToGameParticipant(gameId, 'game-end', null);
 
-    return await this.gameRepository.delete(gameId);
+    await this.gameRepository.delete(gameId);
+    await this.gameRepository.userLeave(game.leftUser.id);
+    await this.gameRepository.userLeave(game.rightUser.id);
+    this.gameGateway.server.socketsLeave(gameId);
   }
 }
