@@ -52,17 +52,17 @@ export class GameLoopService {
       await game.players.updatePlayersPosition();
       await game.ball.updateBallPosition();
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-ball', {
-        x: Map.HEIGHT - game.ball.x,
-        y: game.ball.y,
+        x: game.ball.x,
+        y: Map.HEIGHT - game.ball.y,
       });
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-player', {
         left: {
-          x: Map.HEIGHT - game.players.leftX,
-          y: game.players.leftY,
+          x: game.players.leftX,
+          y: Map.HEIGHT - game.players.leftY,
         },
         right: {
-          x: Map.HEIGHT - game.players.rightX,
-          y: game.players.rightY,
+          x: game.players.rightX,
+          y: Map.HEIGHT - game.players.rightY,
         },
       });
       this.gameRepository.update(game);
