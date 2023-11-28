@@ -17,9 +17,9 @@ export class GameLoopService {
   ) {}
 
   @OnEvent('game.start')
-  async handleGameStartEvent(gameId: number) {
+  async handleGameStartEvent(gameId: string) {
     const game: Game = await this.gameRepository.find(gameId);
-    this.gameGateway.server.to(gameId).emit('game-start');
+    this.gameGateway.sendEventToGameParticipant(gameId, 'game-start', {});
     setTimeout(() => {
       game.startTime = new Date();
       this.gameLoop(game);

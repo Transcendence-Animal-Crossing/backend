@@ -118,6 +118,7 @@ export class QueueCron {
     const game = await this.gameService.initGame(leftUser, rightUser, gameType);
 
     await this.clientRepository.saveUserStatus(standbyA.id, Status.IN_GAME);
+    await this.clientRepository.saveUserStatus(standbyB.id, Status.IN_GAME);
     await this.sendMatchedEvent(leftUser, game);
     await this.sendMatchedEvent(rightUser, game);
     await manager.getRepository(Standby).remove(standbyA);
