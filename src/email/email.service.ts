@@ -21,26 +21,26 @@ export class EmailService {
       where: { email },
     });
 
-    if (
-      emailVerification &&
-      emailVerification.emailToken &&
-      (new Date().getTime() - emailVerification.timestamp.getTime()) / 60000 < 1 //todo :시간 바꿔야함
-    ) {
-      throw new HttpException(
-        '유효기간이 끝나지 않은 이메일 토큰이 있습니다.',
-        HttpStatus.BAD_REQUEST,
-      );
-    } else {
-      const emailToken = (
-        Math.floor(Math.random() * 9000000) + 1000000
-      ).toString();
+    //if (
+    //  emailVerification &&
+    //  emailVerification.emailToken &&
+    //  (new Date().getTime() - emailVerification.timestamp.getTime()) / 60000 < 1 //todo :시간 바꿔야함
+    //) {
+    //  throw new HttpException(
+    //    '유효기간이 끝나지 않은 이메일 토큰이 있습니다.',
+    //    HttpStatus.BAD_REQUEST,
+    //  );
+    //} else { //todo: 프론트 때문에 해놓은거고 다시 주석 풀어야함
+    const emailToken = (
+      Math.floor(Math.random() * 9000000) + 1000000
+    ).toString();
 
-      await this.emailVerificationRepository.update(emailVerification.id, {
-        emailToken: emailToken,
-        timestamp: new Date(),
-      });
-      return true;
-    }
+    await this.emailVerificationRepository.update(emailVerification.id, {
+      emailToken: emailToken,
+      timestamp: new Date(),
+    });
+    return true;
+    //}
   }
 
   async sendEmail(email: string) {
