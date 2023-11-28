@@ -29,7 +29,8 @@ export class Players {
     this.id = id;
     this.leftX = GameSetting.FIRST_X;
     this.leftY = GameSetting.HEIGHT / 2 + bar / 2;
-    this.rightX = GameSetting.WIDTH - GameSetting.FIRST_X - GameSetting.THICKNESS;
+    this.rightX =
+      GameSetting.WIDTH - GameSetting.FIRST_X - GameSetting.THICKNESS;
     this.rightY = GameSetting.HEIGHT / 2 + bar / 2;
     this.leftDx = 0;
     this.leftDy = 0;
@@ -100,12 +101,18 @@ export class Players {
     this.rightY += this.rightDy;
 
     this.leftX = Math.max(this.leftX, 0);
-    this.leftX = Math.min(this.leftX, GameSetting.WIDTH / 2 - GameSetting.THICKNESS);
+    this.leftX = Math.min(
+      this.leftX,
+      GameSetting.WIDTH / 2 - GameSetting.THICKNESS,
+    );
     this.leftY = Math.max(this.leftY, this.bar);
     this.leftY = Math.min(this.leftY, GameSetting.HEIGHT);
 
     this.rightX = Math.max(this.rightX, GameSetting.WIDTH / 2);
-    this.rightX = Math.min(this.rightX, GameSetting.WIDTH - GameSetting.THICKNESS);
+    this.rightX = Math.min(
+      this.rightX,
+      GameSetting.WIDTH - GameSetting.THICKNESS,
+    );
     this.rightY = Math.max(this.rightY, this.bar);
     this.rightY = Math.min(this.rightY, GameSetting.HEIGHT);
   }
@@ -113,7 +120,8 @@ export class Players {
   init() {
     this.leftX = GameSetting.FIRST_X;
     this.leftY = GameSetting.HEIGHT / 2 + this.bar / 2;
-    this.rightX = GameSetting.WIDTH - GameSetting.FIRST_X - GameSetting.THICKNESS;
+    this.rightX =
+      GameSetting.WIDTH - GameSetting.FIRST_X - GameSetting.THICKNESS;
     this.rightY = GameSetting.HEIGHT / 2 + this.bar / 2;
     this.leftDx = 0;
     this.leftDy = 0;
