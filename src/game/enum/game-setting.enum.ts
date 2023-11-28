@@ -5,6 +5,5 @@ export enum GameSetting {
   HARDBAR = 50,
   FIRST_X = 50,
   THICKNESS = 10,
-  BALL_RADIUS = 5,
   GAME_FRAME = 60,
 }
