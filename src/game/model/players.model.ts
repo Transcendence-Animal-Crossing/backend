@@ -28,9 +28,9 @@ export class Players {
   private constructor(id: string, bar: number) {
     this.id = id;
     this.leftX = Map.FIRST_X;
-    this.leftY = Map.HEIGHT / 2 + bar / 2;
+    this.leftY = Map.HEIGHT / 2 + bar;
     this.rightX = Map.WIDTH - Map.FIRST_X - Map.THICKNESS;
-    this.rightY = Map.HEIGHT / 2 + bar / 2;
+    this.rightY = Map.HEIGHT / 2 + bar;
     this.leftDx = 0;
     this.leftDy = 0;
     this.rightDx = 0;
