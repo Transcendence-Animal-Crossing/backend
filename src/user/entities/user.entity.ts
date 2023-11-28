@@ -50,11 +50,11 @@ export class User {
   @UpdateDateColumn()
   updatedAt: Date;
 
-  static create(data: any): User {
+  static create(data: any, nickName: string): User {
     const user = new User();
     user.id = data.id;
     user.password = '';
-    user.nickName = data.login;
+    user.nickName = nickName;
     user.intraName = data.login;
     user.avatar = 'original/profile2.png';
     user.two_factor_auth = false;
