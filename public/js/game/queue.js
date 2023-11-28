@@ -57,5 +57,10 @@ export async function leaveQueue() {
   responseElement.appendChild(newElement);
 }
 
+export async function moveToGame() {
+  window.location.href = '/game?token=' + token;
+}
+
 window.joinQueue = joinQueue;
 window.leaveQueue = leaveQueue;
+window.moveToGame = moveToGame;

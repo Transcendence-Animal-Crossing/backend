@@ -9,13 +9,22 @@ import { GameRepository } from './game.repository';
 import { GameGateway } from './game.gateway';
 import { WSModule } from '../ws/ws.module';
 import { GameService } from './game.service';
+import { MutexModule } from '../mutex/mutex.module';
+import { GameLoopService } from './game-loop.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GameHistory, GameRecord]),
+    MutexModule,
     GameRecordModule,
     forwardRef(() => WSModule),
   ],
-  providers: [GameHistoryService, GameRepository, GameGateway, GameService],
+  providers: [
+    GameHistoryService,
+    GameRepository,
+    GameGateway,
+    GameService,
+    GameLoopService,
+  ],
   controllers: [GameController],
   exports: [GameHistoryService, GameRepository, GameGateway, GameService],
 })
