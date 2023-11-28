@@ -4,7 +4,7 @@ import { GameKey } from '../enum/game.key.enum';
 import { Side } from '../enum/side.enum';
 
 export class Players {
-  private static readonly SPEED = 10;
+  private static readonly SPEED = 250 / Map.GAME_FRAME;
   id: string;
 
   leftX: number;

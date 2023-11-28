@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GameRepository } from './game.repository';
 import { Game } from './model/game.model';
-import { OnEvent } from '@nestjs/event-emitter';
 import { GameGateway } from './game.gateway';
 import { GameStatus } from './enum/game.status.enum';
 import { Map } from './enum/map.enum';
@@ -16,18 +15,10 @@ export class GameLoopService {
     private readonly mutexManager: MutexManager,
   ) {}
 
-  @OnEvent('start.game')
-  async handleGameStartEvent(gameId: string) {
-    const game: Game = await this.gameRepository.find(gameId);
-    this.gameGateway.sendEventToGameParticipant(gameId, 'game-start', null);
-    setTimeout(() => {
-      this.gameLoop(game.id);
-    }, Game.ROUND_INTERVAL);
-  }
-
-  private async gameLoop(gameId: string) {
+  async gameLoop(gameId: string) {
     await this.mutexManager.getMutex('game' + gameId).runExclusive(async () => {
       const game: Game = await this.gameRepository.find(gameId);
+      if (!game) return;
       if (game.status != GameStatus.PLAYING) return;
       const collisionSide = game.ball.updatePositionAndCheckCollision(
         //함수 분리해야함

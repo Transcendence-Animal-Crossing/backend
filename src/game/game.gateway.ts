@@ -51,7 +51,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.GAME,
       client,
     );
-    await this.gameService.disconnect(user.id);
+    const gameId = await this.gameService.disconnect(user.id);
+    if (gameId) client.leave(gameId);
     this.logger.log('[Game WebSocket Disconnected!]: ' + user.nickName);
   }
 
@@ -118,9 +119,14 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK, body: games };
   }
 
-  sendEventToGameParticipant(gameId: string, event: string, data: any) {
+  sendEventToGameParticipant(sendTo: string, event: string, data: any) {
     this.logger.debug('Server Send Event <' + event + '>');
-    if (data) this.server.to(gameId).emit(event, data);
-    else this.server.to(gameId).emit(event);
+    if (data) this.server.to(sendTo).emit(event, data);
+    else this.server.to(sendTo).emit(event);
+  }
+
+  findClientByUserId(userId: number): Socket {
+    const clientId = this.clientRepository.findClientId(Namespace.GAME, userId);
+    return this.server.sockets.get(clientId);
   }
 }

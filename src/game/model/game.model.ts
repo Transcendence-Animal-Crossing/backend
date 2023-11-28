@@ -8,7 +8,7 @@ import { Players } from './players.model';
 import { Side } from '../enum/side.enum';
 
 export class Game {
-  public static readonly MAX_SCORE = 10;
+  public static readonly MAX_SCORE = 3;
   public static readonly READY_TIMEOUT = 30000;
   public static readonly ROUND_INTERVAL = 3000;
   id: string;
@@ -55,7 +55,17 @@ export class Game {
   }
 
   isEveryoneReady() {
-    return this.leftScore !== -1 && this.rightScore !== -1;
+    return this.leftScore >= 0 && this.rightScore >= 0;
+  }
+
+  isEveryoneUnready() {
+    return this.leftScore < 0 && this.rightScore < 0;
+  }
+
+  findUnReadyOne() {
+    if (this.leftScore < 0) return this.leftUser.id;
+    if (this.rightScore < 0) return this.rightUser.id;
+    return null;
   }
 
   getPlayTime() {

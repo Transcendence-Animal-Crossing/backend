@@ -28,11 +28,13 @@ export class GameService {
     return games.map((game) => SimpleGameDto.from(game));
   }
 
-  async disconnect(userId: number) {
+  async disconnect(userId: number): Promise<string> {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
-    if (!gameId) return;
+    if (!gameId) return null;
+    await this.gameRepository.userLeave(userId);
+
     const game = await this.gameRepository.find(gameId);
-    if (!game) return;
+    if (!game) return null;
     if (game.status === GameStatus.WAITING) {
       game.setUserUnready(userId);
       await this.gameRepository.update(game);
@@ -40,6 +42,7 @@ export class GameService {
     // 클라이언트 개발의 편의를 위해서 잠시 주석처리
     // if (game.status === GameStatus.PLAYING)
     //   await this.loseByDisconnect(game, userId);
+    return game.id;
   }
 
   async onGameKeyPress(gameId: string, userId: number, key: GameKey) {
@@ -84,7 +87,7 @@ export class GameService {
 
       if (game.isEveryoneReady()) {
         game.setStart();
-        this.eventEmitter.emit('start.game', game.id);
+        this.eventEmitter.emit('start.game', game);
       }
       await this.gameRepository.update(game);
     });
