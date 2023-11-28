@@ -1,4 +1,8 @@
-import { HttpStatus, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { Game } from './model/game.model';
@@ -12,6 +16,7 @@ import { GameType } from './enum/game.type.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MutexManager } from '../mutex/mutex.manager';
 import { SimpleGameDto } from './dto/simple-game.dto';
+import { GameRecord } from '../gameRecord/entities/game-record';
 
 @Injectable()
 export class GameService {
@@ -21,6 +26,8 @@ export class GameService {
     private readonly gameRepository: GameRepository,
     @InjectRepository(GameHistory)
     private readonly gameHistoryRepository: Repository<GameHistory>,
+    @InjectRepository(GameRecord)
+    private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
   async findGameInProgress(): Promise<SimpleGameDto[]> {
@@ -28,7 +35,7 @@ export class GameService {
     return games.map((game) => SimpleGameDto.from(game));
   }
 
-  async disconnect(userId: number): Promise<string> {
+  async disconnect(server, client, userId: number): Promise<string> {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId) return null;
     await this.gameRepository.userLeave(userId);
@@ -39,9 +46,10 @@ export class GameService {
       game.setUserUnready(userId);
       await this.gameRepository.update(game);
     }
-    // 클라이언트 개발의 편의를 위해서 잠시 주석처리
-    // if (game.status === GameStatus.PLAYING)
-    //   await this.loseByDisconnect(game, userId);
+    if (game.status === GameStatus.PLAYING) {
+      await this.loseByDisconnect(game, userId);
+      server.socketsLeave(gameId);
+    }
     return game.id;
   }
 
@@ -96,7 +104,18 @@ export class GameService {
 
   async loseByDisconnect(game: Game, userId: number) {
     game.loseByDisconnect(userId);
-    await this.gameHistoryRepository.save(GameHistory.from(game));
     await this.gameRepository.delete(game.id);
+    await this.gameRepository.userLeave(game.leftUser.id);
+    await this.gameRepository.userLeave(game.rightUser.id);
+
+    await this.gameHistoryRepository.save(GameHistory.from(game));
+    const opponentId = game.findOpponent(userId);
+    await this.gameRecordRepository.update(opponentId, {
+      rankTotalCount: () => 'rankTotalCount + 1',
+      rankWinCount: () => 'rankWinCount + 1',
+    });
+    await this.gameRecordRepository.update(userId, {
+      rankTotalCount: () => 'rankTotalCount + 1',
+    });
   }
 }
