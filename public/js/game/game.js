@@ -29,17 +29,13 @@ socket.on('game-start', () => {
 });
 
 socket.on('game-ball', (body) => {
-  console.log('game-ball');
-  const newElement = document.createElement('div');
-  newElement.innerText = 'game-ball' + JSON.stringify(body);
-  responseElement.appendChild(newElement);
+  document.getElementById('ball_postion').innerText =
+    'ball: ' + JSON.stringify(body);
 });
 
 socket.on('game-player', (body) => {
-  console.log('game-player');
-  const newElement = document.createElement('div');
-  newElement.innerText = 'game-player' + JSON.stringify(body);
-  responseElement.appendChild(newElement);
+  document.getElementById('player_position').innerText =
+    'player: ' + JSON.stringify(body);
 });
 
 socket.on('game-score', (body) => {

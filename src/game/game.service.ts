@@ -11,6 +11,7 @@ import { User } from '../user/entities/user.entity';
 import { GameType } from './enum/game.type.enum';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MutexManager } from '../mutex/mutex.manager';
+import { SimpleGameDto } from './dto/simple-game.dto';
 
 @Injectable()
 export class GameService {
@@ -21,6 +22,11 @@ export class GameService {
     @InjectRepository(GameHistory)
     private readonly gameHistoryRepository: Repository<GameHistory>,
   ) {}
+
+  async findGameInProgress(): Promise<SimpleGameDto[]> {
+    const games = await this.gameRepository.findAll();
+    return games.map((game) => SimpleGameDto.from(game));
+  }
 
   async disconnect(userId: number) {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
@@ -37,19 +43,23 @@ export class GameService {
   }
 
   async onGameKeyPress(gameId: string, userId: number, key: GameKey) {
-    const game: Game = await this.gameRepository.find(gameId);
-    if (game.leftUser.id === userId) game.players.move(Side.LEFT, key);
-    if (game.rightUser.id === userId) game.players.move(Side.RIGHT, key);
+    await this.mutexManager.getMutex(gameId).runExclusive(async () => {
+      const game: Game = await this.gameRepository.find(gameId);
+      if (game.leftUser.id === userId) game.players.move(Side.LEFT, key);
+      if (game.rightUser.id === userId) game.players.move(Side.RIGHT, key);
 
-    await this.gameRepository.update(game);
+      await this.gameRepository.update(game);
+    });
   }
 
   async onGameKeyRelease(gameId: string, userId: number, key: GameKey) {
-    const game: Game = await this.gameRepository.find(gameId);
-    if (game.leftUser.id === userId) game.players.stop(Side.LEFT, key);
-    if (game.rightUser.id === userId) game.players.stop(Side.RIGHT, key);
+    await this.mutexManager.getMutex(gameId).runExclusive(async () => {
+      const game: Game = await this.gameRepository.find(gameId);
+      if (game.leftUser.id === userId) game.players.stop(Side.LEFT, key);
+      if (game.rightUser.id === userId) game.players.stop(Side.RIGHT, key);
 
-    await this.gameRepository.update(game);
+      await this.gameRepository.update(game);
+    });
   }
 
   async initGame(

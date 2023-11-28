@@ -21,7 +21,6 @@ export class GameLoopService {
     const game: Game = await this.gameRepository.find(gameId);
     this.gameGateway.sendEventToGameParticipant(gameId, 'game-start', null);
     setTimeout(() => {
-      game.startTime = new Date();
       this.gameLoop(game.id);
     }, Game.ROUND_INTERVAL);
   }
@@ -34,20 +33,20 @@ export class GameLoopService {
         //함수 분리해야함
         game.players,
       );
-      if (collisionSide !== null) {
-        game.updateScore(collisionSide);
-        game.ball.init();
-        game.players.init();
-        this.gameGateway.sendEventToGameParticipant(game.id, 'game-score', {
-          left: game.leftScore,
-          right: game.rightScore,
-        });
-        await this.gameRepository.update(game);
-        setTimeout(() => {
-          this.gameLoop(gameId);
-        }, Game.ROUND_INTERVAL);
-        return;
-      }
+      // if (collisionSide !== null) {
+      //   game.updateScore(collisionSide);
+      //   game.ball.init();
+      //   game.players.init();
+      //   this.gameGateway.sendEventToGameParticipant(game.id, 'game-score', {
+      //     left: game.leftScore,
+      //     right: game.rightScore,
+      //   });
+      //   await this.gameRepository.update(game);
+      //   setTimeout(() => {
+      //     this.gameLoop(gameId);
+      //   }, Game.ROUND_INTERVAL);
+      //   return;
+      // }
       game.players.updatePlayersPosition();
       game.ball.updateBallPosition();
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-ball', {

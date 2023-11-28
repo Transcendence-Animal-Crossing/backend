@@ -3,8 +3,7 @@ import { GameType } from '../enum/game.type.enum';
 import { GameStatus } from '../enum/game.status.enum';
 import { Game } from '../model/game.model';
 
-export class GameInfoDto {
-  public static readonly MAX_SCORE = 10;
+export class DetailGameDto {
   id: string;
   leftUser: UserData;
   rightUser: UserData;
@@ -35,7 +34,7 @@ export class GameInfoDto {
   }
 
   static from(game: Game) {
-    return new GameInfoDto(
+    return new DetailGameDto(
       game.id,
       game.leftUser,
       game.rightUser,
