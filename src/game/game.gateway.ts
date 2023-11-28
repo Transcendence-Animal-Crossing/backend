@@ -51,8 +51,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.GAME,
       client,
     );
-    const gameId = await this.gameService.disconnect(user.id);
-    if (gameId) client.leave(gameId);
+    await this.gameService.disconnect(this.server, client, user.id);
     this.logger.log('[Game WebSocket Disconnected!]: ' + user.nickName);
   }
 
