@@ -93,7 +93,7 @@ export class Players {
     }
   }
 
-  async updatePlayersPosition() {
+  updatePlayersPosition() {
     this.leftX += this.leftDx;
     this.leftY += this.leftDy;
     this.rightX += this.rightDx;

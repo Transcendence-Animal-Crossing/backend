@@ -3,6 +3,7 @@ import { Map } from '../enum/map.enum';
 import { Players } from './players.model';
 
 export class Ball {
+  private static readonly SPEED = 300 / Map.GAME_FRAME;
   id: string;
 
   x: number;
@@ -19,7 +20,7 @@ export class Ball {
     this.id = id;
     this.x = Map.WIDTH / 2;
     this.y = Map.HEIGHT / 2;
-    this.dx = -Map.BALL_SPEED / Map.GAME_FRAME;
+    this.dx = -Ball.SPEED;
     this.dy = 0;
     this.nextOwner = Side.LEFT;
   }
@@ -28,7 +29,7 @@ export class Ball {
     return new Ball(id);
   }
 
-  async updatePositionAndCheckCollision(players: Players) {
+  updatePositionAndCheckCollision(players: Players) {
     console.log('x값 : ', this.x - Map.BALL_RADIUS);
     console.log('left : ', this.x + Map.BALL_RADIUS);
     if (this.x - Map.BALL_RADIUS <= 0) return Side.RIGHT;
@@ -66,8 +67,8 @@ export class Ball {
   init() {
     this.x = Map.WIDTH / 2;
     this.y = Map.HEIGHT / 2;
-    if (this.nextOwner == Side.LEFT) this.dx = Map.BALL_SPEED / Map.GAME_FRAME;
-    else this.dx = -Map.BALL_SPEED / Map.GAME_FRAME;
+    if (this.nextOwner == Side.LEFT) this.dx = Ball.SPEED;
+    else this.dx = -Ball.SPEED;
     this.dy = 0;
     this.nextOwner = this.nextOwner === Side.LEFT ? Side.RIGHT : Side.LEFT; //번갈아가면서 서브하는 경우
   }

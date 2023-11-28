@@ -30,12 +30,11 @@ export class GameLoopService {
       const game: Game = await this.gameRepository.find(gameId);
       console.log('game : ', game);
       if (game.status != GameStatus.PLAYING) return;
-      const collisionSide = await game.ball.updatePositionAndCheckCollision(
+      const collisionSide = game.ball.updatePositionAndCheckCollision(
         //함수 분리해야함
         game.players,
       );
       if (collisionSide !== null) {
-        console.log('aaa', collisionSide);
         game.updateScore(collisionSide);
         game.ball.init();
         game.players.init();
@@ -49,7 +48,7 @@ export class GameLoopService {
         }, Game.ROUND_INTERVAL);
         return;
       }
-      await game.players.updatePlayersPosition();
+      game.players.updatePlayersPosition();
       await game.ball.updateBallPosition();
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-ball', {
         x: game.ball.x,
@@ -65,7 +64,7 @@ export class GameLoopService {
           y: Map.HEIGHT - game.players.rightY,
         },
       });
-      this.gameRepository.update(game);
+      await this.gameRepository.update(game);
       setTimeout(() => {
         this.gameLoop(game.id);
       }, 1000 / Map.GAME_FRAME);
