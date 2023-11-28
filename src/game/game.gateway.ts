@@ -16,9 +16,6 @@ import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
 import { Game } from './model/game.model';
-import { GameStatus } from './enum/game.status.enum';
-import { Map } from './enum/map.enum';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { GameInfoDto } from './dto/game-info.dto';
 import { Position } from './model/position.model';
 import { Side } from './enum/side.enum';
@@ -36,7 +33,6 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly clientRepository: ClientRepository,
     private readonly gameRepository: GameRepository,
     private readonly gameService: GameService,
-    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -82,18 +78,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    const game: Game = await this.gameRepository.find(gameId);
-    if (!game)
-      return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    game.setUserReady(userId);
+    await this.gameService.ready(userId, gameId);
     client.join(gameId);
-
-    if (game.isEveryoneReady()) {
-      game.setStart();
-      this.eventEmitter.emit('start.game', game.id);
-    }
-    await this.gameRepository.update(game);
-
     return { status: HttpStatus.OK };
   }
 

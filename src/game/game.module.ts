@@ -9,9 +9,11 @@ import { GameRepository } from './game.repository';
 import { GameGateway } from './game.gateway';
 import { WSModule } from '../ws/ws.module';
 import { GameService } from './game.service';
+import { MutexModule } from '../mutex/mutex.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GameHistory, GameRecord]),
+    MutexModule,
     GameRecordModule,
     forwardRef(() => WSModule),
   ],

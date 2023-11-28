@@ -16,7 +16,7 @@ export class GameLoopService {
     private readonly mutexManager: MutexManager,
   ) {}
 
-  @OnEvent('game.start')
+  @OnEvent('start.game')
   async handleGameStartEvent(gameId: string) {
     const game: Game = await this.gameRepository.find(gameId);
     this.gameGateway.sendEventToGameParticipant(gameId, 'game-start', {});

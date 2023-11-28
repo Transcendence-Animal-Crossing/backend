@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { Game } from './model/game.model';
@@ -9,10 +9,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { GameType } from './enum/game.type.enum';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { MutexManager } from '../mutex/mutex.manager';
 
 @Injectable()
 export class GameService {
   constructor(
+    private readonly eventEmitter: EventEmitter2,
+    private readonly mutexManager: MutexManager,
     private readonly gameRepository: GameRepository,
     @InjectRepository(GameHistory)
     private readonly gameHistoryRepository: Repository<GameHistory>,
@@ -59,6 +63,22 @@ export class GameService {
     await this.gameRepository.userJoin(game.id, rightUser.id);
 
     return game;
+  }
+
+  async ready(userId: number, gameId: string) {
+    await this.mutexManager.getMutex(gameId).runExclusive(async () => {
+      const game: Game = await this.gameRepository.find(gameId);
+      if (!game)
+        return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
+      game.setUserReady(userId);
+
+      if (game.isEveryoneReady()) {
+        console.log('TEST');
+        game.setStart();
+        this.eventEmitter.emit('start.game', game.id);
+      }
+      await this.gameRepository.update(game);
+    });
   }
 
   async loseByDisconnect(game: Game, userId: number) {
