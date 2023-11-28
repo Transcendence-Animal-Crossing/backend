@@ -6,27 +6,76 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"
           integrity="sha512-zoJXRvW2gC8Z0Xo3lBbao5+AS3g6YWr5ztKqaicua11xHo+AvE1b0lT9ODgrHTmNUxeCw0Ry4BGRYZfXu70weg=="
           crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-<!--  <link href='css/game.css' rel='stylesheet' />-->
-  <script type='module' src="js/game/queue.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+    }
+
+    .container {
+      text-align: center;
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      color: #333;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    .radio-group {
+      margin: 20px 0;
+    }
+
+    label {
+      margin-left: 10px;
+      margin-right: 20px;
+    }
+  </style>
   <title>Game Queue TEST</title>
 </head>
 <body>
-<div>
+<div class="container">
   <h1>Game Queue TEST</h1>
   <h2>Player: {{ record.id }}</h2>
   <h2>RankScore: {{ record.rankScore }}</h2>
 
-</div>
-  <input type="radio" id="type_classic" name="game-type" value="NORMAL" checked>
-  <label for="classic">Classic</label>
-  <input type="radio" id="type_special" name="game-type" value="HARD">
-  <label for="special">Special</label>
-  <input type="radio" id="type_rank" name="game-type" value="RANK">
-  <label for="rank">Rank</label>
-  <br>
+  <div class="radio-group">
+    <input type="radio" id="type_classic" name="game-type" value="NORMAL" checked>
+    <label for="classic">Classic</label>
+    <input type="radio" id="type_special" name="game-type" value="HARD">
+    <label for="special">Special</label>
+    <input type="radio" id="type_rank" name="game-type" value="RANK">
+    <label for="rank">Rank</label>
+  </div>
+
   <button id="join-queue" onclick='joinQueue()'>Join Queue</button>
   <button id="leave-queue" onclick='leaveQueue()'>Leave Queue</button>
-  <div id="response">
-  </div>
+  <button id="move-to-game" onclick='moveToGame()'>Move To Game</button>
+
+  <div id="response"></div>
+</div>
+<script type='module' src="js/game/queue.js"></script>
 </body>
 </html>
