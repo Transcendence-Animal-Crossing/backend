@@ -81,8 +81,9 @@ export class GameService {
   async ready(userId: number, gameId: string) {
     await this.mutexManager.getMutex(gameId).runExclusive(async () => {
       const game: Game = await this.gameRepository.find(gameId);
-      if (!game)
-        return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
+      if (!game) throw new NotFoundException('Game Not Found');
+      if (game.status !== GameStatus.WAITING)
+        throw new ConflictException('Game Already Started');
       game.setUserReady(userId);
 
       if (game.isEveryoneReady()) {
