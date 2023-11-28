@@ -62,6 +62,12 @@ export class Game {
     return this.leftScore < 0 && this.rightScore < 0;
   }
 
+  findOpponent(userId: number) {
+    if (this.leftUser.id === userId) return this.rightUser;
+    if (this.rightUser.id === userId) return this.leftUser;
+    return null;
+  }
+
   findUnReadyOne() {
     if (this.leftScore < 0) return this.leftUser.id;
     if (this.rightScore < 0) return this.rightUser.id;
@@ -91,5 +97,11 @@ export class Game {
     } else if (collisionSide === Side.RIGHT) {
       this.leftScore++;
     }
+  }
+
+  isEnd() {
+    return (
+      this.leftScore >= Game.MAX_SCORE || this.rightScore >= Game.MAX_SCORE
+    );
   }
 }

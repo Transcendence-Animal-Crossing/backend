@@ -26,12 +26,24 @@ export class GameLoopService {
       );
       if (collisionSide !== null) {
         game.updateScore(collisionSide);
-        game.ball.init();
-        game.players.init();
         this.gameGateway.sendEventToGameParticipant(game.id, 'game-score', {
           left: game.leftScore,
           right: game.rightScore,
         });
+        game.ball.init();
+        game.players.init();
+        if (game.isEnd()) {
+          this.gameGateway.sendEventToGameParticipant(
+            game.id,
+            'game-end',
+            null,
+          );
+          await this.gameRepository.delete(gameId);
+          await this.gameRepository.userLeave(game.leftUser.id);
+          await this.gameRepository.userLeave(game.rightUser.id);
+          this.gameGateway.server.socketsLeave(gameId);
+          return;
+        }
         await this.gameRepository.update(game);
         setTimeout(() => {
           this.gameLoop(gameId);
