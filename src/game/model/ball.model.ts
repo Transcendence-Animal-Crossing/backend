@@ -1,9 +1,9 @@
 import { Side } from '../enum/side.enum';
-import { Map } from '../enum/map.enum';
+import { GameSetting } from '../enum/game-setting.enum';
 import { Players } from './players.model';
 
 export class Ball {
-  private static readonly SPEED = 300 / Map.GAME_FRAME;
+  private static readonly SPEED = 300 / GameSetting.GAME_FRAME;
   id: string;
 
   x: number;
@@ -18,8 +18,8 @@ export class Ball {
 
   private constructor(id: string) {
     this.id = id;
-    this.x = Map.WIDTH / 2;
-    this.y = Map.HEIGHT / 2;
+    this.x = GameSetting.WIDTH / 2;
+    this.y = GameSetting.HEIGHT / 2;
     this.dx = -Ball.SPEED;
     this.dy = 0;
     this.nextOwner = Side.LEFT;
@@ -30,12 +30,12 @@ export class Ball {
   }
 
   updatePositionAndCheckCollision(players: Players) {
-    console.log('x값 : ', this.x - Map.BALL_RADIUS);
-    console.log('left : ', this.x + Map.BALL_RADIUS);
-    if (this.x - Map.BALL_RADIUS <= 0) return Side.RIGHT;
-    if (this.x + Map.BALL_RADIUS >= Map.WIDTH) return Side.LEFT;
+    console.log('x값 : ', this.x - GameSetting.BALL_RADIUS);
+    console.log('left : ', this.x + GameSetting.BALL_RADIUS);
+    if (this.x - GameSetting.BALL_RADIUS <= 0) return Side.RIGHT;
+    if (this.x + GameSetting.BALL_RADIUS >= GameSetting.WIDTH) return Side.LEFT;
     if (this.checkBarCollision(players)) this.bounce();
-    if (this.y - Map.BALL_RADIUS <= 0 || this.y + Map.BALL_RADIUS >= Map.HEIGHT)
+    if (this.y - GameSetting.BALL_RADIUS <= 0 || this.y + GameSetting.BALL_RADIUS >= GameSetting.HEIGHT)
       this.dy = -this.dy;
     this.checkWallCollision();
     return null;
@@ -65,8 +65,8 @@ export class Ball {
   }
 
   init() {
-    this.x = Map.WIDTH / 2;
-    this.y = Map.HEIGHT / 2;
+    this.x = GameSetting.WIDTH / 2;
+    this.y = GameSetting.HEIGHT / 2;
     if (this.nextOwner == Side.LEFT) this.dx = Ball.SPEED;
     else this.dx = -Ball.SPEED;
     this.dy = 0;
@@ -86,27 +86,27 @@ export class Ball {
     this.x += this.dx;
     this.y += this.dy;
     // 볼이 벽 밖으로 나가지 않도록 조정
-    if (this.y - Map.BALL_RADIUS <= 0) {
-      this.y = Map.BALL_RADIUS;
+    if (this.y - GameSetting.BALL_RADIUS <= 0) {
+      this.y = GameSetting.BALL_RADIUS;
     }
 
-    if (this.y + Map.BALL_RADIUS >= Map.HEIGHT) {
-      this.y = Map.HEIGHT - Map.BALL_RADIUS;
+    if (this.y + GameSetting.BALL_RADIUS >= GameSetting.HEIGHT) {
+      this.y = GameSetting.HEIGHT - GameSetting.BALL_RADIUS;
     }
   }
 
   private checkWallCollision() {
     //위아래벽은 점수로 안쳤음
-    if (this.y - Map.BALL_RADIUS <= 0 || this.y + Map.BALL_RADIUS >= Map.HEIGHT)
+    if (this.y - GameSetting.BALL_RADIUS <= 0 || this.y + GameSetting.BALL_RADIUS >= GameSetting.HEIGHT)
       this.dy = -this.dy;
   }
 
   private calculateBarCollision(barX: number, barY: number, barHeight: number) {
     return {
-      top: barY + barHeight / 2 + Map.BALL_RADIUS,
-      bottom: barY - barHeight / 2 - Map.BALL_RADIUS,
-      left: barX - Map.BALL_RADIUS,
-      right: barX + Map.THICKNESS + Map.BALL_RADIUS,
+      top: barY + barHeight / 2 + GameSetting.BALL_RADIUS,
+      bottom: barY - barHeight / 2 - GameSetting.BALL_RADIUS,
+      left: barX - GameSetting.BALL_RADIUS,
+      right: barX + GameSetting.THICKNESS + GameSetting.BALL_RADIUS,
     };
   }
 

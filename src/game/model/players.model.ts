@@ -1,10 +1,10 @@
 import { GameType } from '../enum/game.type.enum';
-import { Map } from '../enum/map.enum';
+import { GameSetting } from '../enum/game-setting.enum';
 import { GameKey } from '../enum/game.key.enum';
 import { Side } from '../enum/side.enum';
 
 export class Players {
-  private static readonly SPEED = 250 / Map.GAME_FRAME;
+  private static readonly SPEED = 250 / GameSetting.GAME_FRAME;
   id: string;
 
   leftX: number;
@@ -27,10 +27,10 @@ export class Players {
 
   private constructor(id: string, bar: number) {
     this.id = id;
-    this.leftX = Map.FIRST_X;
-    this.leftY = Map.HEIGHT / 2 + bar / 2;
-    this.rightX = Map.WIDTH - Map.FIRST_X - Map.THICKNESS;
-    this.rightY = Map.HEIGHT / 2 + bar / 2;
+    this.leftX = GameSetting.FIRST_X;
+    this.leftY = GameSetting.HEIGHT / 2 + bar / 2;
+    this.rightX = GameSetting.WIDTH - GameSetting.FIRST_X - GameSetting.THICKNESS;
+    this.rightY = GameSetting.HEIGHT / 2 + bar / 2;
     this.leftDx = 0;
     this.leftDy = 0;
     this.rightDx = 0;
@@ -39,8 +39,8 @@ export class Players {
   }
 
   static create(id: string, type: GameType) {
-    if (type == GameType.HARD) return new Players(id, Map.HARDBAR);
-    return new Players(id, Map.NORMALBAR);
+    if (type == GameType.HARD) return new Players(id, GameSetting.HARDBAR);
+    return new Players(id, GameSetting.NORMALBAR);
   }
 
   move(side: Side, key: GameKey) {
@@ -100,21 +100,21 @@ export class Players {
     this.rightY += this.rightDy;
 
     this.leftX = Math.max(this.leftX, 0);
-    this.leftX = Math.min(this.leftX, Map.WIDTH / 2 - Map.THICKNESS);
+    this.leftX = Math.min(this.leftX, GameSetting.WIDTH / 2 - GameSetting.THICKNESS);
     this.leftY = Math.max(this.leftY, this.bar);
-    this.leftY = Math.min(this.leftY, Map.HEIGHT);
+    this.leftY = Math.min(this.leftY, GameSetting.HEIGHT);
 
-    this.rightX = Math.max(this.rightX, Map.WIDTH / 2);
-    this.rightX = Math.min(this.rightX, Map.WIDTH - Map.THICKNESS);
+    this.rightX = Math.max(this.rightX, GameSetting.WIDTH / 2);
+    this.rightX = Math.min(this.rightX, GameSetting.WIDTH - GameSetting.THICKNESS);
     this.rightY = Math.max(this.rightY, this.bar);
-    this.rightY = Math.min(this.rightY, Map.HEIGHT);
+    this.rightY = Math.min(this.rightY, GameSetting.HEIGHT);
   }
 
   init() {
-    this.leftX = Map.FIRST_X;
-    this.leftY = Map.HEIGHT / 2 + this.bar / 2;
-    this.rightX = Map.WIDTH - Map.FIRST_X - Map.THICKNESS;
-    this.rightY = Map.HEIGHT / 2 + this.bar / 2;
+    this.leftX = GameSetting.FIRST_X;
+    this.leftY = GameSetting.HEIGHT / 2 + this.bar / 2;
+    this.rightX = GameSetting.WIDTH - GameSetting.FIRST_X - GameSetting.THICKNESS;
+    this.rightY = GameSetting.HEIGHT / 2 + this.bar / 2;
     this.leftDx = 0;
     this.leftDy = 0;
     this.rightDx = 0;

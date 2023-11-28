@@ -1,4 +1,4 @@
-export enum Map {
+export enum GameSetting {
   WIDTH = 1000,
   HEIGHT = 500,
   NORMALBAR = 100,

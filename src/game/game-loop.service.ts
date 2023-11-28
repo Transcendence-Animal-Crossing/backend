@@ -4,7 +4,7 @@ import { Game } from './model/game.model';
 import { OnEvent } from '@nestjs/event-emitter';
 import { GameGateway } from './game.gateway';
 import { GameStatus } from './enum/game.status.enum';
-import { Map } from './enum/map.enum';
+import { GameSetting } from './enum/game-setting.enum';
 import { MutexManager } from '../mutex/mutex.manager';
 
 @Injectable()
@@ -52,22 +52,22 @@ export class GameLoopService {
       await game.ball.updateBallPosition();
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-ball', {
         x: game.ball.x,
-        y: Map.HEIGHT - game.ball.y,
+        y: GameSetting.HEIGHT - game.ball.y,
       });
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-player', {
         left: {
           x: game.players.leftX,
-          y: Map.HEIGHT - game.players.leftY,
+          y: GameSetting.HEIGHT - game.players.leftY,
         },
         right: {
           x: game.players.rightX,
-          y: Map.HEIGHT - game.players.rightY,
+          y: GameSetting.HEIGHT - game.players.rightY,
         },
       });
       await this.gameRepository.update(game);
       setTimeout(() => {
         this.gameLoop(game.id);
-      }, 1000 / Map.GAME_FRAME);
+      }, 1000 / GameSetting.GAME_FRAME);
     });
   }
 }
