@@ -16,9 +16,10 @@ import { GameRepository } from './game.repository';
 import { GameKey } from './enum/game.key.enum';
 import { GameService } from './game.service';
 import { Game } from './model/game.model';
-import { GameInfoDto } from './dto/game-info.dto';
+import { DetailGameDto } from './dto/detail-game.dto';
 import { Position } from './model/position.model';
 import { Side } from './enum/side.enum';
+import { SimpleGameDto } from './dto/simple-game.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.GAME })
@@ -62,7 +63,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
     const game: Game = await this.gameRepository.find(gameId);
-    const gameInfo = GameInfoDto.from(game);
+    const gameInfo = DetailGameDto.from(game);
 
     const ball = Position.fromBall(game.ball);
     const leftPlayer = Position.fromPlayers(game.players, Side.LEFT);
@@ -103,6 +104,18 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
     await this.gameService.onGameKeyRelease(gameId, userId, dto.key);
     return { status: HttpStatus.OK };
+  }
+
+  @SubscribeMessage('game-lobby')
+  async onGameLobby(client: Socket) {
+    this.logger.debug('Client Send Event <game-lobby>');
+    const userId = await this.clientService.findUserIdByClientId(client.id);
+    const gameId = await this.gameRepository.findGameIdByUserId(userId);
+    if (!gameId)
+      return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
+    const games: SimpleGameDto[] = await this.gameService.findGameInProgress();
+    client.join('game-lobby');
+    return { status: HttpStatus.OK, body: games };
   }
 
   sendEventToGameParticipant(gameId: string, event: string, data: any) {

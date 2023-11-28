@@ -36,4 +36,14 @@ export class GameRepository {
   async findGameIdByUserId(userId): Promise<string> {
     return this.cacheManager.get('game-user-' + userId);
   }
+
+  async findAll() {
+    const gameIds = (await this.cacheManager.get<string[]>('game-ids')) || [];
+    const games = [];
+    for (const gameId of gameIds) {
+      const game = await this.cacheManager.get<Game>('game-' + gameId);
+      if (game) games.push(game);
+    }
+    return games;
+  }
 }
