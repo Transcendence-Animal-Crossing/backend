@@ -4,7 +4,7 @@ import { GameKey } from '../enum/game.key.enum';
 import { Side } from '../enum/side.enum';
 
 export class Players {
-  private static readonly SPEED = 10;
+  private static readonly SPEED = 250 / Map.GAME_FRAME;
   id: string;
 
   leftX: number;
@@ -93,7 +93,7 @@ export class Players {
     }
   }
 
-  updatePlayersPosition() {
+  async updatePlayersPosition() {
     this.leftX += this.leftDx;
     this.leftY += this.leftDy;
     this.rightX += this.rightDx;
@@ -112,9 +112,9 @@ export class Players {
 
   init() {
     this.leftX = Map.FIRST_X;
-    this.leftY = Map.HEIGHT / 2 + this.bar / 2;
+    this.leftY = Map.HEIGHT / 2 + this.bar;
     this.rightX = Map.WIDTH - Map.FIRST_X - Map.THICKNESS;
-    this.rightY = Map.HEIGHT / 2 + this.bar / 2;
+    this.rightY = Map.HEIGHT / 2 + this.bar;
     this.leftDx = 0;
     this.leftDy = 0;
     this.rightDx = 0;

@@ -28,27 +28,29 @@ export class GameLoopService {
   private async gameLoop(gameId: string) {
     await this.mutexManager.getMutex('game' + gameId).runExclusive(async () => {
       const game: Game = await this.gameRepository.find(gameId);
+      console.log('game : ', game);
       if (game.status != GameStatus.PLAYING) return;
-      const collisionSide = game.ball.updatePositionAndCheckCollision(
+      const collisionSide = await game.ball.updatePositionAndCheckCollision(
         //함수 분리해야함
         game.players,
       );
-      // if (collisionSide !== null) {
-      //   game.updateScore(collisionSide);
-      //   game.ball.init();
-      //   game.players.init();
-      //   this.gameGateway.sendEventToGameParticipant(game.id, 'game-score', {
-      //     left: game.leftScore,
-      //     right: game.rightScore,
-      //   });
-      //   await this.gameRepository.update(game);
-      //   setTimeout(() => {
-      //     this.gameLoop(gameId);
-      //   }, Game.ROUND_INTERVAL);
-      //   return;
-      // }
-      game.players.updatePlayersPosition();
-      game.ball.updateBallPosition();
+      if (collisionSide !== null) {
+        console.log('aaa', collisionSide);
+        game.updateScore(collisionSide);
+        game.ball.init();
+        game.players.init();
+        this.gameGateway.sendEventToGameParticipant(game.id, 'game-score', {
+          left: game.leftScore,
+          right: game.rightScore,
+        });
+        await this.gameRepository.update(game);
+        setTimeout(() => {
+          this.gameLoop(gameId);
+        }, Game.ROUND_INTERVAL);
+        return;
+      }
+      await game.players.updatePlayersPosition();
+      await game.ball.updateBallPosition();
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-ball', {
         x: game.ball.x,
         y: game.ball.y,

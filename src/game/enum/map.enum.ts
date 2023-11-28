@@ -6,6 +6,6 @@ export enum Map {
   FIRST_X = 50,
   THICKNESS = 10,
   BALL_RADIUS = 3,
-  BALL_SPEED = 15,
+  BALL_SPEED = 300,
   GAME_FRAME = 60,
 }

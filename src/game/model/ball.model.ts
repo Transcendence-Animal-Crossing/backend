@@ -19,7 +19,7 @@ export class Ball {
     this.id = id;
     this.x = Map.WIDTH / 2;
     this.y = Map.HEIGHT / 2;
-    this.dx = 0;
+    this.dx = -Map.BALL_SPEED / Map.GAME_FRAME;
     this.dy = 0;
     this.nextOwner = Side.LEFT;
   }
@@ -28,16 +28,19 @@ export class Ball {
     return new Ball(id);
   }
 
-  updatePositionAndCheckCollision(players: Players): Side | null {
+  async updatePositionAndCheckCollision(players: Players) {
+    console.log('x값 : ', this.x - Map.BALL_RADIUS);
+    console.log('left : ', this.x + Map.BALL_RADIUS);
     if (this.x - Map.BALL_RADIUS <= 0) return Side.RIGHT;
     if (this.x + Map.BALL_RADIUS >= Map.WIDTH) return Side.LEFT;
     if (this.checkBarCollision(players)) this.bounce();
     if (this.y - Map.BALL_RADIUS <= 0 || this.y + Map.BALL_RADIUS >= Map.HEIGHT)
       this.dy = -this.dy;
     this.checkWallCollision();
+    return null;
   }
 
-  checkBarCollision(players: Players): boolean {
+  checkBarCollision(players: Players) {
     //bar와 부딪혔는지에 대한 계산 -> 부딪히면? 공방향을 바꿈
     const leftBarCollision = this.calculateBarCollision(
       players.leftX,
@@ -63,8 +66,8 @@ export class Ball {
   init() {
     this.x = Map.WIDTH / 2;
     this.y = Map.HEIGHT / 2;
-    if (this.nextOwner == Side.LEFT) this.dx = Map.BALL_SPEED;
-    else this.dx = -Map.BALL_SPEED;
+    if (this.nextOwner == Side.LEFT) this.dx = Map.BALL_SPEED / Map.GAME_FRAME;
+    else this.dx = -Map.BALL_SPEED / Map.GAME_FRAME;
     this.dy = 0;
     this.nextOwner = this.nextOwner === Side.LEFT ? Side.RIGHT : Side.LEFT; //번갈아가면서 서브하는 경우
   }
@@ -78,7 +81,7 @@ export class Ball {
     //this.dy = this.dy * Math.cos(angle);
   }
 
-  updateBallPosition() {
+  async updateBallPosition() {
     this.x += this.dx;
     this.y += this.dy;
     // 볼이 벽 밖으로 나가지 않도록 조정
@@ -106,7 +109,7 @@ export class Ball {
     };
   }
 
-  private isColliding(barRange): boolean {
+  private isColliding(barRange) {
     //부딪혔는지에 대해 계산
     return (
       this.x >= barRange.left &&
