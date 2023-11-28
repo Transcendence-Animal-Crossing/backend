@@ -78,8 +78,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const gameId = await this.gameRepository.findGameIdByUserId(userId);
     if (!gameId)
       return { status: HttpStatus.NOT_FOUND, message: 'Game Not Found' };
-    await this.gameService.ready(userId, gameId);
     client.join(gameId);
+    await this.gameService.ready(userId, gameId);
     return { status: HttpStatus.OK };
   }
 
