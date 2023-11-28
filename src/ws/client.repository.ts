@@ -2,7 +2,6 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Status } from './const/client.status';
-import { Namespace } from './const/namespace';
 
 @Injectable()
 export class ClientRepository {
@@ -11,16 +10,12 @@ export class ClientRepository {
   async connect(namespace, clientId, userId) {
     await this.cacheManager.set('client-' + clientId, userId);
     await this.cacheManager.set(namespace + 'user-' + userId, clientId);
-    if (namespace === Namespace.CHAT)
-      await this.cacheManager.set('user-status-' + userId, Status.ONLINE);
   }
 
   async disconnect(namespace, clientId) {
     const userId = await this.findUserId(clientId);
     await this.cacheManager.del('client-' + clientId);
     await this.cacheManager.del(namespace + 'user-' + userId);
-    if (namespace === Namespace.CHAT)
-      await this.cacheManager.del('user-status-' + userId);
   }
 
   async findClientId(namespace, userId): Promise<string> {
@@ -32,13 +27,11 @@ export class ClientRepository {
   }
 
   async getUserStatus(userId) {
-    const status = await this.cacheManager.get('user-status-' + userId);
-    if (status) return status;
-    return Status.OFFLINE;
-  }
-
-  async saveUserStatus(userId, status) {
-    await this.cacheManager.set('user-status-' + userId, status);
+    const clientId = await this.cacheManager.get('user' + userId);
+    if (!clientId) return Status.OFFLINE;
+    const gameId = await this.cacheManager.get('user-game-' + userId);
+    if (gameId) return Status.IN_GAME;
+    return Status.ONLINE;
   }
 
   async saveDMFocus(userId, targetId) {
