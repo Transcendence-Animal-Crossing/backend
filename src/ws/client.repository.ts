@@ -2,6 +2,7 @@ import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { Status } from './const/client.status';
+import { Namespace } from './const/namespace';
 
 @Injectable()
 export class ClientRepository {
@@ -27,7 +28,9 @@ export class ClientRepository {
   }
 
   async getUserStatus(userId) {
-    const clientId = await this.cacheManager.get('user' + userId);
+    const clientId = await this.cacheManager.get(
+      Namespace.CHAT + 'user-' + userId,
+    );
     if (!clientId) return Status.OFFLINE;
     const gameId = await this.cacheManager.get('user-game-' + userId);
     if (gameId) return Status.IN_GAME;

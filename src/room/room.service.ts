@@ -177,7 +177,7 @@ export class RoomService {
       Namespace.CHAT,
       dto.targetId,
     );
-    if (kickedClientId) server.sockets[kickedClientId].leave(dto.roomId);
+    if (kickedClientId) server.sockets.get(kickedClientId).leave(dto.roomId);
   }
 
   async ban(server, client: Socket, dto: ActionRoomDto) {
@@ -201,7 +201,7 @@ export class RoomService {
       Namespace.CHAT,
       dto.targetId,
     );
-    if (bannedClientId) server.sockets[bannedClientId].leave(dto.roomId);
+    if (bannedClientId) server.sockets.get(bannedClientId).leave(dto.roomId);
   }
 
   async unban(server, client: Socket, dto: ActionRoomDto) {

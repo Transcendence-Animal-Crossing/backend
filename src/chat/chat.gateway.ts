@@ -1,4 +1,9 @@
-import { HttpStatus, Logger, UseFilters } from '@nestjs/common';
+import {
+  BadRequestException,
+  HttpStatus,
+  Logger,
+  UseFilters,
+} from '@nestjs/common';
 import {
   OnGatewayConnection,
   OnGatewayDisconnect,
@@ -25,6 +30,7 @@ import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
 import { Namespace } from '../ws/const/namespace';
 import { UserProfile } from '../user/model/user.profile.model';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.CHAT })
@@ -35,6 +41,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private readonly logger: Logger = new Logger('ChatGateway');
 
   constructor(
+    private readonly eventEmitter: EventEmitter2,
     private readonly roomService: RoomService,
     private readonly chatService: ChatService,
     private readonly clientRepository: ClientRepository,
@@ -253,7 +260,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userId,
     );
     if (!clientId) return null;
-    return this.server.sockets[clientId];
+    return this.server.sockets.get(clientId);
   }
 
   async sendProfileUpdateToRoom(profile: UserProfile, roomId: string) {
@@ -275,7 +282,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userB.id,
     );
     if (userAClientId) {
-      const client = this.server.sockets[userAClientId];
+      const client = this.server.sockets.get(userAClientId);
       client.join('friend-' + userB.id);
       const userBWithStatus = {
         ...userB,
@@ -284,7 +291,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.emit('new-friend', userBWithStatus);
     }
     if (userBClientId) {
-      const client = this.server.sockets[userBClientId];
+      const client = this.server.sockets.get(userBClientId);
       client.join('friend-' + userA.id);
       const userAWithStatus = {
         ...userA,
@@ -304,12 +311,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       userBId,
     );
     if (userAClientId) {
-      const client = this.server.sockets[userAClientId];
+      const client = this.server.sockets.get(userAClientId);
       client.leave('friend-' + userBId);
       client.emit('delete-friend', { id: userBId });
     }
     if (userBClientId) {
-      const client = this.server.sockets[userBClientId];
+      const client = this.server.sockets.get(userBClientId);
       client.leave('friend-' + userAId);
       client.emit('delete-friend', { id: userAId });
     }
