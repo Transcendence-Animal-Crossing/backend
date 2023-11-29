@@ -72,6 +72,26 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log('[Chat WebSocket Disconnected!]: ' + user.nickName);
   }
 
+  @SubscribeMessage('game-invite')
+  async onGameInvite(client: Socket, dto: { targetId: number }) {
+    this.logger.debug('Client Send Event <game-invite>');
+    const userId = await this.clientRepository.findUserId(client.id);
+    const targetClient = await this.getClientByUserId(dto.targetId);
+    if (!targetClient) throw new BadRequestException('User is not online');
+    const willingness = await targetClient.emitWithAck('game-invite', {
+      sendBy: userId,
+    });
+    if (!willingness) throw new BadRequestException('User is not online');
+    if (willingness === 'accept') {
+      this.eventEmitter.emit('custom.game', {
+        sendBy: userId,
+        sendTo: dto.targetId,
+      });
+    }
+
+    return { status: HttpStatus.OK, body: willingness };
+  }
+
   @SubscribeMessage('room-lobby')
   async joinLobby(client: Socket) {
     this.logger.debug('Client Send Event <room-lobby>');

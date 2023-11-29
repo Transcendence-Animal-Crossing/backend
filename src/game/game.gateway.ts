@@ -120,10 +120,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return { status: HttpStatus.OK, body: games };
   }
 
-  sendEventToGameParticipant(sendTo: string, event: string, data: any) {
+  sendEvent(sendTo: string, event: string, data: any) {
     this.logger.debug('Server Send Event <' + event + '>');
     if (data) this.server.to(sendTo).emit(event, data);
     else this.server.to(sendTo).emit(event);
+  }
+
+  async sendEventWithAck(userId, event: string, data: any) {
+    this.logger.debug('Server Send Event <' + event + '>');
+    const client = this.findClientByUserId(userId);
+    return await client.emitWithAck(event, data);
   }
 
   findClientByUserId(userId: number): Socket {

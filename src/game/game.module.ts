@@ -12,11 +12,14 @@ import { GameService } from './game.service';
 import { MutexModule } from '../mutex/mutex.module';
 import { GameLoopService } from './game-loop.service';
 import { GameEventListener } from './game.event.listener';
+import { User } from '../user/entities/user.entity';
+import { ChatModule } from '../chat/chat.module';
 @Module({
   imports: [
-    TypeOrmModule.forFeature([GameHistory, GameRecord]),
+    TypeOrmModule.forFeature([GameHistory, GameRecord, User]),
     MutexModule,
     GameRecordModule,
+    ChatModule,
     forwardRef(() => WSModule),
   ],
   providers: [
