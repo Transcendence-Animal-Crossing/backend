@@ -318,8 +318,13 @@ export class RoomService {
       Namespace.CHAT,
       dto.targetId,
     );
+    const user = await this.userService.findOne(userId);
     if (invitedClientId)
-      client.to(invitedClientId).emit('room-invite', SimpleRoomDto.from(room));
+      client.to(invitedClientId).emit('room-invite', {
+        id: room.id,
+        title: room.title,
+        sendBy: UserProfile.fromUser(user),
+      });
 
     return room;
   }
