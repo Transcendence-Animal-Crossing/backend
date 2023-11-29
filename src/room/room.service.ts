@@ -220,8 +220,7 @@ export class RoomService {
     server.to(dto.roomId).emit('room-unban', dto);
   }
 
-  async leave(server, client: Socket) {
-    const userId = await this.clientRepository.findUserId(client.id);
+  async leave(server, client: Socket, userId: number) {
     const roomId = await this.roomRepository.findRoomIdByUserId(userId);
     if (!roomId) return;
     let room: Room;
@@ -234,7 +233,8 @@ export class RoomService {
         client.leave(room.id);
         await this.roomRepository.userLeave(userId);
         this.eventEmitter.emit('delete.room', room.id);
-        return await this.roomRepository.delete(room.id);
+        await this.roomRepository.delete(room.id);
+        return;
       }
       if (this.getGrade(userId, room) === Grade.OWNER) {
         room.participants[1].grade = Grade.OWNER;

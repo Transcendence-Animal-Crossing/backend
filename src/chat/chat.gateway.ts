@@ -60,7 +60,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client,
     );
     const room = await this.roomService.getJoinedRoom(user.id);
-    if (room) await this.roomService.leave(this.server, client);
+    if (room) await this.roomService.leave(this.server, client, user.id);
     await this.clientService.disconnect(this.server, Namespace.CHAT, client);
     this.logger.log('[Chat WebSocket Disconnected!]: ' + user.nickName);
   }
@@ -111,7 +111,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-leave')
   async onRoomLeave(client: Socket) {
     this.logger.debug('Client Send Event <room-leave>');
-    await this.roomService.leave(this.server, client);
+    const userId = await this.clientRepository.findUserId(client.id);
+    await this.roomService.leave(this.server, client, userId);
     return { status: HttpStatus.OK };
   }
 
