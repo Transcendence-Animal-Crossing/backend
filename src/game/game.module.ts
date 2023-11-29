@@ -11,6 +11,7 @@ import { WSModule } from '../ws/ws.module';
 import { GameService } from './game.service';
 import { MutexModule } from '../mutex/mutex.module';
 import { GameLoopService } from './game-loop.service';
+import { GameEventListener } from './game.event.listener';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GameHistory, GameRecord]),
@@ -24,6 +25,7 @@ import { GameLoopService } from './game-loop.service';
     GameGateway,
     GameService,
     GameLoopService,
+    GameEventListener,
   ],
   controllers: [GameController],
   exports: [GameHistoryService, GameRepository, GameGateway, GameService],

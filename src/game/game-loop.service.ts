@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { GameRepository } from './game.repository';
 import { Game } from './model/game.model';
-import { OnEvent } from '@nestjs/event-emitter';
 import { GameGateway } from './game.gateway';
 import { GameStatus } from './enum/game.status.enum';
 import { GameSetting } from './enum/game-setting.enum';
@@ -16,19 +15,10 @@ export class GameLoopService {
     private readonly mutexManager: MutexManager,
   ) {}
 
-  @OnEvent('start.game')
-  async handleGameStartEvent(gameId: string) {
-    const game: Game = await this.gameRepository.find(gameId);
-    this.gameGateway.sendEventToGameParticipant(gameId, 'game-start', null);
-    setTimeout(() => {
-      this.gameLoop(game.id);
-    }, Game.ROUND_INTERVAL);
-  }
-
-  private async gameLoop(gameId: string) {
+  async gameLoop(gameId: string) {
     await this.mutexManager.getMutex('game' + gameId).runExclusive(async () => {
       const game: Game = await this.gameRepository.find(gameId);
-      console.log('game : ', game);
+      if (!game) return;
       if (game.status != GameStatus.PLAYING) return;
       game.players.updatePlayersPosition();
       game.ball.updateBallPosition();
@@ -38,12 +28,24 @@ export class GameLoopService {
       );
       if (collisionSide !== null) {
         game.updateScore(collisionSide);
-        game.ball.init();
-        game.players.init();
         this.gameGateway.sendEventToGameParticipant(game.id, 'game-score', {
           left: game.leftScore,
           right: game.rightScore,
         });
+        game.ball.init();
+        game.players.init();
+        if (game.isEnd()) {
+          this.gameGateway.sendEventToGameParticipant(
+            game.id,
+            'game-end',
+            null,
+          );
+          await this.gameRepository.delete(gameId);
+          await this.gameRepository.userLeave(game.leftUser.id);
+          await this.gameRepository.userLeave(game.rightUser.id);
+          this.gameGateway.server.socketsLeave(gameId);
+          return;
+        }
         await this.gameRepository.update(game);
         setTimeout(() => {
           this.gameLoop(gameId);

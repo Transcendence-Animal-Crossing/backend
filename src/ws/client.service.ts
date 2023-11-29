@@ -30,6 +30,11 @@ export class ClientService {
   async connect(server, namespace, client: Socket) {
     this.logger.log('Trying to connect WebSocket...');
     const user = await this.findUserByToken(client);
+    const oldClientId = await this.clientRepository.findClientId(
+      namespace,
+      user.id,
+    );
+    if (oldClientId) return this.forceDisconnect(client, 'Already Connected.');
     client.data.userId = user.id;
     await this.clientRepository.connect(namespace, client.id, user.id);
     if (namespace === Namespace.CHAT) {
@@ -73,7 +78,7 @@ export class ClientService {
     return user;
   }
 
-  forceDisconnect(client: Socket, reason: string) {
+  forceDisconnect(client: Socket, reason: string): void {
     this.logger.log(
       '[WebSocket Disconnected!] reason: ' + reason + ' clientId: ' + client.id,
     );

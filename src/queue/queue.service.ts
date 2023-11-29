@@ -5,12 +5,14 @@ import { Standby } from './entities/standby.entity';
 import { GameRecordService } from '../gameRecord/game-record.service';
 import { MutexManager } from '../mutex/mutex.manager';
 import { DeleteResult } from 'typeorm/query-builder/result/DeleteResult';
+import { GameRepository } from '../game/game.repository';
 
 @Injectable()
 export class QueueService {
   constructor(
     private readonly dataSource: DataSource,
     private readonly mutexManager: MutexManager,
+    private readonly gameRepository: GameRepository,
     private readonly gameRecordService: GameRecordService,
   ) {}
 
@@ -18,7 +20,7 @@ export class QueueService {
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
       if (await this.findStandby(manager, userId))
         throw new HttpException('이미 대기열에 있습니다.', HttpStatus.CONFLICT);
-      // if (await this.isAlreadyInGame(manager, userId)) return;
+      if (await this.gameRepository.findGameIdByUserId(userId)) return;
       await this.joinQueue(manager, userId, dto);
     });
   }

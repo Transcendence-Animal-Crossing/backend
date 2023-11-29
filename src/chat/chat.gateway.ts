@@ -48,12 +48,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.CHAT,
       client,
     );
+    if (!user) return this.logger.log('Fail to connect Chat WebSocket...');
     client.data.userId = user.id;
     this.logger.log('[Chat WebSocket Connected!]: ' + user.nickName);
   }
 
   async handleDisconnect(client: Socket) {
-    console.log('[TEST] userId', client.data.userId);
     const user = await this.clientService.disconnect(
       this.server,
       Namespace.CHAT,
