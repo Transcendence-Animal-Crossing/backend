@@ -33,7 +33,7 @@ export class GameRecord {
 
   static create(user: User): GameRecord {
     const gameRecord = new GameRecord();
-    gameRecord.rankScore = 1000;
+    gameRecord.rankScore = 999;
     gameRecord.generalTotalCount = 0;
     gameRecord.generalWinCount = 0;
     gameRecord.rankTotalCount = 0;
