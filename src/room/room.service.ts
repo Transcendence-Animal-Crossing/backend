@@ -105,6 +105,7 @@ export class RoomService {
 
     client.join(room.id);
     await this.roomRepository.userJoin(room.id, ownerId);
+    await this.achievementService.addChattingJoin(owner);
     server.to('room-lobby').emit('room-create', SimpleRoomDto.from(room));
 
     await this.roomRepository.save(room);
