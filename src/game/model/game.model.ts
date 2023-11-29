@@ -77,9 +77,9 @@ export class Game {
 
   updateScore(collisionSide: Side) {
     if (collisionSide === Side.LEFT) {
-      this.rightScore++;
-    } else if (collisionSide === Side.RIGHT) {
       this.leftScore++;
+    } else if (collisionSide === Side.RIGHT) {
+      this.rightScore++;
     }
   }
 }
