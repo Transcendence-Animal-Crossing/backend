@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { GameRecord } from './entities/game-record';
 import { Repository } from 'typeorm';
@@ -101,6 +101,8 @@ export class GameRecordService {
 
   async findRecord(id: number, isRank: boolean) {
     const gameRecord = await this.findOneById(id);
+    if (!gameRecord)
+      throw new HttpException('gamerecord not found', HttpStatus.NOT_FOUND);
     let winRate;
 
     if (isRank) {
