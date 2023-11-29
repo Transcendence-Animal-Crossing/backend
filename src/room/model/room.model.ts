@@ -122,22 +122,6 @@ export class Room {
     }
   }
 
-  // getMutedTime(userId: number): number {
-  //   for (const participant of this.participants)
-  //     if (participant.id === userId) {
-  //       if (participant.muteStartTime == null) {
-  //         return 0;
-  //       }
-  //       const now = new Date();
-  //       const muteEndTime = new Date(
-  //         participant.muteStartTime.getTime() + this.MUTE_DURATION,
-  //       );
-  //       if (now < muteEndTime)
-  //         return Math.ceil((muteEndTime.getTime() - now.getTime()) / 1000);
-  //     }
-  //   return 0;
-  // }
-
   sortParticipants(): void {
     this.participants.sort((a, b) => {
       if (a.grade > b.grade) return -1;
