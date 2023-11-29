@@ -125,48 +125,50 @@ export class RoomService {
 
       room.muteUser(dto.targetId);
       await this.roomRepository.update(room);
-      const timerId: NodeJS.Timeout = setTimeout(async () => {
-        server.to(dto.roomId).emit('room-unmute', {
-          id: dto.targetId,
-        });
-        const room: Room = await this.findById(dto.roomId);
-        room.unmuteUser(dto.targetId);
-        await this.roomRepository.update(room);
-      }, 10000);
-      await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
-      server.to(dto.roomId).emit('room-mute', dto);
-      return;
     });
+    const timerId: NodeJS.Timeout = setTimeout(async () => {
+      server.to(dto.roomId).emit('room-unmute', {
+        id: dto.targetId,
+      });
+      const room: Room = await this.findById(dto.roomId);
+      room.unmuteUser(dto.targetId);
+      await this.roomRepository.update(room);
+    }, 10000);
+    await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
+    server.to(dto.roomId).emit('room-mute', dto);
   }
 
   async unmute(server, client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    const userGrade = this.getGrade(userId, room);
-    const targetGrade = this.getGrade(dto.targetId, room);
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      const room = await this.findById(dto.roomId);
+      const userGrade = this.getGrade(userId, room);
+      const targetGrade = this.getGrade(dto.targetId, room);
 
-    if (userGrade <= targetGrade)
-      throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
+      if (userGrade <= targetGrade)
+        throw new ForbiddenException('해당 유저를 채팅금지할 권한이 없습니다.');
 
-    room.unmuteUser(dto.targetId);
-    await this.roomRepository.update(room);
+      room.unmuteUser(dto.targetId);
+      await this.roomRepository.update(room);
+    });
     const timerId = await this.roomRepository.findMuteTimerId(dto.targetId);
     if (timerId) clearTimeout(timerId);
     server.to(dto.roomId).emit('room-unmute', dto);
-    return;
   }
 
   async kick(server, client, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    const userGrade = this.getGrade(userId, room);
-    const targetGrade = this.getGrade(dto.targetId, room);
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      const room = await this.findById(dto.roomId);
+      const userGrade = this.getGrade(userId, room);
+      const targetGrade = this.getGrade(dto.targetId, room);
 
-    if (userGrade <= targetGrade)
-      throw new ForbiddenException('해당 유저를 강퇴할 권한이 없습니다.');
+      if (userGrade <= targetGrade)
+        throw new ForbiddenException('해당 유저를 강퇴할 권한이 없습니다.');
 
-    room.leaveUser(dto.targetId);
-    await this.roomRepository.update(room);
+      room.leaveUser(dto.targetId);
+      await this.roomRepository.update(room);
+    });
     await this.roomRepository.userLeave(dto.targetId);
 
     server.to(dto.roomId).emit('room-kick', dto);
@@ -179,18 +181,20 @@ export class RoomService {
 
   async ban(server, client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    const userGrade = this.getGrade(userId, room);
-    const targetGrade = this.getGrade(dto.targetId, room);
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      const room = await this.findById(dto.roomId);
+      const userGrade = this.getGrade(userId, room);
+      const targetGrade = this.getGrade(dto.targetId, room);
 
-    if (userGrade <= targetGrade)
-      throw new ForbiddenException('해당 유저를 밴할 권한이 없습니다.');
+      if (userGrade <= targetGrade)
+        throw new ForbiddenException('해당 유저를 밴할 권한이 없습니다.');
 
-    const target = room.leaveUser(dto.targetId)[0];
-    room.bannedUsers.push(UserProfile.fromParticipant(target));
+      const target = room.leaveUser(dto.targetId)[0];
+      room.bannedUsers.push(UserProfile.fromParticipant(target));
 
-    await this.roomRepository.userLeave(dto.targetId);
-    await this.roomRepository.update(room);
+      await this.roomRepository.userLeave(dto.targetId);
+      await this.roomRepository.update(room);
+    });
     server.to(dto.roomId).emit('room-ban', dto);
     const bannedClientId = await this.clientRepository.findClientId(
       Namespace.CHAT,
@@ -201,47 +205,53 @@ export class RoomService {
 
   async unban(server, client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    const userGrade = this.getGrade(userId, room);
 
-    if (userGrade < Grade.ADMIN)
-      throw new ForbiddenException('해당 유저를 밴해제 할 권한이 없습니다.');
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      const room = await this.findById(dto.roomId);
+      const userGrade = this.getGrade(userId, room);
 
-    room.bannedUsers = room.bannedUsers.filter(
-      (bannedUser) => bannedUser.id !== dto.targetId,
-    );
-    await this.roomRepository.update(room);
+      if (userGrade < Grade.ADMIN)
+        throw new ForbiddenException('해당 유저를 밴해제 할 권한이 없습니다.');
+
+      room.leaveUser(dto.targetId);
+      await this.roomRepository.update(room);
+    });
     server.to(dto.roomId).emit('room-unban', dto);
   }
 
   async leave(server, client: Socket) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.getJoinedRoom(userId);
-    if (!room) return;
-    if (!room.isParticipant(userId))
-      throw new BadRequestException('방 안에 있지 않습니다.');
-    if (room.participants.length === 1) {
-      client.leave(room.id);
-      await this.roomRepository.userLeave(userId);
-      this.eventEmitter.emit('delete.room', room.id);
-      return await this.roomRepository.delete(room.id);
-    }
-    if (this.getGrade(userId, room) === Grade.OWNER) {
-      room.participants[1].grade = Grade.OWNER;
-      server.emit('change-owner', {
-        id: room.participants[1].id,
-      });
-    }
+    const roomId = await this.roomRepository.findRoomIdByUserId(userId);
+    if (!roomId) return;
+    let room: Room;
+    await this.mutexManager.getMutex(roomId).runExclusive(async () => {
+      room = await this.roomRepository.find(roomId);
+      if (!room) return;
+      if (!room.isParticipant(userId))
+        throw new BadRequestException('방 안에 있지 않습니다.');
+      if (room.participants.length === 1) {
+        client.leave(room.id);
+        await this.roomRepository.userLeave(userId);
+        this.eventEmitter.emit('delete.room', room.id);
+        return await this.roomRepository.delete(room.id);
+      }
+      if (this.getGrade(userId, room) === Grade.OWNER) {
+        room.participants[1].grade = Grade.OWNER;
+        server.emit('change-owner', {
+          id: room.participants[1].id,
+        });
+      }
 
-    room.leaveUser(userId);
-    await this.roomRepository.update(room);
+      room.leaveUser(userId);
+      server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
+      await this.roomRepository.update(room);
+    });
     await this.roomRepository.userLeave(userId);
 
     client.leave(room.id);
     // userId 만 전송하도록 바꾸고 싶음
     const user = await this.userService.findOne(userId);
     server.to(room.id).emit('room-leave', UserProfile.fromUser(user));
-    server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
   }
 
   getGrade(userId: number, room: Room): number {
@@ -252,45 +262,56 @@ export class RoomService {
 
   async addAdmin(server, client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    if (this.getGrade(userId, room) !== Grade.OWNER)
-      throw new ForbiddenException('방장만이 관리자를 추가할 수 있습니다.');
-    if (this.getGrade(dto.targetId, room) > Grade.PARTICIPANT)
-      throw new ConflictException('해당 유저는 이미 관리자입니다.');
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      const room = await this.findById(dto.roomId);
+      if (this.getGrade(userId, room) !== Grade.OWNER)
+        throw new ForbiddenException('방장만이 관리자를 추가할 수 있습니다.');
+      if (this.getGrade(dto.targetId, room) > Grade.PARTICIPANT)
+        throw new ConflictException('해당 유저는 이미 관리자입니다.');
 
-    room.promoteUser(dto.targetId);
-    room.sortParticipants();
-    await this.roomRepository.update(room);
+      room.promoteUser(dto.targetId);
+      room.sortParticipants();
+      await this.roomRepository.update(room);
+    });
+
     server.to(dto.roomId).emit('add-admin', dto);
   }
 
   async removeAdmin(server, client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    if (this.getGrade(userId, room) !== Grade.OWNER)
-      throw new ForbiddenException('방장만이 관리자를 회수할 수 있습니다.');
-    if (this.getGrade(dto.targetId, room) != Grade.ADMIN)
-      throw new ConflictException('해당 유저는 방장이거나, 관리자가 아닙니다.');
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      const room = await this.findById(dto.roomId);
+      if (this.getGrade(userId, room) !== Grade.OWNER)
+        throw new ForbiddenException('방장만이 관리자를 회수할 수 있습니다.');
+      if (this.getGrade(dto.targetId, room) != Grade.ADMIN)
+        throw new ConflictException(
+          '해당 유저는 방장이거나, 관리자가 아닙니다.',
+        );
 
-    room.demoteUser(dto.targetId);
-    room.sortParticipants();
-    await this.roomRepository.update(room);
+      room.demoteUser(dto.targetId);
+      room.sortParticipants();
+      await this.roomRepository.update(room);
+    });
+
     server.to(dto.roomId).emit('remove-admin', dto);
   }
 
   async invite(client: Socket, dto: ActionRoomDto) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.findById(dto.roomId);
-    if (!room.isParticipant(userId))
-      throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
-    if (room.isParticipant(dto.targetId))
-      throw new ConflictException('해당 유저는 이미 방에 있습니다.');
-    if (room.isInvited(dto.targetId))
-      throw new ConflictException('해당 유저는 이미 초대되었습니다.');
+    let room: Room;
+    await this.mutexManager.getMutex(dto.roomId).runExclusive(async () => {
+      room = await this.findById(dto.roomId);
+      if (!room.isParticipant(userId))
+        throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
+      if (room.isParticipant(dto.targetId))
+        throw new ConflictException('해당 유저는 이미 방에 있습니다.');
+      if (room.isInvited(dto.targetId))
+        throw new ConflictException('해당 유저는 이미 초대되었습니다.');
 
-    const target = await this.userService.findOne(dto.targetId);
-    room.inviteUser(target);
-    await this.roomRepository.update(room);
+      const target = await this.userService.findOne(dto.targetId);
+      room.inviteUser(target);
+      await this.roomRepository.update(room);
+    });
 
     const invitedClientId = await this.clientRepository.findClientId(
       Namespace.CHAT,
@@ -320,21 +341,23 @@ export class RoomService {
 
   async changeMode(server, client: Socket, mode: string, password: string) {
     const userId = await this.clientRepository.findUserId(client.id);
-    const room = await this.getJoinedRoom(userId);
-    if (!room) throw new BadRequestException('방에 참여하고 있지 않습니다.');
-    const userGrade = this.getGrade(userId, room);
-    if (userGrade !== Grade.OWNER)
-      throw new ForbiddenException('방장만이 모드를 변경할 수 있습니다.');
+    const roomId = await this.roomRepository.findRoomIdByUserId(userId);
+    let room: Room;
 
-    room.mode = mode;
+    await this.mutexManager.getMutex(roomId).runExclusive(async () => {
+      room = await this.findById(roomId);
+      if (!room) throw new BadRequestException('방에 참여하고 있지 않습니다.');
+      const userGrade = this.getGrade(userId, room);
+      if (userGrade !== Grade.OWNER)
+        throw new ForbiddenException('방장만이 모드를 변경할 수 있습니다.');
 
+      room.mode = mode;
+      if (mode === 'PROTECTED') room.password = password;
+      await this.roomRepository.update(room);
+    });
     server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
-    if (mode === 'PROTECTED') room.password = password;
-
     server.to(room.id).emit('room-mode', {
       mode: mode,
     });
-
-    await this.roomRepository.update(room);
   }
 }
