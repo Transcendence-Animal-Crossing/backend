@@ -53,7 +53,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   async handleDisconnect(client: Socket) {
-    console.log('[TEST] userId', client.data.userId);
     const user = await this.clientService.disconnect(
       this.server,
       Namespace.CHAT,
