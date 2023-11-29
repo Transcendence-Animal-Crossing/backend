@@ -42,7 +42,8 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.GAME,
       client,
     );
-    this.logger.log('[Game WebSocket Connected!]: ' + user.nickName);
+    if (!user) return this.logger.log('Fail to connect Game WebSocket!');
+    this.logger.log('[Game WebSocket Connected!]: ' + user?.nickName);
   }
 
   async handleDisconnect(client: Socket) {
@@ -51,6 +52,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.GAME,
       client,
     );
+    if (!user) return this.logger.log('Fail to connect Game WebSocket!');
     await this.gameService.disconnect(this.server, client, user.id);
     this.logger.log('[Game WebSocket Disconnected!]: ' + user.nickName);
   }

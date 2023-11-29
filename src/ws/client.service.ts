@@ -1,9 +1,4 @@
-import {
-  ConflictException,
-  HttpStatus,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { ClientRepository } from './client.repository';
 import { Socket } from 'socket.io';
 import { User } from '../user/entities/user.entity';
@@ -39,7 +34,7 @@ export class ClientService {
       namespace,
       user.id,
     );
-    if (oldClientId) throw new ConflictException('Already Connected.');
+    if (oldClientId) return this.forceDisconnect(client, 'Already Connected.');
     client.data.userId = user.id;
     await this.clientRepository.connect(namespace, client.id, user.id);
     if (namespace === Namespace.CHAT) {
@@ -83,7 +78,7 @@ export class ClientService {
     return user;
   }
 
-  forceDisconnect(client: Socket, reason: string) {
+  forceDisconnect(client: Socket, reason: string): void {
     this.logger.log(
       '[WebSocket Disconnected!] reason: ' + reason + ' clientId: ' + client.id,
     );

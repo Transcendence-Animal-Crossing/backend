@@ -163,4 +163,11 @@ export class UserController {
   async cancel2fa(@Req() req) {
     return await this.userService.cancel2fa(req.user.id);
   }
+
+  @Get('2fa')
+  @HttpCode(HttpStatus.OK)
+  async get2faStatus(@Req() req) {
+    const user = await this.userService.findOne(req.user.id);
+    return user.two_factor_auth;
+  }
 }

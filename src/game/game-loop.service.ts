@@ -20,6 +20,8 @@ export class GameLoopService {
       const game: Game = await this.gameRepository.find(gameId);
       if (!game) return;
       if (game.status != GameStatus.PLAYING) return;
+      game.players.updatePlayersPosition();
+      game.ball.updateBallPosition();
       const collisionSide = game.ball.updatePositionAndCheckCollision(
         //함수 분리해야함
         game.players,
@@ -50,8 +52,6 @@ export class GameLoopService {
         }, Game.ROUND_INTERVAL);
         return;
       }
-      game.players.updatePlayersPosition();
-      await game.ball.updateBallPosition();
       this.gameGateway.sendEventToGameParticipant(game.id, 'game-ball', {
         x: game.ball.x,
         y: GameSetting.HEIGHT - game.ball.y,

@@ -6,4 +6,5 @@ export enum GameSetting {
   FIRST_X = 50,
   THICKNESS = 10,
   GAME_FRAME = 60,
+  BARRIER = 40,
 }

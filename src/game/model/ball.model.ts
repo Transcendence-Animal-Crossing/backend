@@ -3,8 +3,8 @@ import { GameSetting } from '../enum/game-setting.enum';
 import { Players } from './players.model';
 
 export class Ball {
-  private static readonly SPEED = 300 / GameSetting.GAME_FRAME;
-  private static readonly BALL_RADIUS = 5;
+  private static readonly SPEED = 400 / GameSetting.GAME_FRAME;
+  private static readonly BALL_RADIUS = 7;
   id: string;
 
   x: number;
@@ -31,8 +31,8 @@ export class Ball {
   }
 
   updatePositionAndCheckCollision(players: Players) {
-    console.log('x값 : ', this.x - Ball.BALL_RADIUS);
-    console.log('left : ', this.x + Ball.BALL_RADIUS);
+    //console.log('x값 : ', this.x - Ball.BALL_RADIUS);
+    //console.log('left : ', this.x + Ball.BALL_RADIUS);
     if (this.x - Ball.BALL_RADIUS <= 0) return Side.RIGHT;
     if (this.x + Ball.BALL_RADIUS >= GameSetting.WIDTH) return Side.LEFT;
     if (this.checkBarCollision(players)) this.bounce();
@@ -46,6 +46,7 @@ export class Ball {
   }
 
   checkBarCollision(players: Players) {
+    const now = Date.now();
     //bar와 부딪혔는지에 대한 계산 -> 부딪히면? 공방향을 바꿈
     const leftBarCollision = this.calculateBarCollision(
       players.leftX,
@@ -59,22 +60,42 @@ export class Ball {
     );
     const leftCollision = this.isColliding(leftBarCollision);
     const rightCollision = this.isColliding(rightBarCollision);
-    if (leftCollision && rightCollision) {
-      //두 쪽 모두와 충돌할때 -> 있는경우일까?... -> 무작위로 방향 바꿈
+    if (
+      leftCollision &&
+      rightCollision &&
+      now - players.leftDeBounceTime > (1000 / GameSetting.GAME_FRAME) * 10 &&
+      now - players.rightDeBounceTime > (1000 / GameSetting.GAME_FRAME) * 10
+    ) {
+      players.leftDeBounceTime = now;
+      players.rightDeBounceTime = now;
+      //두 쪽 모두와 충돌할때 -> 있는경우일까?... -> 무작위로 방향 바꿈 -> 이번 버전에서는 필요없을듯합니다..
       this.dx = Math.random() < 0.5 ? -this.dx : this.dx;
       this.dy = Math.random() < 0.5 ? -this.dy : this.dy;
       return true;
     }
-    return leftCollision || rightCollision;
+    if (
+      leftCollision &&
+      now - players.leftDeBounceTime > (1000 / GameSetting.GAME_FRAME) * 10
+    ) {
+      players.leftDeBounceTime = now;
+      return true;
+    } else if (
+      rightCollision &&
+      now - players.rightDeBounceTime > (1000 / GameSetting.GAME_FRAME) * 10
+    ) {
+      players.rightDeBounceTime = now;
+      return true;
+    }
+    return false;
   }
 
   init() {
     this.x = GameSetting.WIDTH / 2;
     this.y = GameSetting.HEIGHT / 2;
-    if (this.nextOwner == Side.LEFT) this.dx = Ball.SPEED;
-    else this.dx = -Ball.SPEED;
-    this.dy = 0;
     this.nextOwner = this.nextOwner === Side.LEFT ? Side.RIGHT : Side.LEFT; //번갈아가면서 서브하는 경우
+    if (this.nextOwner == Side.LEFT) this.dx = -Ball.SPEED;
+    else this.dx = Ball.SPEED;
+    this.dy = 0;
   }
 
   bounce() {
@@ -86,7 +107,7 @@ export class Ball {
     //this.dy = this.dy * Math.cos(angle);
   }
 
-  async updateBallPosition() {
+  updateBallPosition() {
     this.x += this.dx;
     this.y += this.dy;
     // 볼이 벽 밖으로 나가지 않도록 조정
@@ -110,8 +131,8 @@ export class Ball {
 
   private calculateBarCollision(barX: number, barY: number, barHeight: number) {
     return {
-      top: barY + barHeight / 2 + Ball.BALL_RADIUS,
-      bottom: barY - barHeight / 2 - Ball.BALL_RADIUS,
+      top: barY + Ball.BALL_RADIUS,
+      bottom: barY - barHeight - Ball.BALL_RADIUS,
       left: barX - Ball.BALL_RADIUS,
       right: barX + GameSetting.THICKNESS + Ball.BALL_RADIUS,
     };
