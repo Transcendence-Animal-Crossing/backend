@@ -100,14 +100,12 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   async checkNickName(@Body('nickName') nickName: string, @Req() req) {
     await this.userService.checkNickName(req.user.id, nickName);
-    return '닉네임 사용 가능';
   }
 
   @Patch('password')
   @HttpCode(HttpStatus.OK)
   async updatePassword(@Body('password') password: string, @Req() req) {
     await this.userService.updatePassword(req.user.id, password);
-    return '패스워드 설정 햇뜸';
   }
 
   @Post('search')

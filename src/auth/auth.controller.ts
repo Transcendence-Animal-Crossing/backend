@@ -41,7 +41,6 @@ export class AuthController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    let tokens: any;
     let user: User;
     try {
       const accessToken = await this.authService.getAccessToken(code);
@@ -64,25 +63,23 @@ export class AuthController {
         user = existingUser;
         //console.log('already existed', user);
       }
-      if (user.two_factor_auth) {
-        await this.emailService.sendEmailVerification(user);
-        //return res.redirect('http://localhost:3000/login/twofactor');
-        res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
-        return;
-      }
-      tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
       throw new HttpException(
         'Invalid or Already Used code',
         HttpStatus.UNAUTHORIZED,
       );
     }
+    if (user.two_factor_auth) {
+      await this.emailService.sendEmailVerification(user);
+      res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
+      return;
+    }
+    const tokens = await this.authService.generateTokens(user.id.toString());
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
     });
     res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    console.log('tokens', tokens.accessToken);
     return {
       id: user.id,
       nickName: user.nickName,
@@ -97,7 +94,6 @@ export class AuthController {
     @Body('accessToken') accessToken: string,
     @Res({ passthrough: true }) res: Response,
   ) {
-    let tokens: any;
     let user: User;
     try {
       const userPublicData: any =
@@ -120,19 +116,18 @@ export class AuthController {
         user = existingUser;
         res.status(200);
       }
-      if (user.two_factor_auth) {
-        await this.emailService.sendEmailVerification(user);
-        //return res.redirect('http://localhost:3000/login/twofactor');
-        res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
-        return;
-      }
-      tokens = await this.authService.generateTokens(user.id.toString());
     } catch (AxiosError) {
       throw new HttpException(
         'Invalid or Already Used code',
         HttpStatus.UNAUTHORIZED,
       );
     }
+    if (user.two_factor_auth) {
+      await this.emailService.sendEmailVerification(user);
+      res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
+      return;
+    }
+    const tokens = await this.authService.generateTokens(user.id.toString());
     res.cookie('refreshToken', tokens.refreshToken, {
       httpOnly: true,
       maxAge: 30 * 24 * 60 * 60 * 1000,
@@ -262,17 +257,6 @@ export class AuthController {
     res.status(HttpStatus.OK);
     res.send();
   }
-  //분리할까..음..
-  //@Public()
-  //@HttpCode(HttpStatus.OK)
-  //@Get('2fa')
-  //async sendEmail(@Body() userDto: LoginUserDto) {
-  //  const user = await this.userService.findOneByIntraName(userDto.intraName);
-  //  const emailVerification =
-  //    await this.emailService.findEmailVerification(user);
-  //  await this.emailService.createEmailToken(emailVerification.email);
-  //  await this.emailService.sendEmailVerification(emailVerification.email);
-  //}
 
   @Public() //todo 예외처리 해야함
   @HttpCode(HttpStatus.OK)
