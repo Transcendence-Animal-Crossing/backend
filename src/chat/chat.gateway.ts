@@ -78,17 +78,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = await this.clientRepository.findUserId(client.id);
     const targetClient = await this.getClientByUserId(dto.targetId);
     if (!targetClient) throw new BadRequestException('User is not online');
-    const willingness = await targetClient.emitWithAck('game-invite', {
+    const { willingness } = await targetClient.emitWithAck('game-invite', {
       sendBy: userId,
     });
     if (!willingness) throw new BadRequestException('User is not online');
-    if (willingness === 'accept') {
+    if (willingness === 'ACCEPT') {
       this.eventEmitter.emit('custom.game', {
         sendBy: userId,
         sendTo: dto.targetId,
       });
     }
-
     return { status: HttpStatus.OK, body: willingness };
   }
 
