@@ -36,11 +36,6 @@ export class Ball {
     if (this.x - Ball.BALL_RADIUS <= 0) return Side.RIGHT;
     if (this.x + Ball.BALL_RADIUS >= GameSetting.WIDTH) return Side.LEFT;
     if (this.checkBarCollision(players)) this.bounce();
-    if (
-      this.y - Ball.BALL_RADIUS <= 0 ||
-      this.y + Ball.BALL_RADIUS >= GameSetting.HEIGHT
-    )
-      this.dy = -this.dy;
     this.checkWallCollision();
     return null;
   }
@@ -101,10 +96,7 @@ export class Ball {
   bounce() {
     //todo: 직접 해보고 부자연스러우면 바꾸기
     this.dx = -this.dx;
-    //반사각 추가코드
-    //const hitPosition = (this.y - barY) / Map.THICKNESS; // -1 (왼쪽 가장자리)에서 1 (오른쪽 가장자리) 사이의 값
-    //const angle = (hitPosition * Math.PI) / 4;
-    //this.dy = this.dy * Math.cos(angle);
+    this.dy = ((Math.random() * 2 - 1) * Ball.SPEED) / 2;
   }
 
   updateBallPosition() {
