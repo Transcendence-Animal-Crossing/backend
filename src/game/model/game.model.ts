@@ -5,9 +5,10 @@ import { User } from '../../user/entities/user.entity';
 import { GameStatus } from '../enum/game.status.enum';
 import { Ball } from './ball.model';
 import { Players } from './players.model';
+import { Side } from '../enum/side.enum';
 
 export class Game {
-  public static readonly MAX_SCORE = 10;
+  public static readonly MAX_SCORE = 3;
   public static readonly READY_TIMEOUT = 30000;
   public static readonly ROUND_INTERVAL = 3000;
   id: string;
@@ -58,7 +59,23 @@ export class Game {
   }
 
   isEveryoneReady() {
-    return this.leftScore !== -1 && this.rightScore !== -1;
+    return this.leftScore >= 0 && this.rightScore >= 0;
+  }
+
+  isEveryoneUnready() {
+    return this.leftScore < 0 && this.rightScore < 0;
+  }
+
+  findOpponent(userId: number) {
+    if (this.leftUser.id === userId) return this.rightUser;
+    if (this.rightUser.id === userId) return this.leftUser;
+    return null;
+  }
+
+  findUnReadyOne() {
+    if (this.leftScore < 0) return this.leftUser.id;
+    if (this.rightScore < 0) return this.rightUser.id;
+    return null;
   }
 
   getPlayTime() {
@@ -76,5 +93,19 @@ export class Game {
       this.leftScore = Game.MAX_SCORE;
     }
     this.status = GameStatus.EARLY_FINISHED;
+  }
+
+  updateScore(collisionSide: Side) {
+    if (collisionSide === Side.LEFT) {
+      this.rightScore++;
+    } else if (collisionSide === Side.RIGHT) {
+      this.leftScore++;
+    }
+  }
+
+  isEnd() {
+    return (
+      this.leftScore >= Game.MAX_SCORE || this.rightScore >= Game.MAX_SCORE
+    );
   }
 }

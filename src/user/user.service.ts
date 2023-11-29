@@ -39,7 +39,11 @@ export class UserService {
 
   async findOne(id: number): Promise<User> {
     const user = this.userRepository.findOneBy({ id: id });
-    if (!user) throw new NotFoundException('해당 유저가 존재하지 않습니다.');
+    if (!user)
+      throw new HttpException(
+        '해당 유저가 존재하지 않습니다.',
+        HttpStatus.NOT_FOUND,
+      );
     return user;
   }
 
@@ -91,9 +95,29 @@ export class UserService {
       .getMany();
   }
 
+  private async createUniqueNickName(intraName: string) {
+    const baseNickName = intraName.substring(0, 3);
+    let nickName = '';
+    let isUnique = false;
+
+    while (!isUnique) {
+      const randomNumbers = Math.floor(Math.random() * 100000)
+        .toString()
+        .padStart(5, '0');
+      nickName = `${baseNickName}${randomNumbers}`;
+      const existingUser = await this.userRepository.findOneBy({
+        nickName: nickName,
+      });
+      isUnique = !existingUser;
+    }
+    return nickName;
+  }
+
   async createUser(userPublicData: any): Promise<User> {
-    console.log('create', userPublicData.login);
-    return await this.userRepository.save(User.create(userPublicData));
+    const nickName = await this.createUniqueNickName(userPublicData.login);
+    return await this.userRepository.save(
+      User.create(userPublicData, nickName),
+    );
   }
 
   async updatePassword(id: number, password: string) {

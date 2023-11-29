@@ -8,7 +8,6 @@ import { User } from '../user/entities/user.entity';
 import { Game } from '../game/model/game.model';
 import { GameRepository } from '../game/game.repository';
 import { ClientRepository } from '../ws/client.repository';
-import { Status } from '../ws/const/client.status';
 import { ChatGateway } from '../chat/chat.gateway';
 import { UserProfile } from '../user/model/user.profile.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -117,7 +116,6 @@ export class QueueCron {
     const gameType = standbyA.type;
     const game = await this.gameService.initGame(leftUser, rightUser, gameType);
 
-    await this.clientRepository.saveUserStatus(standbyA.id, Status.IN_GAME);
     await this.sendMatchedEvent(leftUser, game);
     await this.sendMatchedEvent(rightUser, game);
     await manager.getRepository(Standby).remove(standbyA);

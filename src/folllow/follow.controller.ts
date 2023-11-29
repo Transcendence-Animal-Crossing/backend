@@ -30,6 +30,12 @@ export class FollowController {
   @HttpCode(HttpStatus.CREATED)
   async createRequest(@Body('sendTo') id: number, @Req() req) {
     const user = await this.userService.findOne(req.user.id);
+    if (!(await this.userService.findOne(id)))
+      throw new HttpException(
+        '친구 신청을 하려는 유저가 존재하지 않습니다.',
+        HttpStatus.NOT_FOUND,
+      );
+
     if (await this.userService.isBlocked(user, id))
       throw new HttpException(
         '차단한 사람은 친구추가 불가',

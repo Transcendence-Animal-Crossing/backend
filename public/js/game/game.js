@@ -21,11 +21,27 @@ socket.on('disconnect', () => {
   responseElement.appendChild(newElement);
 });
 
-socket.on('game-started', (body) => {
-  console.log('game-started');
+socket.on('game-start', () => {
   const time = new Date().getMinutes() + ':' + new Date().getSeconds();
   const newElement = document.createElement('div');
-  newElement.innerText = 'game-started' + JSON.stringify(body) + ' ' + time;
+  newElement.innerText = 'game-start: ' + time;
+  responseElement.appendChild(newElement);
+});
+
+socket.on('game-ball', (body) => {
+  document.getElementById('ball_postion').innerText =
+    'ball: ' + JSON.stringify(body);
+});
+
+socket.on('game-player', (body) => {
+  document.getElementById('player_position').innerText =
+    'player: ' + JSON.stringify(body);
+});
+
+socket.on('game-score', (body) => {
+  console.log('game-score');
+  const newElement = document.createElement('div');
+  newElement.innerText = 'game-score' + JSON.stringify(body);
   responseElement.appendChild(newElement);
 });
 
@@ -41,6 +57,10 @@ export async function gameReady() {
   const newElement = document.createElement('div');
   newElement.innerText = 'game-ready: ' + JSON.stringify(response);
   responseElement.appendChild(newElement);
+}
+
+export async function goToQueue() {
+  window.location.href = '/queue?token=' + token;
 }
 
 let arrow_down = false;
@@ -110,3 +130,4 @@ document.addEventListener('keyup', (event) => {
 
 window.getGameInfo = getGameInfo;
 window.gameReady = gameReady;
+window.goToQueue = goToQueue;
