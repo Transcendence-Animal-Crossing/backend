@@ -113,9 +113,11 @@ export class GameService {
     await this.gameRecordRepository.update(opponentId, {
       rankTotalCount: () => 'rankTotalCount + 1',
       rankWinCount: () => 'rankWinCount + 1',
+      rankScore: () => 'rankScore + 10',
     });
     await this.gameRecordRepository.update(userId, {
       rankTotalCount: () => 'rankTotalCount + 1',
+      rankScore: () => 'rankScore - 10',
     });
   }
 }

@@ -61,9 +61,11 @@ export class GameEventListener {
     await this.gameRecordRepository.update(readyUserId, {
       rankTotalCount: () => 'rankTotalCount + 1',
       rankWinCount: () => 'rankWinCount + 1',
+      rankScore: () => 'rankScore + 10',
     });
     await this.gameRecordRepository.update(unreadyUserId, {
       rankTotalCount: () => 'rankTotalCount + 1',
+      rankScore: () => 'rankScore - 10',
     });
 
     this.gameGateway.sendEventToGameParticipant(gameId, 'game-end', null);

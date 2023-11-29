@@ -5,6 +5,9 @@ import { GameGateway } from './game.gateway';
 import { GameStatus } from './enum/game.status.enum';
 import { GameSetting } from './enum/game-setting.enum';
 import { MutexManager } from '../mutex/mutex.manager';
+import { GameRecord } from '../gameRecord/entities/game-record';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class GameLoopService {
@@ -13,6 +16,8 @@ export class GameLoopService {
     private readonly gameGateway: GameGateway,
     private readonly gameRepository: GameRepository,
     private readonly mutexManager: MutexManager,
+    @InjectRepository(GameRecord)
+    private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
   async gameLoop(gameId: string) {
@@ -40,6 +45,7 @@ export class GameLoopService {
             'game-end',
             null,
           );
+          await this.gameRecordUpdate(game);
           await this.gameRepository.delete(gameId);
           await this.gameRepository.userLeave(game.leftUser.id);
           await this.gameRepository.userLeave(game.rightUser.id);
@@ -70,6 +76,20 @@ export class GameLoopService {
       setTimeout(() => {
         this.gameLoop(game.id);
       }, 1000 / GameSetting.GAME_FRAME);
+    });
+  }
+
+  private async gameRecordUpdate(game: Game) {
+    const winnerId = game.findWinnerId();
+    const loserId = game.findOpponentId(winnerId);
+    await this.gameRecordRepository.update(winnerId, {
+      rankTotalCount: () => 'rankTotalCount + 1',
+      rankWinCount: () => 'rankWinCount + 1',
+      rankScore: () => 'rankScore + 10',
+    });
+    await this.gameRecordRepository.update(loserId, {
+      rankTotalCount: () => 'rankTotalCount + 1',
+      rankScore: () => 'rankScore - 10',
     });
   }
 }

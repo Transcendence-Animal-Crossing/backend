@@ -86,7 +86,7 @@ export class Game {
   loseByDisconnect(userId: number) {
     if (this.leftUser.id === userId) {
       this.leftScore = Game.MAX_SCORE;
-      this.rightScore = 10;
+      this.rightScore = 0;
     }
     if (this.rightUser.id === userId) {
       this.rightScore = 0;
@@ -107,5 +107,11 @@ export class Game {
     return (
       this.leftScore >= Game.MAX_SCORE || this.rightScore >= Game.MAX_SCORE
     );
+  }
+
+  findWinnerId() {
+    if (this.leftScore > this.rightScore) return this.leftUser.id;
+    if (this.rightScore > this.leftScore) return this.rightUser.id;
+    return null;
   }
 }
