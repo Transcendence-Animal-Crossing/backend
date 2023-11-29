@@ -109,7 +109,7 @@ export class GameService {
     await this.gameRepository.userLeave(game.rightUser.id);
 
     await this.gameHistoryRepository.save(GameHistory.from(game));
-    const opponentId = game.findOpponent(userId);
+    const opponentId = game.findOpponentId(userId);
     await this.gameRecordRepository.update(opponentId, {
       rankTotalCount: () => 'rankTotalCount + 1',
       rankWinCount: () => 'rankWinCount + 1',

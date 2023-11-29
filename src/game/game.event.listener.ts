@@ -51,9 +51,9 @@ export class GameEventListener {
       this.gameGateway.server.socketsLeave(gameId);
       return;
     }
-    const unreadyUserId = game.findUnReadyOne();
+    const unreadyUserId = game.findUnReadyOneId();
     if (!unreadyUserId) return;
-    const readyUserId = game.findOpponent(unreadyUserId);
+    const readyUserId = game.findOpponentId(unreadyUserId);
 
     game.loseByDisconnect(unreadyUserId);
     await this.gameHistoryRepository.save(GameHistory.from(game));

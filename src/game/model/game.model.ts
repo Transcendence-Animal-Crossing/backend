@@ -66,13 +66,13 @@ export class Game {
     return this.leftScore < 0 && this.rightScore < 0;
   }
 
-  findOpponent(userId: number) {
-    if (this.leftUser.id === userId) return this.rightUser;
-    if (this.rightUser.id === userId) return this.leftUser;
+  findOpponentId(userId: number) {
+    if (this.leftUser.id === userId) return this.rightUser.id;
+    if (this.rightUser.id === userId) return this.leftUser.id;
     return null;
   }
 
-  findUnReadyOne() {
+  findUnReadyOneId() {
     if (this.leftScore < 0) return this.leftUser.id;
     if (this.rightScore < 0) return this.rightUser.id;
     return null;
