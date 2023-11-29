@@ -1,12 +1,12 @@
-import { UserData } from '../../room/data/user.data';
 import { GameType } from '../enum/game.type.enum';
 import { GameStatus } from '../enum/game.status.enum';
 import { Game } from '../model/game.model';
+import { UserProfile } from '../../user/model/user.profile.model';
 
 export class DetailGameDto {
   id: string;
-  leftUser: UserData;
-  rightUser: UserData;
+  leftUser: UserProfile;
+  rightUser: UserProfile;
   leftScore: number;
   rightScore: number;
   startTime: Date;
@@ -15,8 +15,8 @@ export class DetailGameDto {
 
   constructor(
     id: string,
-    leftUser: UserData,
-    rightUser: UserData,
+    leftUser: UserProfile,
+    rightUser: UserProfile,
     leftScore: number,
     rightScore: number,
     startTime: Date,

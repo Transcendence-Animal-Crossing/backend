@@ -1,20 +1,20 @@
 import { User } from '../../user/entities/user.entity';
-import { UserData } from './user.data';
+import { UserProfile } from '../../user/model/user.profile.model';
 
-export class ParticipantData extends UserData {
+export class Participant extends UserProfile {
   private constructor(user: User, grade: number) {
     super(user.id, user.nickName, user.intraName, user.avatar);
     this.grade = grade;
-    this.muteStartTime = null;
+    this.mute = false;
     this.joinTime = new Date();
     this.adminTime = new Date();
   }
   grade: number;
-  muteStartTime: Date;
+  mute: boolean;
   joinTime: Date;
   adminTime: Date;
 
-  public static of(user: User, grade: number): ParticipantData {
-    return new ParticipantData(user, grade);
+  public static of(user: User, grade: number): Participant {
+    return new Participant(user, grade);
   }
 }

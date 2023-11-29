@@ -1,17 +1,17 @@
-import { UserData } from '../../room/data/user.data';
 import { GameType } from '../enum/game.type.enum';
 import { Game } from '../model/game.model';
+import { UserProfile } from '../../user/model/user.profile.model';
 
 export class SimpleGameDto {
   id: string;
-  leftUser: UserData;
-  rightUser: UserData;
+  leftUser: UserProfile;
+  rightUser: UserProfile;
   type: GameType;
 
   constructor(
     id: string,
-    leftUser: UserData,
-    rightUser: UserData,
+    leftUser: UserProfile,
+    rightUser: UserProfile,
     type: GameType,
   ) {
     this.id = id;

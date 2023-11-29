@@ -19,12 +19,12 @@ import { CustomSocketFilter } from '../ws/filter/custom-socket.filter';
 import { DetailRoomDto } from '../room/dto/detail.room.dto';
 import { ChatService } from './chat.service';
 import { LoadMessageDto } from './dto/load-message.dto';
-import { Room } from '../room/data/room.data';
+import { Room } from '../room/model/room.model';
 import { ClientRepository } from '../ws/client.repository';
 import { ClientService } from '../ws/client.service';
 import { FollowService } from '../folllow/follow.service';
 import { Namespace } from '../ws/const/namespace';
-import { UserData } from '../room/data/user.data';
+import { UserProfile } from '../user/model/user.profile.model';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.CHAT })
@@ -255,7 +255,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     return this.server.sockets[clientId];
   }
 
-  async sendProfileUpdateToRoom(profile: UserData, roomId: string) {
+  async sendProfileUpdateToRoom(profile: UserProfile, roomId: string) {
     this.server.to(roomId).emit('room-user-update', profile);
   }
 
@@ -264,7 +264,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to('friend-' + profile.id).emit('friend-update', profile);
   }
 
-  async sendNewFriend(userA: UserData, userB: UserData) {
+  async sendNewFriend(userA: UserProfile, userB: UserProfile) {
     const userAClientId = await this.clientRepository.findClientId(
       Namespace.CHAT,
       userA.id,
@@ -328,7 +328,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to('room-lobby').emit('room-delete', { id: roomId });
   }
 
-  async handleNewFriendRequest(sender: UserData, receiverId: number) {
+  async handleNewFriendRequest(sender: UserProfile, receiverId: number) {
     const client = await this.getClientByUserId(receiverId);
     if (client) {
       client.emit('new-friend-request', {

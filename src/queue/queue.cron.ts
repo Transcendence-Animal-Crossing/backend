@@ -9,7 +9,7 @@ import { Game } from '../game/model/game.model';
 import { GameRepository } from '../game/game.repository';
 import { ClientRepository } from '../ws/client.repository';
 import { ChatGateway } from '../chat/chat.gateway';
-import { UserData } from '../room/data/user.data';
+import { UserProfile } from '../user/model/user.profile.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MutexManager } from '../mutex/mutex.manager';
 import { GameService } from '../game/game.service';
@@ -130,7 +130,9 @@ export class QueueCron {
     await this.queueGateWay.sendEventToClient(user.id, 'queue-matched', {
       id: game.id,
     });
-    await this.chatGateWay.sendProfileUpdateToFriends(UserData.from(user));
+    await this.chatGateWay.sendProfileUpdateToFriends(
+      UserProfile.fromUser(user),
+    );
   }
 
   private isMatchable(a: ObjectLiteral, b: ObjectLiteral): boolean {

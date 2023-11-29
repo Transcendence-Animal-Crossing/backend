@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ChatGateway } from '../chat/chat.gateway';
 import { OnEvent } from '@nestjs/event-emitter';
-import { UserData } from '../room/data/user.data';
+import { UserProfile } from '../user/model/user.profile.model';
 import { Repository } from 'typeorm';
 import { User } from '../user/entities/user.entity';
 import { RoomRepository } from '../room/room.repository';
@@ -18,7 +18,7 @@ export class EventListener {
   ) {}
 
   @OnEvent('update.profile')
-  async handleUpdateProfileEvent(profile: UserData) {
+  async handleUpdateProfileEvent(profile: UserProfile) {
     this.logger.debug('<update.profile> event is triggered!');
     await this.chatGateWay.sendProfileUpdateToFriends(profile);
     const roomId = await this.roomRepository.findRoomIdByUserId(profile.id);
@@ -43,8 +43,8 @@ export class EventListener {
     const follower = await this.userRepository.findOneBy({ id: followerId });
     const following = await this.userRepository.findOneBy({ id: followingId });
     await this.chatGateWay.sendNewFriend(
-      UserData.from(follower),
-      UserData.from(following),
+      UserProfile.fromUser(follower),
+      UserProfile.fromUser(following),
     );
   }
 

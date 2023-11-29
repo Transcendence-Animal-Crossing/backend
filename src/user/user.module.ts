@@ -9,7 +9,7 @@ import { MulterModule } from '@nestjs/platform-express';
 import { multerOptions } from 'src/config/multer.config';
 import { FollowModule } from 'src/folllow/follow.module';
 import { GameHistory } from 'src/game/entities/game-history.entity';
-import { Room } from 'src/room/data/room.data';
+import { Room } from 'src/room/model/room.model';
 import { GameRecord } from 'src/gameRecord/entities/game-record';
 
 @Module({

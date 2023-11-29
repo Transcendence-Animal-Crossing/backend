@@ -4,7 +4,7 @@ import { Follow } from './entities/follow.entity';
 import { Brackets, Repository } from 'typeorm';
 import { FollowRequest } from './entities/follow-request.entity';
 import { User } from 'src/user/entities/user.entity';
-import { UserData } from '../room/data/user.data';
+import { UserProfile } from '../user/model/user.profile.model';
 import { PAGINATION_LIMIT } from 'src/common/constants';
 import { AchievementService } from 'src/achievement/achievement.service';
 
@@ -183,7 +183,7 @@ export class FollowService {
       .getMany();
 
     return friends.map((fr) =>
-      UserData.create(
+      UserProfile.create(
         fr.following.id,
         fr.following.nickName,
         fr.following.intraName,
