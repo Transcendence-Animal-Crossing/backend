@@ -253,7 +253,8 @@ export class AuthController {
     if (!accessToken) {
       throw new HttpException('token update failed', HttpStatus.UNAUTHORIZED);
     }
-    console.log('update token : ', accessToken);
+    res.setHeader('Authorization', 'Bearer ' + accessToken);
+    //console.log('update token : ', accessToken);
     res.status(HttpStatus.OK);
     res.send();
   }
