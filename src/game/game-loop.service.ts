@@ -85,9 +85,9 @@ export class GameLoopService {
         .createQueryBuilder('game_record')
         .update()
         .set({
-          rankTotalCount: () => 'rankTotalCount + 1',
-          rankWinCount: () => 'rankWinCount + 1',
-          rankScore: () => 'rankScore + 10',
+          rankTotalCount: () => 'rank_total_count + 1',
+          rankWinCount: () => 'rank_win_count + 1',
+          rankScore: () => 'rank_score + 10',
         })
         .where('game_record.user_id = :userId', { userId: winnerId })
         .execute();
@@ -95,8 +95,8 @@ export class GameLoopService {
         .createQueryBuilder('game_record')
         .update()
         .set({
-          rankTotalCount: () => 'rankTotalCount + 1',
-          rankScore: () => 'rankScore - 10',
+          rankTotalCount: () => 'rank_total_count + 1',
+          rankScore: () => 'rank_score - 10',
         })
         .where('game_record.user_id = :userId', { userId: loserId })
         .execute();
