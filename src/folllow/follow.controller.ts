@@ -79,7 +79,7 @@ export class FollowController {
   @Get('request')
   @HttpCode(HttpStatus.OK)
   async getRequest(@Req() req) {
-    return await this.followService.findAllSentTo(req.user.id);
+    return await this.followService.findRequestAllSentTo(req.user.id);
   }
 
   @Get()

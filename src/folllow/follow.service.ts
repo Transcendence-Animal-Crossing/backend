@@ -85,24 +85,22 @@ export class FollowService {
   }
 
   async isRequestExisted(sendBy: number, sendTo: number) {
-    const existingRequest = await this.followRequestRepository.findOne({
+    return await this.followRequestRepository.findOne({
       where: {
         sendBy: { id: sendBy },
         sendTo: { id: sendTo },
       },
     });
-    return existingRequest;
   }
 
   async isAnyRequestExisted(sendBy: number, sendTo: number) {
-    const existingRequest = await this.followRequestRepository.findOne({
+    return await this.followRequestRepository.findOne({
       where: {
         sendBy: { id: sendBy },
         sendTo: { id: sendTo },
       },
       withDeleted: true,
     });
-    return existingRequest;
   }
 
   async deleteRequest(sendBy: number, sendTo: number) {
@@ -127,14 +125,13 @@ export class FollowService {
   }
 
   async findFollowWithDeleted(sendBy: number, sendTo: number) {
-    const follow = await this.followRepository.findOne({
+    return await this.followRepository.findOne({
       where: {
         follower: { id: sendBy },
         following: { id: sendTo },
       },
       withDeleted: true,
     });
-    return follow;
   }
 
   async deleteFollow(sendBy: number, sendTo: number) {
@@ -150,7 +147,7 @@ export class FollowService {
     }
   }
 
-  async findAllSentTo(userId: number) {
+  async findRequestAllSentTo(userId: number) {
     const followRequests = await this.followRequestRepository
       .createQueryBuilder('followRequest')
       .where('followRequest.sendTo = :userId', { userId })
@@ -162,6 +159,9 @@ export class FollowService {
         'sendBy.intraName',
       ])
       .getMany();
+
+    const user = await this.userRepository.findOneBy({ id: userId });
+    followRequests.filter((fr) => !user.blockIds.includes(fr.sendBy.id));
 
     return followRequests.map((fr) => ({
       sendBy: fr.sendBy.id,
@@ -215,7 +215,7 @@ export class FollowService {
       .limit(PAGINATION_LIMIT)
       .getMany();
 
-    const freinds = rawFriends.map((rawFriend) => {
+    return rawFriends.map((rawFriend) => {
       return {
         followId: rawFriend.id,
         userId: rawFriend.following.id,
@@ -224,7 +224,6 @@ export class FollowService {
         avatar: rawFriend.following.avatar,
       };
     });
-    return freinds;
   }
 
   private async getFollowCount(userId: number): Promise<number> {
