@@ -214,7 +214,7 @@ export class RoomService {
       if (userGrade < Grade.ADMIN)
         throw new ForbiddenException('해당 유저를 밴해제 할 권한이 없습니다.');
 
-      room.leaveUser(dto.targetId);
+      room.unbanUser(dto.targetId);
       await this.roomRepository.update(room);
     });
     server.to(dto.roomId).emit('room-unban', dto);
