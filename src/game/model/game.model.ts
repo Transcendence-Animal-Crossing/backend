@@ -80,7 +80,7 @@ export class Game {
 
   getPlayTime() {
     if (this.status === GameStatus.EARLY_FINISHED) return 0;
-    return (new Date().getTime() - this.startTime.getTime()) / 1000;
+    return Math.floor((new Date().getTime() - this.startTime.getTime()) / 1000);
   }
 
   loseByDisconnect(userId: number) {
