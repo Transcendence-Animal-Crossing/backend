@@ -14,6 +14,7 @@ import { GameLoopService } from './game-loop.service';
 import { GameEventListener } from './game.event.listener';
 import { User } from '../user/entities/user.entity';
 import { ChatModule } from '../chat/chat.module';
+import { AchievementService } from '../achievement/achievement.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([GameHistory, GameRecord, User]),
@@ -29,6 +30,7 @@ import { ChatModule } from '../chat/chat.module';
     GameService,
     GameLoopService,
     GameEventListener,
+    AchievementService,
   ],
   controllers: [GameController],
   exports: [GameHistoryService, GameRepository, GameGateway, GameService],
