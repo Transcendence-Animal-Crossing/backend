@@ -111,14 +111,44 @@ export class GameService {
 
     await this.gameHistoryRepository.save(GameHistory.from(game));
     const opponentId = game.findOpponentId(userId);
-    await this.gameRecordRepository.update(opponentId, {
-      rankTotalCount: () => 'rankTotalCount + 1',
-      rankWinCount: () => 'rankWinCount + 1',
-      rankScore: () => 'rankScore + 10',
-    });
-    await this.gameRecordRepository.update(userId, {
-      rankTotalCount: () => 'rankTotalCount + 1',
-      rankScore: () => 'rankScore - 10',
-    });
+    if (game.type === GameType.RANK) {
+      await this.gameRecordRepository
+        .createQueryBuilder('game_record')
+        .update()
+        .set({
+          rankTotalCount: () => 'rank_total_count + 1',
+          rankWinCount: () => 'rank_win_count + 1',
+          rankScore: () => 'rank_score + 10',
+        })
+        .where('game_record.user_id = :userId', { userId: opponentId })
+        .execute();
+      await this.gameRecordRepository
+        .createQueryBuilder('game_record')
+        .update()
+        .set({
+          rankTotalCount: () => 'rank_total_count + 1',
+          rankScore: () => 'rank_score - 10',
+        })
+        .where('game_record.user_id = :userId', { userId: userId })
+        .execute();
+      return;
+    }
+    await this.gameRecordRepository
+      .createQueryBuilder('game_record')
+      .update()
+      .set({
+        generalTotalCount: () => 'general_total_count + 1',
+        generalWinCount: () => 'general_win_count + 1',
+      })
+      .where('game_record.user_id = :userId', { userId: opponentId })
+      .execute();
+    await this.gameRecordRepository
+      .createQueryBuilder('game_record')
+      .update()
+      .set({
+        generalTotalCount: () => 'general_total_count + 1',
+      })
+      .where('game_record.user_id = :userId', { userId: userId })
+      .execute();
   }
 }

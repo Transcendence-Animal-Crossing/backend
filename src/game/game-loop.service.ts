@@ -9,6 +9,7 @@ import { GameRecord } from '../gameRecord/entities/game-record';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameType } from './enum/game.type.enum';
+import { GameHistory } from './entities/game-history.entity';
 
 @Injectable()
 export class GameLoopService {
@@ -20,6 +21,8 @@ export class GameLoopService {
     private readonly mutexManager: MutexManager,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
+    @InjectRepository(GameHistory)
+    private readonly gameHistoryRepository: Repository<GameHistory>,
   ) {}
 
   async gameLoop(gameId: string) {
@@ -47,6 +50,7 @@ export class GameLoopService {
           await this.gameRepository.delete(gameId);
           await this.gameRepository.userLeave(game.leftUser.id);
           await this.gameRepository.userLeave(game.rightUser.id);
+          await this.gameHistoryRepository.save(GameHistory.from(game));
           this.gameGateway.server.socketsLeave(gameId);
           return;
         }
