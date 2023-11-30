@@ -8,6 +8,7 @@ import { MutexManager } from '../mutex/mutex.manager';
 import { GameRecord } from '../gameRecord/entities/game-record';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { GameType } from './enum/game.type.enum';
 
 @Injectable()
 export class GameLoopService {
@@ -41,7 +42,7 @@ export class GameLoopService {
         game.players.init();
         if (game.isEnd()) {
           this.gameGateway.sendEvent(game.id, 'game-end', null);
-          await this.gameRecordUpdate(game);
+          if (game.type === GameType.RANK) await this.gameRecordUpdate(game);
           await this.gameRepository.delete(gameId);
           await this.gameRepository.userLeave(game.leftUser.id);
           await this.gameRepository.userLeave(game.rightUser.id);
@@ -79,23 +80,23 @@ export class GameLoopService {
     const winnerId = game.findWinnerId();
     const loserId = game.findOpponentId(winnerId);
     await this.gameRecordRepository
-      .createQueryBuilder('gameRecord')
+      .createQueryBuilder('game_record')
       .update()
       .set({
         rankTotalCount: () => 'rankTotalCount + 1',
         rankWinCount: () => 'rankWinCount + 1',
         rankScore: () => 'rankScore + 10',
       })
-      .where('gameRecord.userId = :userId', { userId: winnerId })
+      .where('game_record.user_id = :userId', { userId: winnerId })
       .execute();
     await this.gameRecordRepository
-      .createQueryBuilder('gameRecord')
+      .createQueryBuilder('game_record')
       .update()
       .set({
         rankTotalCount: () => 'rankTotalCount + 1',
         rankScore: () => 'rankScore - 10',
       })
-      .where('gameRecord.userId = :userId', { userId: loserId })
+      .where('game_record.user_id = :userId', { userId: loserId })
       .execute();
   }
 }
