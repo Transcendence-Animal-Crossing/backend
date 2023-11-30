@@ -58,10 +58,12 @@ export class AuthController {
           userPublicData.email,
           user,
         );
+        res.status(201);
         //console.log('new user', user);
       } else {
         user = existingUser;
         //console.log('already existed', user);
+        res.status(200);
       }
     } catch (AxiosError) {
       throw new HttpException(
@@ -95,6 +97,7 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     let user: User;
+    let statusCode: number;
     try {
       const userPublicData: any =
         await this.authService.getProfile(accessToken);
@@ -111,11 +114,17 @@ export class AuthController {
           userPublicData.email,
           user,
         );
-        res.status(201);
+        statusCode = 201;
       } else {
         user = existingUser;
-        res.status(200);
+        statusCode = 200;
       }
+      const tokens = await this.authService.generateTokens(user.id.toString());
+      res.cookie('refreshToken', tokens.refreshToken, {
+        httpOnly: true,
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+      res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
     } catch (AxiosError) {
       throw new HttpException(
         'Invalid or Already Used code',
@@ -127,18 +136,15 @@ export class AuthController {
       res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
       return;
     }
-    const tokens = await this.authService.generateTokens(user.id.toString());
-    res.cookie('refreshToken', tokens.refreshToken, {
-      httpOnly: true,
-      maxAge: 30 * 24 * 60 * 60 * 1000,
-    });
-    res.setHeader('Authorization', 'Bearer ' + tokens.accessToken);
-    return {
+
+    //res.send();
+    console.log('status here', statusCode);
+    res.status(statusCode).send({
       id: user.id,
       nickName: user.nickName,
       intraName: user.intraName,
       avatar: user.avatar,
-    };
+    });
   }
 
   // 클라이언트에서 로그인 버튼을 누르면 42 oauth2 로그인 페이지로 리다이렉트

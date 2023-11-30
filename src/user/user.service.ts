@@ -189,6 +189,9 @@ export class UserService {
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
+    if (nickName.length === 0) {
+      nickName = user.nickName;
+    }
     await this.userRepository.update(id, {
       avatar: 'uploads/' + filename,
       nickName: nickName,
@@ -199,9 +202,10 @@ export class UserService {
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
-
+    if (nickName.length === 0) {
+      nickName = user.nickName;
+    }
     const avatarPath = join(__dirname, '..', '..', 'original', avatar);
-    console.log('avatar', avatarPath);
     if (!existsSync(avatarPath)) {
       throw new HttpException('Avatar file not found', HttpStatus.NOT_FOUND);
     }
