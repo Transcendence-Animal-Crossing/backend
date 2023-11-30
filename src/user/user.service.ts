@@ -273,8 +273,8 @@ export class UserService {
         intraName: rawUser.user_intraName,
         avatar: rawUser.user_avatar,
         ranking: rawUser.rank,
-        rankScore: rawUser.gameRecord_rankScore,
-        rankGameTotalCount: rawUser.gameRecord_rankTotalCount,
+        rankScore: rawUser.gameRecord_rank_score,
+        rankGameTotalCount: rawUser.gameRecord_rank_total_count,
       };
     });
     return users;
