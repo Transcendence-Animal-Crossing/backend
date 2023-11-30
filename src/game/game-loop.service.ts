@@ -10,6 +10,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { GameType } from './enum/game.type.enum';
 import { GameHistory } from './entities/game-history.entity';
+import { ChatGateway } from '../chat/chat.gateway';
 
 @Injectable()
 export class GameLoopService {
@@ -23,6 +24,7 @@ export class GameLoopService {
     private readonly gameRecordRepository: Repository<GameRecord>,
     @InjectRepository(GameHistory)
     private readonly gameHistoryRepository: Repository<GameHistory>,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   async gameLoop(gameId: string) {
@@ -52,6 +54,8 @@ export class GameLoopService {
           await this.gameRepository.userLeave(game.rightUser.id);
           await this.gameHistoryRepository.save(GameHistory.from(game));
           this.gameGateway.server.socketsLeave(gameId);
+          await this.chatGateway.sendProfileUpdateToFriends(game.leftUser);
+          await this.chatGateway.sendProfileUpdateToFriends(game.rightUser);
           return;
         }
         await this.gameRepository.update(game);
