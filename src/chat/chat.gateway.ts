@@ -31,6 +31,9 @@ import { FollowService } from '../folllow/follow.service';
 import { Namespace } from '../ws/const/namespace';
 import { UserProfile } from '../user/model/user.profile.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { User } from '../user/entities/user.entity';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.CHAT })
@@ -47,6 +50,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private readonly clientRepository: ClientRepository,
     private readonly clientService: ClientService,
     private readonly followService: FollowService,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async handleConnection(client: Socket): Promise<void> {
@@ -76,11 +81,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onGameInvite(client: Socket, dto: { targetId: number }) {
     this.logger.debug('Client Send Event <game-invite>');
     const userId = await this.clientRepository.findUserId(client.id);
+    const sender = await this.userRepository.findOneBy({ id: userId });
     const targetClient = await this.getClientByUserId(dto.targetId);
     if (!targetClient) throw new BadRequestException('User is not online');
-    const { willingness } = await targetClient.emitWithAck('game-invite', {
-      sendBy: userId,
-    });
+    const { willingness } = await targetClient
+      .timeout(10000)
+      .emitWithAck('game-invite', {
+        id: sender.id,
+        nickName: sender.nickName,
+        intraName: sender.intraName,
+        avatar: sender.avatar,
+      });
     if (!willingness) throw new BadRequestException('User is not online');
     if (willingness === 'ACCEPT') {
       this.eventEmitter.emit('custom.game', {
