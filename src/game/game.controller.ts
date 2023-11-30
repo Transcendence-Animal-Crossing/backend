@@ -28,7 +28,8 @@ export class GameController {
     @Query('id') id: number,
     @Query('offset') offset: number,
   ) {
-    if (id < 0) throw new HttpException('양수만 가능', HttpStatus.BAD_REQUEST);
+    if (offset < 0)
+      throw new HttpException('양수만 가능', HttpStatus.BAD_REQUEST);
     return this.gameHistoryService.getAllGamesById(id, GameType.RANK, offset);
   }
 
@@ -37,7 +38,8 @@ export class GameController {
     @Query('id') id: number,
     @Query('offset') offset: number,
   ) {
-    if (id < 0) throw new HttpException('양수만 가능', HttpStatus.BAD_REQUEST);
+    if (offset < 0)
+      throw new HttpException('양수만 가능', HttpStatus.BAD_REQUEST);
     return this.gameHistoryService.getAllGamesById(id, GameType.NORMAL, offset);
   }
 
