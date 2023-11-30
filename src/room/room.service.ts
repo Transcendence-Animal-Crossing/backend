@@ -177,7 +177,7 @@ export class RoomService {
       Namespace.CHAT,
       dto.targetId,
     );
-    if (kickedClientId) server.sockets[kickedClientId].leave(dto.roomId);
+    if (kickedClientId) server.sockets.get(kickedClientId).leave(dto.roomId);
   }
 
   async ban(server, client: Socket, dto: ActionRoomDto) {
@@ -201,7 +201,7 @@ export class RoomService {
       Namespace.CHAT,
       dto.targetId,
     );
-    if (bannedClientId) server.sockets[bannedClientId].leave(dto.roomId);
+    if (bannedClientId) server.sockets.get(bannedClientId).leave(dto.roomId);
   }
 
   async unban(server, client: Socket, dto: ActionRoomDto) {
@@ -306,8 +306,8 @@ export class RoomService {
         throw new ForbiddenException('해당 방에 참여하고 있지 않습니다.');
       if (room.isParticipant(dto.targetId))
         throw new ConflictException('해당 유저는 이미 방에 있습니다.');
-      if (room.isInvited(dto.targetId))
-        throw new ConflictException('해당 유저는 이미 초대되었습니다.');
+      // if (room.isInvited(dto.targetId))
+      //   throw new ConflictException('해당 유저는 이미 초대되었습니다.');
 
       const target = await this.userService.findOne(dto.targetId);
       room.inviteUser(target);
@@ -318,8 +318,13 @@ export class RoomService {
       Namespace.CHAT,
       dto.targetId,
     );
+    const user = await this.userService.findOne(userId);
     if (invitedClientId)
-      client.to(invitedClientId).emit('room-invite', SimpleRoomDto.from(room));
+      client.to(invitedClientId).emit('room-invite', {
+        id: room.id,
+        title: room.title,
+        sendBy: UserProfile.fromUser(user),
+      });
 
     return room;
   }
