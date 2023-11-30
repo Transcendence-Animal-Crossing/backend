@@ -1,6 +1,7 @@
 import { Players } from './players.model';
 import { Side } from '../enum/side.enum';
 import { Ball } from './ball.model';
+import { GameSetting } from '../enum/game-setting.enum';
 
 export class Position {
   x: number;
@@ -13,7 +14,7 @@ export class Position {
   static fromPlayers(players: Players, side: Side) {
     if (side === Side.LEFT) return new Position(players.leftX, players.leftY);
     if (side === Side.RIGHT)
-      return new Position(players.rightX, players.rightY);
+      return new Position(players.rightX, GameSetting.HEIGHT - players.rightY);
   }
 
   static fromBall(ball: Ball) {
