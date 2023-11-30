@@ -29,6 +29,11 @@ export class FollowController {
   @Post('request')
   @HttpCode(HttpStatus.CREATED)
   async createRequest(@Body('sendTo') id: number, @Req() req) {
+    if (id === req.user.id)
+      throw new HttpException(
+        '유효하지 않은 요청입니다.',
+        HttpStatus.BAD_REQUEST,
+      );
     const user = await this.userService.findOne(req.user.id);
     if (!(await this.userService.findOne(id)))
       throw new HttpException(
