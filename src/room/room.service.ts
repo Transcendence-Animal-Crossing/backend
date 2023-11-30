@@ -106,7 +106,8 @@ export class RoomService {
     client.join(room.id);
     await this.roomRepository.userJoin(room.id, ownerId);
     await this.achievementService.addChattingJoin(owner);
-    server.to('room-lobby').emit('room-create', SimpleRoomDto.from(room));
+    if (dto.mode !== 'PRIVATE')
+      server.to('room-lobby').emit('room-create', SimpleRoomDto.from(room));
 
     await this.roomRepository.save(room);
     return room;
@@ -129,12 +130,12 @@ export class RoomService {
     });
     const timerId: NodeJS.Timeout = setTimeout(async () => {
       server.to(dto.roomId).emit('room-unmute', {
-        id: dto.targetId,
+        targetId: dto.targetId,
       });
       const room: Room = await this.findById(dto.roomId);
       room.unmuteUser(dto.targetId);
       await this.roomRepository.update(room);
-    }, 10000);
+    }, 600000);
     await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
     server.to(dto.roomId).emit('room-mute', dto);
   }

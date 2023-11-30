@@ -129,10 +129,7 @@ export class UserController {
       await this.followService.deleteFollow(req.user.id, id);
       this.eventEmitter.emit('delete.friend', req.user.id, id);
     }
-    this.eventEmitter.emit('add.block', {
-      userId: req.user.id,
-      targetId: id,
-    });
+    this.eventEmitter.emit('add.block', req.user.id, id);
   }
 
   @Patch('unblock')
@@ -145,10 +142,7 @@ export class UserController {
       );
     const user = await this.userService.findOne(req.user.id);
     await this.userService.unblockUser(user, id);
-    this.eventEmitter.emit('delete.user', {
-      userId: req.user.id,
-      targetId: id,
-    });
+    this.eventEmitter.emit('delete.block', req.user.id, id);
   }
   @Patch('2fa-setup')
   @HttpCode(HttpStatus.OK)

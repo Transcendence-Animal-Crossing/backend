@@ -13,6 +13,7 @@ import { UserProfile } from '../user/model/user.profile.model';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { MutexManager } from '../mutex/mutex.manager';
 import { GameService } from '../game/game.service';
+import { AchievementService } from '../achievement/achievement.service';
 
 @Injectable()
 export class QueueCron {
@@ -26,6 +27,7 @@ export class QueueCron {
     private readonly gameService: GameService,
     private readonly clientRepository: ClientRepository,
     private readonly eventEmitter: EventEmitter2,
+    private readonly acheivementService: AchievementService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_SECONDS)
@@ -120,6 +122,14 @@ export class QueueCron {
     await this.sendMatchedEvent(rightUser, game);
     await manager.getRepository(Standby).remove(standbyA);
     await manager.getRepository(Standby).remove(standbyB);
+
+    if (gameType === GameType.RANK) {
+      await this.acheivementService.getRankGameAchievement(leftUser);
+      await this.acheivementService.getRankGameAchievement(rightUser);
+    } else {
+      await this.acheivementService.addGeneralGameAchievement(leftUser);
+      await this.acheivementService.addGeneralGameAchievement(rightUser);
+    }
 
     setTimeout(async () => {
       this.eventEmitter.emit('validate.game', game.id);
