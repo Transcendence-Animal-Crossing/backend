@@ -13,6 +13,7 @@ import { GameType } from './enum/game.type.enum';
 @Injectable()
 export class GameLoopService {
   private readonly logger: Logger = new Logger('GameLoopService');
+
   constructor(
     private readonly gameGateway: GameGateway,
     private readonly gameRepository: GameRepository,
@@ -42,7 +43,7 @@ export class GameLoopService {
         game.players.init();
         if (game.isEnd()) {
           this.gameGateway.sendEvent(game.id, 'game-end', null);
-          if (game.type === GameType.RANK) await this.gameRecordUpdate(game);
+          await this.gameRecordUpdate(game);
           await this.gameRepository.delete(gameId);
           await this.gameRepository.userLeave(game.leftUser.id);
           await this.gameRepository.userLeave(game.rightUser.id);
@@ -79,13 +80,34 @@ export class GameLoopService {
   private async gameRecordUpdate(game: Game) {
     const winnerId = game.findWinnerId();
     const loserId = game.findOpponentId(winnerId);
+    if (game.type === GameType.RANK) {
+      await this.gameRecordRepository
+        .createQueryBuilder('game_record')
+        .update()
+        .set({
+          rankTotalCount: () => 'rankTotalCount + 1',
+          rankWinCount: () => 'rankWinCount + 1',
+          rankScore: () => 'rankScore + 10',
+        })
+        .where('game_record.user_id = :userId', { userId: winnerId })
+        .execute();
+      await this.gameRecordRepository
+        .createQueryBuilder('game_record')
+        .update()
+        .set({
+          rankTotalCount: () => 'rankTotalCount + 1',
+          rankScore: () => 'rankScore - 10',
+        })
+        .where('game_record.user_id = :userId', { userId: loserId })
+        .execute();
+      return;
+    }
     await this.gameRecordRepository
       .createQueryBuilder('game_record')
       .update()
       .set({
-        rankTotalCount: () => 'rankTotalCount + 1',
-        rankWinCount: () => 'rankWinCount + 1',
-        rankScore: () => 'rankScore + 10',
+        generalTotalCount: () => 'generalTotalCount + 1',
+        generalWinCount: () => 'generalWinCount + 1',
       })
       .where('game_record.user_id = :userId', { userId: winnerId })
       .execute();
@@ -93,8 +115,7 @@ export class GameLoopService {
       .createQueryBuilder('game_record')
       .update()
       .set({
-        rankTotalCount: () => 'rankTotalCount + 1',
-        rankScore: () => 'rankScore - 10',
+        generalTotalCount: () => 'generalTotalCount + 1',
       })
       .where('game_record.user_id = :userId', { userId: loserId })
       .execute();
