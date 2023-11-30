@@ -14,6 +14,7 @@ import { User } from '../user/entities/user.entity';
 import { GameType } from './enum/game.type.enum';
 import { ChatGateway } from '../chat/chat.gateway';
 import { UserProfile } from '../user/model/user.profile.model';
+import { AchievementService } from '../achievement/achievement.service';
 
 @Injectable()
 export class GameEventListener {
@@ -25,6 +26,7 @@ export class GameEventListener {
     private readonly gameService: GameService,
     private readonly gameLoopService: GameLoopService,
     private readonly gameRepository: GameRepository,
+    private readonly achievementService: AchievementService,
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
     @InjectRepository(GameHistory)
@@ -54,6 +56,9 @@ export class GameEventListener {
     await this.chatGateway.sendProfileUpdateToFriends(
       UserProfile.fromUser(rightUser),
     );
+
+    await this.achievementService.addGeneralGameAchievement(leftUser);
+    await this.achievementService.addGeneralGameAchievement(rightUser);
 
     this.gameGateway.sendEvent(game.id, 'game-matched', { id: game.id });
 
