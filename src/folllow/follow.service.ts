@@ -148,7 +148,7 @@ export class FollowService {
   }
 
   async findRequestAllSentTo(userId: number) {
-    const followRequests = await this.followRequestRepository
+    let followRequests = await this.followRequestRepository
       .createQueryBuilder('followRequest')
       .where('followRequest.sendTo = :userId', { userId })
       .leftJoin('followRequest.sendBy', 'sendBy')
@@ -161,7 +161,9 @@ export class FollowService {
       .getMany();
 
     const user = await this.userRepository.findOneBy({ id: userId });
-    followRequests.filter((fr) => !user.blockIds.includes(fr.sendBy.id));
+    followRequests = followRequests.filter(
+      (fr) => !user.blockIds.includes(fr.sendBy.id),
+    );
 
     return followRequests.map((fr) => ({
       sendBy: fr.sendBy.id,
