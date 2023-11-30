@@ -137,6 +137,7 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.GAME,
       userId,
     );
+    console.log('clientId', clientId);
     return this.server.sockets.get(clientId);
   }
 }

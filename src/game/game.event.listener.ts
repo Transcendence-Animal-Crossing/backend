@@ -39,8 +39,6 @@ export class GameEventListener {
     const rightUser = await this.userRepository.findOneBy({
       id: dto.receiverId,
     });
-    console.log('custom.game leftUser', leftUser);
-    console.log('custom.game rightUser', rightUser);
     const game = Game.create(leftUser, rightUser, GameType.NORMAL);
     await this.gameRepository.save(game);
     await this.gameRepository.userJoin(game.id, leftUser.id);
