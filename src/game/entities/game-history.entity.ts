@@ -69,11 +69,21 @@ export class GameHistory {
   }
 
   static from(game: Game) {
+    if (game.leftScore > game.rightScore) {
+      return GameHistory.create(
+        game.leftUser.id,
+        game.rightUser.id,
+        game.leftScore,
+        game.rightScore,
+        game.getPlayTime(),
+        game.type,
+      );
+    }
     return GameHistory.create(
-      game.leftUser.id,
       game.rightUser.id,
-      game.leftScore,
+      game.leftUser.id,
       game.rightScore,
+      game.leftScore,
       game.getPlayTime(),
       game.type,
     );
