@@ -84,22 +84,25 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const sender = await this.userRepository.findOneBy({ id: userId });
     const targetClient = await this.getClientByUserId(dto.targetId);
     if (!targetClient) throw new BadRequestException('User is not online');
-    const { willingness } = await targetClient
-      .timeout(10000)
-      .emitWithAck('game-invite', {
-        id: sender.id,
-        nickName: sender.nickName,
-        intraName: sender.intraName,
-        avatar: sender.avatar,
-      });
-    if (!willingness) throw new BadRequestException('User is not online');
-    if (willingness === 'ACCEPT') {
-      this.eventEmitter.emit('custom.game', {
-        sendBy: userId,
-        sendTo: dto.targetId,
-      });
-    }
-    return { status: HttpStatus.OK, body: willingness };
+    try {
+      const willingness = await targetClient
+        .timeout(10000)
+        .emitWithAck('game-invite', {
+          id: sender.id,
+          nickName: sender.nickName,
+          intraName: sender.intraName,
+          avatar: sender.avatar,
+        });
+      if (willingness === 'ACCEPT') {
+        this.eventEmitter.emit('custom.game', {
+          sendBy: userId,
+          sendTo: dto.targetId,
+        });
+      }
+      return { status: HttpStatus.OK, body: willingness };
+    } catch (e) {}
+
+    return { status: HttpStatus.OK, body: 'DENIED' };
   }
 
   @SubscribeMessage('room-lobby')

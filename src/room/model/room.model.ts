@@ -151,4 +151,13 @@ export class Room {
     }
     return false;
   }
+
+  unbanUser(targetId: number) {
+    for (let i = 0; i < this.bannedUsers.length; i++) {
+      if (this.bannedUsers[i].id === targetId) {
+        this.bannedUsers.splice(i, 1);
+        return;
+      }
+    }
+  }
 }
