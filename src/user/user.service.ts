@@ -238,7 +238,7 @@ export class UserService {
     const rankQuery = `
     SELECT 
       "game_record"."user_id" AS "userId", 
-      RANK() OVER (ORDER BY "game_record"."rankScore" DESC) as "rank"
+      RANK() OVER (ORDER BY "game_record"."rank_score" DESC) as "rank"
     FROM 
       "game_record"
   `;
@@ -256,6 +256,7 @@ export class UserService {
       .offset(offset)
       .limit(PAGINATION_LIMIT)
       .getRawMany();
+
     const users = rawUsers.map((rawUser) => {
       return {
         id: rawUser.user_id,
