@@ -78,14 +78,24 @@ export class GameLoopService {
   private async gameRecordUpdate(game: Game) {
     const winnerId = game.findWinnerId();
     const loserId = game.findOpponentId(winnerId);
-    await this.gameRecordRepository.update(winnerId, {
-      rankTotalCount: () => 'rankTotalCount + 1',
-      rankWinCount: () => 'rankWinCount + 1',
-      rankScore: () => 'rankScore + 10',
-    });
-    await this.gameRecordRepository.update(loserId, {
-      rankTotalCount: () => 'rankTotalCount + 1',
-      rankScore: () => 'rankScore - 10',
-    });
+    await this.gameRecordRepository
+      .createQueryBuilder('gameRecord')
+      .update()
+      .set({
+        rankTotalCount: () => 'rankTotalCount + 1',
+        rankWinCount: () => 'rankWinCount + 1',
+        rankScore: () => 'rankScore + 10',
+      })
+      .where('gameRecord.userId = :userId', { userId: winnerId })
+      .execute();
+    await this.gameRecordRepository
+      .createQueryBuilder('gameRecord')
+      .update()
+      .set({
+        rankTotalCount: () => 'rankTotalCount + 1',
+        rankScore: () => 'rankScore - 10',
+      })
+      .where('gameRecord.userId = :userId', { userId: loserId })
+      .execute();
   }
 }
