@@ -221,6 +221,11 @@ export class UserService {
       if (user.id === id) return;
       throw new HttpException('already existed', HttpStatus.CONFLICT);
     }
+    if (nickName.length === 0)
+      throw new HttpException(
+        '빈문자열은 닉네임 설정 불가',
+        HttpStatus.BAD_REQUEST,
+      );
   }
 
   async updateAchievements(intraName: string, achievement: string) {
@@ -268,8 +273,8 @@ export class UserService {
         intraName: rawUser.user_intraName,
         avatar: rawUser.user_avatar,
         ranking: rawUser.rank,
-        rankScore: rawUser.gameRecord_rankScore,
-        rankGameTotalCount: rawUser.gameRecord_rankTotalCount,
+        rankScore: rawUser.gameRecord_rank_score,
+        rankGameTotalCount: rawUser.gameRecord_rank_total_count,
       };
     });
     return users;
