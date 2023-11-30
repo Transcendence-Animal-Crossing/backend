@@ -85,7 +85,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const targetClient = await this.getClientByUserId(dto.targetId);
     if (!targetClient) throw new BadRequestException('User is not online');
     try {
-      const { willingness } = await targetClient
+      const willingness = await targetClient
         .timeout(10000)
         .emitWithAck('game-invite', {
           id: sender.id,
