@@ -93,6 +93,9 @@ export class Room {
   }
 
   inviteUser(user: User): void {
+    for (const invitedUser of this.invitedUsers) {
+      if (invitedUser.id === user.id) return;
+    }
     this.invitedUsers.push(UserProfile.fromUser(user));
   }
 
