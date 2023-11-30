@@ -38,6 +38,9 @@ export class GameHistoryService {
   }
 
   async getAllGamesById(id: number, type: GameType, offset: number) {
+    let whereCondition = '(loser.id = :id OR winner.id = :id) AND ';
+    if (type !== GameType.RANK) whereCondition += 'NOT';
+    whereCondition += ' game.type = :type';
     const games = await this.gameHistoryRepository
       .createQueryBuilder('game')
       .leftJoinAndSelect('game.loser', 'loser')
@@ -56,7 +59,7 @@ export class GameHistoryService {
         'loser.intraName',
         'loser.avatar',
       ])
-      .where('(loser.id = :id OR winner.id = :id) AND game.type = :type', {
+      .where(whereCondition, {
         id,
         type,
       })
