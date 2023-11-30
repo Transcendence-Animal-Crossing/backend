@@ -32,7 +32,7 @@ export class ClientRepository {
       Namespace.CHAT + 'user-' + userId,
     );
     if (!clientId) return Status.OFFLINE;
-    const gameId = await this.cacheManager.get('user-game-' + userId);
+    const gameId = await this.cacheManager.get('game-user-' + userId);
     if (gameId) return Status.IN_GAME;
     return Status.ONLINE;
   }
