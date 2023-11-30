@@ -189,6 +189,9 @@ export class UserService {
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
+    if (nickName.length === 0) {
+      nickName = user.nickName;
+    }
     await this.userRepository.update(id, {
       avatar: 'uploads/' + filename,
       nickName: nickName,
@@ -199,9 +202,10 @@ export class UserService {
     if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
-
+    if (nickName.length === 0) {
+      nickName = user.nickName;
+    }
     const avatarPath = join(__dirname, '..', '..', 'original', avatar);
-    console.log('avatar', avatarPath);
     if (!existsSync(avatarPath)) {
       throw new HttpException('Avatar file not found', HttpStatus.NOT_FOUND);
     }
@@ -238,7 +242,7 @@ export class UserService {
     const rankQuery = `
     SELECT 
       "game_record"."user_id" AS "userId", 
-      RANK() OVER (ORDER BY "game_record"."rankScore" DESC) as "rank"
+      RANK() OVER (ORDER BY "game_record"."rank_score" DESC) as "rank"
     FROM 
       "game_record"
   `;
@@ -256,6 +260,7 @@ export class UserService {
       .offset(offset)
       .limit(PAGINATION_LIMIT)
       .getRawMany();
+
     const users = rawUsers.map((rawUser) => {
       return {
         id: rawUser.user_id,
