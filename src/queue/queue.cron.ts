@@ -123,9 +123,13 @@ export class QueueCron {
     await manager.getRepository(Standby).remove(standbyA);
     await manager.getRepository(Standby).remove(standbyB);
 
-    if (gameType === GameType.RANK)
+    if (gameType === GameType.RANK) {
       await this.acheivementService.getRankGameAchievement(leftUser);
-    else await this.acheivementService.addGeneralGameAchievement(leftUser);
+      await this.acheivementService.getRankGameAchievement(rightUser);
+    } else {
+      await this.acheivementService.addGeneralGameAchievement(leftUser);
+      await this.acheivementService.addGeneralGameAchievement(rightUser);
+    }
 
     setTimeout(async () => {
       this.eventEmitter.emit('validate.game', game.id);
