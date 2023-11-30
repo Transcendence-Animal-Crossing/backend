@@ -93,6 +93,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           intraName: sender.intraName,
           avatar: sender.avatar,
         });
+      console.log('williness', willingness);
       if (willingness === 'ACCEPT') {
         this.eventEmitter.emit('custom.game', {
           sendBy: userId,
