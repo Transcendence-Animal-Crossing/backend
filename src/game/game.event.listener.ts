@@ -39,12 +39,17 @@ export class GameEventListener {
     const rightUser = await this.userRepository.findOneBy({
       id: dto.receiverId,
     });
+    console.log('custom.game leftUser', leftUser);
+    console.log('custom.game rightUser', rightUser);
     const game = Game.create(leftUser, rightUser, GameType.NORMAL);
     await this.gameRepository.save(game);
     await this.gameRepository.userJoin(game.id, leftUser.id);
     await this.gameRepository.userJoin(game.id, rightUser.id);
-    this.gameGateway.findClientByUserId(leftUser.id)?.join(game.id);
-    this.gameGateway.findClientByUserId(rightUser.id)?.join(game.id);
+
+    const leftClient = await this.gameGateway.findClientByUserId(leftUser.id);
+    const rightClient = await this.gameGateway.findClientByUserId(rightUser.id);
+    if (leftClient) leftClient.join(game.id);
+    if (rightClient) rightClient.join(game.id);
     await this.chatGateway.sendProfileUpdateToFriends(
       UserProfile.fromUser(leftUser),
     );
@@ -52,7 +57,7 @@ export class GameEventListener {
       UserProfile.fromUser(rightUser),
     );
 
-    this.gameGateway.sendEvent(game.id, 'game-matched', { gameId: game.id });
+    this.gameGateway.sendEvent(game.id, 'game-matched', { id: game.id });
 
     setTimeout(async () => {
       await this.handleValidateGameEvent(game.id);
