@@ -128,12 +128,16 @@ export class GameGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   async sendEventWithAck(userId, event: string, data: any) {
     this.logger.debug('Server Send Event <' + event + '>');
-    const client = this.findClientByUserId(userId);
+    const client = await this.findClientByUserId(userId);
     return await client.emitWithAck(event, data);
   }
 
-  findClientByUserId(userId: number): Socket {
-    const clientId = this.clientRepository.findClientId(Namespace.GAME, userId);
+  async findClientByUserId(userId: number): Promise<Socket> {
+    const clientId = await this.clientRepository.findClientId(
+      Namespace.GAME,
+      userId,
+    );
+    console.log('clientId', clientId);
     return this.server.sockets.get(clientId);
   }
 }
