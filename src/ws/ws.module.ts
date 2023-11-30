@@ -12,10 +12,11 @@ import { EventListener } from './event.listener';
 import { ChatModule } from '../chat/chat.module';
 import { User } from '../user/entities/user.entity';
 import { GameModule } from '../game/game.module';
+import { Follow } from '../folllow/entities/follow.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Message, MessageHistory]),
+    TypeOrmModule.forFeature([User, Message, MessageHistory, Follow]),
     AuthModule,
     forwardRef(() => UserModule),
     forwardRef(() => RoomModule),
