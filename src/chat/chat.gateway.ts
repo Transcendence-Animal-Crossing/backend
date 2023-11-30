@@ -95,8 +95,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
       if (willingness === 'ACCEPT') {
         this.eventEmitter.emit('custom.game', {
-          sendBy: userId,
-          sendTo: dto.targetId,
+          senderId: userId,
+          receiverId: dto.targetId,
         });
       }
       return { status: HttpStatus.OK, body: willingness };
