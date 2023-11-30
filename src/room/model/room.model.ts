@@ -93,6 +93,9 @@ export class Room {
   }
 
   inviteUser(user: User): void {
+    for (const invitedUser of this.invitedUsers) {
+      if (invitedUser.id === user.id) return;
+    }
     this.invitedUsers.push(UserProfile.fromUser(user));
   }
 
@@ -147,5 +150,14 @@ export class Room {
       }
     }
     return false;
+  }
+
+  unbanUser(targetId: number) {
+    for (let i = 0; i < this.bannedUsers.length; i++) {
+      if (this.bannedUsers[i].id === targetId) {
+        this.bannedUsers.splice(i, 1);
+        return;
+      }
+    }
   }
 }

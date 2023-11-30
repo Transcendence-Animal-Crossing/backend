@@ -10,25 +10,59 @@ import { Repository } from 'typeorm';
 import { GameRepository } from './game.repository';
 import { GameService } from './game.service';
 import { GameRecord } from '../gameRecord/entities/game-record';
+import { User } from '../user/entities/user.entity';
+import { GameType } from './enum/game.type.enum';
+import { ChatGateway } from '../chat/chat.gateway';
+import { UserProfile } from '../user/model/user.profile.model';
 
 @Injectable()
 export class GameEventListener {
   private readonly logger: Logger = new Logger('GameEventListener');
+
   constructor(
+    private readonly chatGateway: ChatGateway,
     private readonly gameGateway: GameGateway,
     private readonly gameService: GameService,
     private readonly gameLoopService: GameLoopService,
     private readonly gameRepository: GameRepository,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
     @InjectRepository(GameHistory)
     private readonly gameHistoryRepository: Repository<GameHistory>,
     @InjectRepository(GameRecord)
     private readonly gameRecordRepository: Repository<GameRecord>,
   ) {}
 
+  @OnEvent('custom.game')
+  async handleInviteGameEvent(dto: { senderId: number; receiverId: number }) {
+    const leftUser = await this.userRepository.findOneBy({ id: dto.senderId });
+    const rightUser = await this.userRepository.findOneBy({
+      id: dto.receiverId,
+    });
+    const game = Game.create(leftUser, rightUser, GameType.NORMAL);
+    await this.gameRepository.save(game);
+    await this.gameRepository.userJoin(game.id, leftUser.id);
+    await this.gameRepository.userJoin(game.id, rightUser.id);
+    this.gameGateway.findClientByUserId(leftUser.id)?.join(game.id);
+    this.gameGateway.findClientByUserId(rightUser.id)?.join(game.id);
+    await this.chatGateway.sendProfileUpdateToFriends(
+      UserProfile.fromUser(leftUser),
+    );
+    await this.chatGateway.sendProfileUpdateToFriends(
+      UserProfile.fromUser(rightUser),
+    );
+
+    this.gameGateway.sendEvent(game.id, 'game-matched', { gameId: game.id });
+
+    setTimeout(async () => {
+      await this.handleValidateGameEvent(game.id);
+    }, Game.READY_TIMEOUT);
+  }
+
   @OnEvent('start.game')
   async handleGameStartEvent(game: Game) {
-    this.gameGateway.sendEventToGameParticipant(game.id, 'game-start', null);
-    this.gameGateway.sendEventToGameParticipant(
+    this.gameGateway.sendEvent(game.id, 'game-start', null);
+    this.gameGateway.sendEvent(
       'game-lobby',
       'game-add',
       SimpleGameDto.from(game),
@@ -68,7 +102,7 @@ export class GameEventListener {
       rankScore: () => 'rankScore - 10',
     });
 
-    this.gameGateway.sendEventToGameParticipant(gameId, 'game-end', null);
+    this.gameGateway.sendEvent(gameId, 'game-end', null);
 
     await this.gameRepository.delete(gameId);
     await this.gameRepository.userLeave(game.leftUser.id);

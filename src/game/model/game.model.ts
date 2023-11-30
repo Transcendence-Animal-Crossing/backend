@@ -9,7 +9,7 @@ import { Side } from '../enum/side.enum';
 
 export class Game {
   public static readonly MAX_SCORE = 3;
-  public static readonly READY_TIMEOUT = 30000;
+  public static readonly READY_TIMEOUT = 3000;
   public static readonly ROUND_INTERVAL = 3000;
   id: string;
   leftUser: UserProfile;

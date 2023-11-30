@@ -20,7 +20,8 @@ export class QueueService {
     await this.dataSource.transaction('READ COMMITTED', async (manager) => {
       if (await this.findStandby(manager, userId))
         throw new HttpException('이미 대기열에 있습니다.', HttpStatus.CONFLICT);
-      if (await this.gameRepository.findGameIdByUserId(userId)) return;
+      if (await this.gameRepository.findGameIdByUserId(userId))
+        throw new HttpException('이미 게임 중 입니다.', HttpStatus.CONFLICT);
       await this.joinQueue(manager, userId, dto);
     });
   }

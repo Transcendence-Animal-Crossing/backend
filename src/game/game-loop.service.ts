@@ -33,18 +33,14 @@ export class GameLoopService {
       );
       if (collisionSide !== null) {
         game.updateScore(collisionSide);
-        this.gameGateway.sendEventToGameParticipant(game.id, 'game-score', {
+        this.gameGateway.sendEvent(game.id, 'game-score', {
           left: game.leftScore,
           right: game.rightScore,
         });
         game.ball.init();
         game.players.init();
         if (game.isEnd()) {
-          this.gameGateway.sendEventToGameParticipant(
-            game.id,
-            'game-end',
-            null,
-          );
+          this.gameGateway.sendEvent(game.id, 'game-end', null);
           await this.gameRecordUpdate(game);
           await this.gameRepository.delete(gameId);
           await this.gameRepository.userLeave(game.leftUser.id);
@@ -58,11 +54,11 @@ export class GameLoopService {
         }, Game.ROUND_INTERVAL);
         return;
       }
-      this.gameGateway.sendEventToGameParticipant(game.id, 'game-ball', {
+      this.gameGateway.sendEvent(game.id, 'game-ball', {
         x: game.ball.x,
         y: GameSetting.HEIGHT - game.ball.y,
       });
-      this.gameGateway.sendEventToGameParticipant(game.id, 'game-player', {
+      this.gameGateway.sendEvent(game.id, 'game-player', {
         left: {
           x: game.players.leftX,
           y: GameSetting.HEIGHT - game.players.leftY,

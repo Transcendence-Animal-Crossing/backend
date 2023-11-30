@@ -48,6 +48,7 @@ export class GameService {
     }
     if (game.status === GameStatus.PLAYING) {
       await this.loseByDisconnect(game, userId);
+      server.to(gameId).emit('game-end');
       server.socketsLeave(gameId);
     }
     return game.id;
