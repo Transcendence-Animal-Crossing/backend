@@ -106,8 +106,8 @@ export class GameLoopService {
       .createQueryBuilder('game_record')
       .update()
       .set({
-        generalTotalCount: () => 'generalTotalCount + 1',
-        generalWinCount: () => 'generalWinCount + 1',
+        generalTotalCount: () => 'general_total_count + 1',
+        generalWinCount: () => 'general_win_count + 1',
       })
       .where('game_record.user_id = :userId', { userId: winnerId })
       .execute();
@@ -115,7 +115,7 @@ export class GameLoopService {
       .createQueryBuilder('game_record')
       .update()
       .set({
-        generalTotalCount: () => 'generalTotalCount + 1',
+        generalTotalCount: () => 'general_total_count + 1',
       })
       .where('game_record.user_id = :userId', { userId: loserId })
       .execute();
