@@ -12,7 +12,8 @@ export class Position {
   }
 
   static fromPlayers(players: Players, side: Side) {
-    if (side === Side.LEFT) return new Position(players.leftX, players.leftY);
+    if (side === Side.LEFT)
+      return new Position(players.leftX, GameSetting.HEIGHT - players.leftY);
     if (side === Side.RIGHT)
       return new Position(players.rightX, GameSetting.HEIGHT - players.rightY);
   }
