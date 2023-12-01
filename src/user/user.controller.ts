@@ -111,7 +111,12 @@ export class UserController {
   @Post('search')
   @HttpCode(HttpStatus.OK)
   async searchUser(@Body('name') name: string, @Body('offset') offset: number) {
-    return await this.userService.searchUser(name, offset);
+    const searchUsers = await this.userService.searchUser(name, offset);
+    if (searchUsers.length == 0)
+      throw new HttpException(
+        '더이상 돌려줄 데이터 없음',
+        HttpStatus.BAD_REQUEST,
+      );
   }
 
   @Patch('block')
