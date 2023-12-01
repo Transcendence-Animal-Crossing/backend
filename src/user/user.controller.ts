@@ -119,6 +119,7 @@ export class UserController {
         '더이상 돌려줄 데이터 없음',
         HttpStatus.BAD_REQUEST,
       );
+    return searchUsers;
   }
 
   @Patch('block')
