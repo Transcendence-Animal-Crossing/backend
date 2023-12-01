@@ -114,11 +114,11 @@ export class UserController {
     if (offset < 0)
       throw new HttpException('양수만 가능', HttpStatus.BAD_REQUEST);
     const searchUsers = await this.userService.searchUser(name, offset);
-    if (searchUsers.length == 0)
-      throw new HttpException(
-        '더이상 돌려줄 데이터 없음',
-        HttpStatus.BAD_REQUEST,
-      );
+    //if (searchUsers.length == 0)
+    //  throw new HttpException(
+    //    '더이상 돌려줄 데이터 없음',
+    //    HttpStatus.BAD_REQUEST,
+    //  );
     return searchUsers;
   }
 
