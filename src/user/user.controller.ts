@@ -111,6 +111,8 @@ export class UserController {
   @Post('search')
   @HttpCode(HttpStatus.OK)
   async searchUser(@Body('name') name: string, @Body('offset') offset: number) {
+    if (offset < 0)
+      throw new HttpException('양수만 가능', HttpStatus.BAD_REQUEST);
     const searchUsers = await this.userService.searchUser(name, offset);
     if (searchUsers.length == 0)
       throw new HttpException(
