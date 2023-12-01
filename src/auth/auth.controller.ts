@@ -72,7 +72,9 @@ export class AuthController {
       );
     }
     if (user.two_factor_auth) {
-      await this.emailService.sendEmailVerification(user);
+      if (!(await this.emailService.sendEmailVerification(user))) {
+        res.status(HttpStatus.BAD_REQUEST).send({ intraName: user.intraName });
+      }
       res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
       return;
     }
