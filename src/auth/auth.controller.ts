@@ -71,9 +71,11 @@ export class AuthController {
         HttpStatus.UNAUTHORIZED,
       );
     }
+
     if (user.two_factor_auth) {
       if (!(await this.emailService.sendEmailVerification(user))) {
         res.status(HttpStatus.BAD_REQUEST).send({ intraName: user.intraName });
+        return;
       }
       res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
       return;
@@ -133,14 +135,15 @@ export class AuthController {
         HttpStatus.UNAUTHORIZED,
       );
     }
+
     if (user.two_factor_auth) {
       if (!(await this.emailService.sendEmailVerification(user))) {
         res.status(HttpStatus.BAD_REQUEST).send({ intraName: user.intraName });
+        return;
       }
       res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
       return;
     }
-
     //res.send();
     console.log('status here', statusCode);
     res.status(statusCode).send({
@@ -233,6 +236,7 @@ export class AuthController {
     if (user.two_factor_auth) {
       if (!(await this.emailService.sendEmailVerification(user))) {
         res.status(HttpStatus.BAD_REQUEST).send({ intraName: user.intraName });
+        return;
       }
       res.status(HttpStatus.FORBIDDEN).send({ intraName: user.intraName });
       return;
