@@ -38,7 +38,16 @@ export class GameHistoryService {
   }
 
   async getAllGamesById(id: number, type: GameType, offset: number) {
-    const games = await this.gameHistoryRepository
+    let whereCondition = '(loser.id = :id OR winner.id = :id)';
+
+    if (type === GameType.RANK) {
+      whereCondition += ' AND game.type = :type';
+    } else if (type === GameType.NORMAL) {
+      whereCondition +=
+        ' AND (game.type = :normalType OR game.type = :hardType)';
+    }
+
+    const query = this.gameHistoryRepository
       .createQueryBuilder('game')
       .leftJoinAndSelect('game.loser', 'loser')
       .leftJoinAndSelect('game.winner', 'winner')
@@ -56,9 +65,11 @@ export class GameHistoryService {
         'loser.intraName',
         'loser.avatar',
       ])
-      .where('(loser.id = :id OR winner.id = :id) AND game.type = :type', {
+      .where(whereCondition, {
         id,
         type,
+        normalType: GameType.NORMAL,
+        hardType: GameType.HARD,
       })
       .orderBy('game.id', 'DESC')
       .offset(offset)
@@ -66,7 +77,7 @@ export class GameHistoryService {
       .getMany();
 
     return {
-      games,
+      games: await query,
     };
   }
 }
