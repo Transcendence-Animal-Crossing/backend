@@ -22,11 +22,11 @@ export class GameRecordController {
       throw new HttpException('offset은 양수만 가능', HttpStatus.BAD_REQUEST);
     }
     const ranks = await this.gameRecordService.getRanking(offset);
-    if (ranks.length == 0)
-      throw new HttpException(
-        '더이상 돌려줄 데이터 없음',
-        HttpStatus.BAD_REQUEST,
-      );
+    //if (ranks.length == 0)
+    //  throw new HttpException(
+    //    '더이상 돌려줄 데이터 없음',
+    //    HttpStatus.BAD_REQUEST,
+    //  );
     return ranks;
   }
 
