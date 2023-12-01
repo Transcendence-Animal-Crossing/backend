@@ -115,11 +115,11 @@ export class GameEventListener {
       });
     } else {
       await this.gameRecordRepository.update(readyUserId, {
-        generalTotalCount: () => 'generalTotalCount + 1',
-        generalWinCount: () => 'generalWinCount + 1',
+        generalTotalCount: () => 'general_total_count + 1',
+        generalWinCount: () => 'general_win_count + 1',
       });
       await this.gameRecordRepository.update(unreadyUserId, {
-        generalTotalCount: () => 'generalTotalCount + 1',
+        generalTotalCount: () => 'general_total_count + 1',
       });
     }
 
