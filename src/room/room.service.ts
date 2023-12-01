@@ -99,6 +99,7 @@ export class RoomService {
   }
 
   async create(server, client: Socket, dto: ConfigRoomDto) {
+    if (!dto.title) throw new BadRequestException('방 제목을 입력해주세요.');
     const ownerId = await this.clientRepository.findUserId(client.id);
     const owner = await this.userService.findOne(ownerId);
     const room = Room.create(dto.title, owner, dto.mode, dto.password);
