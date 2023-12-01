@@ -86,10 +86,13 @@ export class GameEventListener {
     const game = await this.gameRepository.find(gameId);
     if (!game) return;
     if (game.isEveryoneReady()) return;
+    await this.gameRepository.userLeave(game.leftUser.id);
+    await this.gameRepository.userLeave(game.rightUser.id);
+    await this.chatGateway.sendProfileUpdateToFriends(game.leftUser);
+    await this.chatGateway.sendProfileUpdateToFriends(game.rightUser);
+
     if (game.isEveryoneUnready()) {
       await this.gameRepository.delete(gameId);
-      await this.gameRepository.userLeave(game.leftUser.id);
-      await this.gameRepository.userLeave(game.rightUser.id);
       this.gameGateway.server.socketsLeave(gameId);
       return;
     }
@@ -100,21 +103,28 @@ export class GameEventListener {
     game.loseByDisconnect(unreadyUserId);
     await this.gameHistoryRepository.save(GameHistory.from(game));
 
-    await this.gameRecordRepository.update(readyUserId, {
-      rankTotalCount: () => 'rankTotalCount + 1',
-      rankWinCount: () => 'rankWinCount + 1',
-      rankScore: () => 'rankScore + 10',
-    });
-    await this.gameRecordRepository.update(unreadyUserId, {
-      rankTotalCount: () => 'rankTotalCount + 1',
-      rankScore: () => 'rankScore - 10',
-    });
+    if (game.type === GameType.RANK) {
+      await this.gameRecordRepository.update(readyUserId, {
+        rankTotalCount: () => 'rank_total_count + 1',
+        rankWinCount: () => 'rank_win_count + 1',
+        rankScore: () => 'rank_score + 10',
+      });
+      await this.gameRecordRepository.update(unreadyUserId, {
+        rankTotalCount: () => 'rank_total_count + 1',
+        rankScore: () => 'rank_score - 10',
+      });
+    } else {
+      await this.gameRecordRepository.update(readyUserId, {
+        generalTotalCount: () => 'generalTotalCount + 1',
+        generalWinCount: () => 'generalWinCount + 1',
+      });
+      await this.gameRecordRepository.update(unreadyUserId, {
+        generalTotalCount: () => 'generalTotalCount + 1',
+      });
+    }
 
     this.gameGateway.sendEvent(gameId, 'game-end', null);
-
     await this.gameRepository.delete(gameId);
-    await this.gameRepository.userLeave(game.leftUser.id);
-    await this.gameRepository.userLeave(game.rightUser.id);
     this.gameGateway.server.socketsLeave(gameId);
   }
 }
