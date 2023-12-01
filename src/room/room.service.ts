@@ -132,9 +132,11 @@ export class RoomService {
       server.to(dto.roomId).emit('room-unmute', {
         targetId: dto.targetId,
       });
-      const room: Room = await this.findById(dto.roomId);
-      room.unmuteUser(dto.targetId);
-      await this.roomRepository.update(room);
+      try {
+        const room: Room = await this.findById(dto.roomId);
+        room.unmuteUser(dto.targetId);
+        await this.roomRepository.update(room);
+      } catch (error) {}
     }, 600000);
     await this.roomRepository.saveMuteTimerId(dto.targetId, timerId);
     server.to(dto.roomId).emit('room-mute', dto);
