@@ -26,10 +26,11 @@ export class EmailService {
       emailVerification.emailToken &&
       (new Date().getTime() - emailVerification.timestamp.getTime()) / 60000 < 5 //5분으로 설정
     ) {
-      throw new HttpException(
-        '유효기간이 끝나지 않은 이메일 토큰이 있습니다.',
-        HttpStatus.BAD_REQUEST,
-      );
+      //throw new HttpException(
+      //  '유효기간이 끝나지 않은 이메일 토큰이 있습니다.',
+      //  HttpStatus.BAD_REQUEST,
+      //);
+      return false;
     } else {
       //todo: 프론트 때문에 해놓은거고 다시 주석 풀어야함
       const emailToken = (
@@ -109,7 +110,8 @@ export class EmailService {
 
   async sendEmailVerification(user: User) {
     const emailVerification = await this.findEmailVerification(user);
-    await this.createEmailToken(emailVerification.email);
+    if (!(await this.createEmailToken(emailVerification.email))) return false;
     await this.sendEmail(emailVerification.email);
+    return true;
   }
 }
