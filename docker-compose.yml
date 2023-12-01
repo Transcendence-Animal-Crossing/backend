@@ -1,12 +1,12 @@
 version: '3.8'
 
 services:
-#  frontend:
-#    image: mingi1123/tcen
-#    container_name: frontend
-#    ports:
-#      - "3000:3000"
-#    restart: always
+  frontend:
+    image: mingi1123/tcen
+    container_name: frontend
+    ports:
+      - "3000:3000"
+    restart: always
 
   backend:
     image: seunghso/tcen:0.6
