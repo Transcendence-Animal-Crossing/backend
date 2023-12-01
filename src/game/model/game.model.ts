@@ -85,12 +85,12 @@ export class Game {
 
   loseByDisconnect(userId: number) {
     if (this.leftUser.id === userId) {
-      this.leftScore = Game.MAX_SCORE;
-      this.rightScore = 0;
+      this.leftScore = 0;
+      this.rightScore = Game.MAX_SCORE;
     }
     if (this.rightUser.id === userId) {
-      this.rightScore = 0;
       this.leftScore = Game.MAX_SCORE;
+      this.rightScore = 0;
     }
     this.status = GameStatus.EARLY_FINISHED;
   }
