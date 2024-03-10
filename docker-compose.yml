@@ -9,7 +9,7 @@ services:
     restart: always
 
   backend:
-    image: seunghso/tcen:0.6
+    image: seunghso/tcen
     container_name: backend
     depends_on:
       postgres:

@@ -34,6 +34,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { User } from '../user/entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { SimpleRoomDto } from '../room/dto/simple.room.dto';
 
 // @UsePipes(new ValidationPipe())
 @WebSocketGateway({ namespace: Namespace.CHAT })
@@ -71,8 +72,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       Namespace.CHAT,
       client,
     );
-    const room = await this.roomService.getJoinedRoom(user.id);
-    if (room) await this.roomService.leave(this.server, client, user.id);
+    const room = await this.roomService.getJoinedRooms(user.id);
+    if (room) await this.roomService.leave(client, user.id);
+    // this.server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
     await this.clientService.disconnect(this.server, Namespace.CHAT, client);
     this.logger.log('[Chat WebSocket Disconnected!]: ' + user.nickName);
   }
@@ -108,7 +110,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-lobby')
   async joinLobby(client: Socket) {
     this.logger.debug('Client Send Event <room-lobby>');
-    const roomList = await this.roomService.joinLobby(client);
+    client.join('room-lobby');
+    const roomList = await this.roomService.findRoomByCursor(0);
     return { status: HttpStatus.OK, body: roomList };
   }
 
@@ -122,7 +125,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-create')
   async createRoom(client: Socket, dto: ConfigRoomDto) {
     this.logger.debug('Client Send Event <room-create>');
-    const room = await this.roomService.create(this.server, client, dto);
+    const room = await this.roomService.create(client, dto);
+    client.join(Namespace.CHAT + room.id);
+    if (dto.mode !== 'PRIVATE')
+      this.server
+        .to('room-lobby')
+        .emit('room-create', SimpleRoomDto.from(room));
+    // await this.achievementService.addChattingJoin(owner); 이벤트 처리로 변경
 
     return { status: HttpStatus.OK, body: { id: room.id } };
   }
@@ -130,12 +139,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @SubscribeMessage('room-mode')
   async changeRoomMode(client: Socket, dto: ConfigRoomDto) {
     this.logger.debug('Client Send Event <room-mode>');
-    await this.roomService.changeMode(
-      this.server,
-      client,
-      dto.mode,
-      dto.password,
-    );
+    await this.roomService.changeMode(client, dto.mode, dto.password);
+    // this.server.to('room-lobby').emit('room-update', SimpleRoomDto.from(room));
+    // this.server.to(Namespace.CHAT + room.id).emit('room-mode', {
+    //   mode: dto.mode,
+    // });
 
     return { status: HttpStatus.OK };
   }
@@ -152,7 +160,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomLeave(client: Socket) {
     this.logger.debug('Client Send Event <room-leave>');
     const userId = await this.clientRepository.findUserId(client.id);
-    await this.roomService.leave(this.server, client, userId);
+    await this.roomService.leave(client, userId);
     return { status: HttpStatus.OK };
   }
 
@@ -168,7 +176,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomMute(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-mute>');
 
-    await this.roomService.mute(this.server, client, dto);
+    await this.roomService.mute(client, dto);
+    this.server.to(dto.roomId).emit('room-mute', dto);
     return { status: HttpStatus.OK };
   }
 
@@ -176,7 +185,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomUnMute(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-unmute>');
 
-    await this.roomService.unmute(this.server, client, dto);
+    await this.roomService.unmute(client, dto);
+    this.server.to(dto.roomId).emit('room-unmute', dto);
     return { status: HttpStatus.OK };
   }
 
@@ -184,7 +194,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomKick(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-kick>');
 
-    await this.roomService.kick(this.server, client, dto);
+    await this.roomService.kick(client, dto);
+    this.server.to(dto.roomId).emit('room-kick', dto);
+    const kickedClientId = await this.clientRepository.findClientId(
+      Namespace.CHAT,
+      dto.targetId,
+    );
+    if (kickedClientId)
+      this.server.sockets.get(kickedClientId).leave(dto.roomId);
     return { status: HttpStatus.OK };
   }
 
@@ -192,7 +209,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomBan(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-ban>');
 
-    await this.roomService.ban(this.server, client, dto);
+    await this.roomService.ban(client, dto);
+    this.server.to(dto.roomId).emit('room-ban', dto);
+    const bannedClientId = await this.clientRepository.findClientId(
+      Namespace.CHAT,
+      dto.targetId,
+    );
+    if (bannedClientId)
+      this.server.sockets.get(bannedClientId).leave(dto.roomId);
     return { status: HttpStatus.OK };
   }
 
@@ -200,7 +224,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async onRoomUnban(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <room-unban>');
 
-    await this.roomService.unban(this.server, client, dto);
+    await this.roomService.unban(client, dto);
+    this.server.to(dto.roomId).emit('room-unban', dto);
+
     return { status: HttpStatus.OK };
   }
 
@@ -208,7 +234,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async addAdmin(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <add-admin>');
 
-    await this.roomService.addAdmin(this.server, client, dto);
+    await this.roomService.addAdmin(client, dto);
+    this.server.to(dto.roomId).emit('add-admin', dto);
+
     return { status: HttpStatus.OK };
   }
 
@@ -216,7 +244,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   async removeAdmin(client: Socket, dto: ActionRoomDto) {
     this.logger.debug('Client Send Event <remove-admin>');
 
-    await this.roomService.removeAdmin(this.server, client, dto);
+    await this.roomService.removeAdmin(client, dto);
+    this.server.to(dto.roomId).emit('remove-admin', dto);
+
     return { status: HttpStatus.OK };
   }
 

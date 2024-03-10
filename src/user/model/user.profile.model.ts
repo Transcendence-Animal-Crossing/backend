@@ -1,5 +1,5 @@
 import { User } from '../entities/user.entity';
-import { Participant } from '../../room/model/participant.model';
+import { Participant } from '../../room/model/room-user.model';
 
 export class UserProfile {
   protected constructor(
@@ -30,14 +30,5 @@ export class UserProfile {
 
   public static fromUser(user: User): UserProfile {
     return new UserProfile(user.id, user.nickName, user.intraName, user.avatar);
-  }
-
-  public static fromParticipant(participant: Participant): UserProfile {
-    return {
-      id: participant.id,
-      nickName: participant.nickName,
-      intraName: participant.intraName,
-      avatar: participant.avatar,
-    };
   }
 }

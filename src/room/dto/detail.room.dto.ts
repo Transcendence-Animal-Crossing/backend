@@ -1,6 +1,6 @@
 import { Room } from '../model/room.model';
 import { UserProfile } from '../../user/model/user.profile.model';
-import { Participant } from '../model/participant.model';
+import { Participant } from '../model/room-user.model';
 
 export class DetailRoomDto {
   private constructor(room: Room) {

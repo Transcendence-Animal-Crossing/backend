@@ -1,53 +1,40 @@
-import { v1 as uuid } from 'uuid';
-import { UserProfile } from '../../user/model/user.profile.model';
-import { Participant } from './participant.model';
-import { User } from '../../user/entities/user.entity';
-import { Grade } from '../enum/user.grade.enum';
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
+import { RoomUser } from './room-user.model';
 
+@Entity()
 export class Room {
-  SECOND = 1000;
-  MUTE_DURATION = 600 * this.SECOND;
+  @PrimaryGeneratedColumn('increment')
+  id: number;
 
-  private constructor(
-    title: string,
-    owner: User,
-    mode: string,
-    password: string,
-  ) {
-    this.id = uuid();
+  @Column()
+  title: string;
+
+  @Column()
+  mode: string;
+
+  @Column()
+  password: string;
+
+  @OneToMany(() => RoomUser, (roomUser) => roomUser.room)
+  roomUsers: RoomUser[];
+
+  private constructor(title: string, mode: string, password: string) {
     this.title = title;
-    this.participants = [];
-    this.participants.push(Participant.of(owner, Grade.OWNER));
-    this.bannedUsers = [];
-    this.invitedUsers = [];
     this.mode = mode;
     this.password = password;
   }
 
-  id: string;
-  title: string;
-  participants: Participant[];
-  bannedUsers: UserProfile[];
-  invitedUsers: UserProfile[];
-  mode: string;
-  password: string;
-
-  public static create(
-    title: string,
-    owner: User,
-    mode: string,
-    password: string,
-  ): Room {
-    return new Room(title, owner, mode, password);
+  public static create(title: string, mode: string, password: string): Room {
+    return new Room(title, mode, password);
   }
 
-  isParticipant(userId): boolean {
-    return this.participants.some((participant) => participant.id === userId);
-  }
+  // isParticipant(userId): boolean {
+  //   return this.participants.some((participant) => participant.id === userId);
+  // }
 
-  isBanned(userId): boolean {
-    return this.bannedUsers.some((bannedUser) => bannedUser.id === userId);
-  }
+  // isBanned(userId): boolean {
+  //   return this.bannedUsers.some((bannedUser) => bannedUser.id === userId);
+  // }
 
   isProtected(): boolean {
     return this.mode === 'PROTECTED';
@@ -60,6 +47,7 @@ export class Room {
   validatePassword(password: string): boolean {
     return this.password === password;
   }
+  /*
 
   isInvited(userId): boolean {
     return this.invitedUsers.some((invitedUser) => invitedUser.id === userId);
@@ -160,4 +148,5 @@ export class Room {
       }
     }
   }
+   */
 }

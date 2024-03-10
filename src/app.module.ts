@@ -11,7 +11,6 @@ import { AppService } from './app.service';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { APP_GUARD } from '@nestjs/core';
 import { RoomModule } from './room/room.module';
-import { CacheModule } from '@nestjs/cache-manager';
 import { FollowModule } from './folllow/follow.module';
 import { WSModule } from './ws/ws.module';
 import { User } from './user/entities/user.entity';
@@ -29,16 +28,18 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Message } from './chat/entity/message.entity';
 import { MessageHistory } from './chat/entity/message-history.entity';
+import { RedisModule } from '@liaoliaots/nestjs-redis';
 
 @Module({
   imports: [
+    RedisModule.forRoot({
+      config: {
+        host: process.env.REDIS_HOST,
+        port: +process.env.REDIS_PORT,
+      },
+    }),
     ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
-    CacheModule.register({
-      ttl: null,
-      max: 1000,
-      isGlobal: true,
-    }),
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
@@ -53,7 +54,7 @@ import { MessageHistory } from './chat/entity/message-history.entity';
       database: process.env.DB_NAME,
       autoLoadEntities: true,
       synchronize: true,
-      //logging: true,
+      logging: true,
     }),
     TypeOrmModule.forFeature([
       User,

@@ -1,4 +1,4 @@
 export class ActionRoomDto {
-  roomId: string;
+  roomId: number;
   targetId: number;
 }

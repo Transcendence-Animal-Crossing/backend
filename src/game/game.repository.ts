@@ -1,49 +1,47 @@
-import { Inject, Injectable } from '@nestjs/common';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { Injectable } from '@nestjs/common';
 import { Game } from './model/game.model';
+import Redis from 'ioredis';
+import { InjectRedis } from '@liaoliaots/nestjs-redis';
 
 @Injectable()
 export class GameRepository {
-  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+  constructor(@InjectRedis() private readonly redis: Redis) {}
 
-  async save(game) {
-    await this.cacheManager.set('game-' + game.id, game);
-    const gameIds = (await this.cacheManager.get<string[]>('game-ids')) || [];
-    gameIds.push(game.id);
-    await this.cacheManager.set('game-ids', gameIds);
+  async save(game: Game) {
+    await this.redis.set('game-' + game.id, JSON.stringify(game));
   }
-  async find(id): Promise<Game> | undefined {
-    return this.cacheManager.get('game-' + id);
+  async find(id: string): Promise<Game> | undefined {
+    return JSON.parse(await this.redis.get('game-' + id));
   }
-  async update(game) {
-    await this.cacheManager.set('game-' + game.id, game);
+  async update(game: Game) {
+    await this.redis.set('game-' + game.id, JSON.stringify(game));
   }
-  async delete(id) {
-    await this.cacheManager.del('game-' + id);
-    const gameIds = (await this.cacheManager.get<string[]>('game-ids')) || [];
-    gameIds.splice(gameIds.indexOf(id), 1);
-    await this.cacheManager.set('game-ids', gameIds);
+  async delete(id: string) {
+    await this.redis.del('game-' + id);
   }
-  async userJoin(gameId, userId) {
-    await this.cacheManager.set('game-user-' + userId, gameId);
+  async userJoin(gameId: string, userId: number) {
+    await this.redis.set('game-user-' + userId, gameId);
   }
 
-  async userLeave(userId) {
-    await this.cacheManager.del('game-user-' + userId);
+  async userLeave(userId: number) {
+    await this.redis.del('game-user-' + userId);
   }
 
-  async findGameIdByUserId(userId): Promise<string> {
-    return this.cacheManager.get('game-user-' + userId);
+  async findGameIdByUserId(userId: number): Promise<string> {
+    return this.redis.get('game-user-' + userId);
   }
 
   async findAll() {
-    const gameIds = (await this.cacheManager.get<string[]>('game-ids')) || [];
-    const games = [];
-    for (const gameId of gameIds) {
-      const game = await this.cacheManager.get<Game>('game-' + gameId);
-      if (game) games.push(game);
-    }
-    return games;
+    let cursor = '0';
+    const keys: string[] = [];
+    do {
+      const reply = await this.redis.scan(cursor, 'MATCH', 'game-*');
+      cursor = reply[0];
+      keys.push(...reply[1]);
+    } while (cursor !== '0');
+
+    if (keys.length > 0) return this.redis.mget(...keys);
+
+    return [];
   }
 }
